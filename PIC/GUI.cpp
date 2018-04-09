@@ -5,7 +5,7 @@
 GUI::GUI()
 {
 	backend = new Backend();
-	printf("GUI Initialized");
+	printf("GUI Initialized!!!");
 }
 
 
