@@ -18,6 +18,14 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Backend.h" />
+    <ClInclude Include="GUI.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Backend.cpp" />
+    <ClCompile Include="GUI.cpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{80E45828-8276-4A93-9394-FC7259BCA7AB}</ProjectGuid>
