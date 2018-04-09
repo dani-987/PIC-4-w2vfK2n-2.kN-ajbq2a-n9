@@ -25,6 +25,7 @@
   <ItemGroup>
     <ClCompile Include="Backend.cpp" />
     <ClCompile Include="GUI.cpp" />
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
