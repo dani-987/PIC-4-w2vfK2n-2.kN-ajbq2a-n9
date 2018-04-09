@@ -16,7 +16,9 @@ int GUI::run()
 {
 	backend->GetBit(0, 0);
 	while (1) {
-		printf(backend->getErrorMSG());
+		char* c = backend->getErrorMSG();
+		printf("%s\n", c);
+		free(c);
 	}
 	return 0;
 }
