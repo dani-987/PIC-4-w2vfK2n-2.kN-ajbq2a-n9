@@ -21,6 +21,12 @@
     <ClInclude Include="Backend.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="ASM.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="Compiler.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GUI.cpp">
@@ -30,6 +36,12 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="Compiler.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="ASM.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>
