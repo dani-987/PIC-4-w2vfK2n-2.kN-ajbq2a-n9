@@ -4,6 +4,10 @@
 #include <mutex>
 #include <thread>
 
+#define UC_SIZE_RAM		100
+#define UC_SIZE_PROGRAM	100
+#define UC_SIZE_EEPROM	100
+
 class Backend
 {
 	/*
@@ -35,10 +39,10 @@ private:
 	bool isLoadingFile;
 	std::mutex m_isLoadingFile;
 
-	char** ram;
+	char* ram;
 	std::mutex m_ram;
 
-	char** eeprom;
+	char* eeprom;
 	std::mutex m_eeprom;
 public:
 	Backend();
@@ -49,9 +53,9 @@ public:
 	bool Stop();
 	bool Step();
 	bool Reset();
-	bool SetMem(int from, int len, void* mem);
+	bool SetMem(int from, int len, void* mem);//es wird kein free aufgerufen
 	bool SetBit(int byte, int pos, bool val);
-	void* GetMem(int from, int len);
+	void* GetMem(int from, int len);//nullptr möglich! DEDENKE malloc! -> free
 	int  GetBit(int byte, int pos);	//bool
 	int getRegW();					//char
 	bool setRegW(char val);

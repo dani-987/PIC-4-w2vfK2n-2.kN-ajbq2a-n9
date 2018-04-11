@@ -32,7 +32,7 @@ typedef struct scannerstring {
 #define STATUS_READING_KOMMENT			11
 
 
-char* lastError = "Kein Fehler aufgetreten!";
+char* __compiler__lastError = "Kein Fehler aufgetreten!";
 
 char* puffer = nullptr;
 int bytesReaded = 0, aktPufferPosition = 0;
@@ -51,7 +51,7 @@ ASM * compileFile(char * file, int memsize)
 	FILE* f = fopen(file, "r");
 	DOIF(DEBUGLVL >= DEBUGLVL_MUCH)PRINTF2("Function: compileFile((char*):'%s', (int):%d)\n", file, memsize);
 	if (!f) { 
-		lastError = CANNOT_OPEN_FILE;
+		__compiler__lastError = CANNOT_OPEN_FILE;
 		return nullptr;
 	}
 	bytesReaded = 0;
@@ -62,7 +62,7 @@ ASM * compileFile(char * file, int memsize)
 	DOIF(DEBUGLVL >= DEBUGLVL_MUCH)PRINTF1("PUFFERSIZE is set to: %d\n", pufferSize);
 	puffer = (char*)malloc(pufferSize * sizeof(char));
 	if (puffer == nullptr) {
-		lastError = MEMORY_MISSING;
+		__compiler__lastError = MEMORY_MISSING;
 		fclose(f);
 		return nullptr;
 	}
@@ -71,7 +71,7 @@ ASM * compileFile(char * file, int memsize)
 	memset(asmcode, 0, sizeof(ASM_CODE)*memsize);
 	if (asmcode == nullptr) {
 		free(puffer);
-		lastError = MEMORY_MISSING;
+		__compiler__lastError = MEMORY_MISSING;
 		fclose(f);
 		return nullptr;
 	}
@@ -81,7 +81,7 @@ ASM * compileFile(char * file, int memsize)
 	if (retASM == nullptr) {
 		free(puffer);
 		free(asmcode);
-		lastError = MEMORY_MISSING;
+		__compiler__lastError = MEMORY_MISSING;
 		fclose(f);
 		return nullptr;
 	}
@@ -101,7 +101,7 @@ ASM * compileFile(char * file, int memsize)
 			PRINTF6("\tLINE: '%s'\n\tASM: '%s'\n\tCOM: '%s'\n\tLABEL: '%s'\n\tBytecode: '%s'\n\tFunctionpointer: '%s'\n\n", aktLine->lineOfCode, aktLine->asmCode, aktLine->comment, aktLine->label, aktLine->bytecode, (aktLine->bytecode != nullptr && asmcode != nullptr)?functionPointerToName(asmcode->function):nullptr);
 		DOIF(DEBUGLVL >= DEBUGLVL_MUCH)PRINTF2("\tPOS: %d\n\tCODE-LEN: %d\n", aktPosInCode, codeLen);
 		if (codeLen > memsize) {
-			lastError = "Programm to long.";
+			__compiler__lastError = "Programm to long.";
 			goto ERROR_END;
 		}
 	}
@@ -111,7 +111,7 @@ ASM * compileFile(char * file, int memsize)
 	return retASM;
 ERROR_END:
 	free(puffer);
-	PRINTF1("ERROR_END in compiler; lastError: '%s'\n\n", lastError);
+	PRINTF1("ERROR_END in compiler; __compiler__lastError: '%s'\n\n", __compiler__lastError);
 	retASM->text = startLine;
 	freeASM(retASM);
 	fclose(f);
@@ -146,8 +146,8 @@ bool decodeLine(ASM_CODE** code, int* len, ASM_TEXT** text, int* pos, FILE* file
 				status == STATUS_READING_BEFORE_CODE2 ||
 				status == STATUS_READING_CODE2) {
 				if(fileReadedTilEnd)
-					lastError = "Unerwartetes Dateiende während des Lesens des Maschinencodes.";
-				else lastError = "Unerwartetes Zeilenende während des Lesens des Maschinencodes.";
+					__compiler__lastError = "Unerwartetes Dateiende während des Lesens des Maschinencodes.";
+				else __compiler__lastError = "Unerwartetes Zeilenende während des Lesens des Maschinencodes.";
 				goto ERROR_END; 
 			}
 			else if((*code)->function != nullptr){
@@ -157,8 +157,8 @@ bool decodeLine(ASM_CODE** code, int* len, ASM_TEXT** text, int* pos, FILE* file
 					status == STATUS_READING_LABEL ||
 					status == STATUS_READING_BEFORE_ASM) {
 					if (fileReadedTilEnd)
-						lastError = "Unerwartetes Dateiende, der Assemblercode fehlt.";
-					else lastError = "Unerwartetes Zeilenende, der Assemblercode fehlt.";
+						__compiler__lastError = "Unerwartetes Dateiende, der Assemblercode fehlt.";
+					else __compiler__lastError = "Unerwartetes Zeilenende, der Assemblercode fehlt.";
 					goto ERROR_END;
 				}
 				goto ERRORLESS_END;
@@ -188,7 +188,7 @@ bool decodeLine(ASM_CODE** code, int* len, ASM_TEXT** text, int* pos, FILE* file
 				codeVal = sign + (10 - 'A');
 				break;
 			default:
-				lastError = "Unexpected Sign! Expected Space, Tab, 0-9, a-f, A-F at Linebegin.";
+				__compiler__lastError = "Unexpected Sign! Expected Space, Tab, 0-9, a-f, A-F at Linebegin.";
 				goto ERROR_END;
 			}
 			break;
@@ -212,7 +212,7 @@ bool decodeLine(ASM_CODE** code, int* len, ASM_TEXT** text, int* pos, FILE* file
 				codeVal = (codeVal << 4) + sign + (10 - 'A');
 				break;
 			default:
-				lastError = "Unexpected Sign! Expected Space, Tab, 0-9, a-f, A-F while reading machine code.";
+				__compiler__lastError = "Unexpected Sign! Expected Space, Tab, 0-9, a-f, A-F while reading machine code.";
 				goto ERROR_END;
 			}
 			break;
@@ -237,7 +237,7 @@ bool decodeLine(ASM_CODE** code, int* len, ASM_TEXT** text, int* pos, FILE* file
 				codeVal = (codeVal << 4) + sign + (10 - 'A');
 				break;
 			default:
-				lastError = "Unexpected Sign! Expected Space, Tab, 0-9, a-f, A-F while reading machine code.";
+				__compiler__lastError = "Unexpected Sign! Expected Space, Tab, 0-9, a-f, A-F while reading machine code.";
 				goto ERROR_END;
 			}
 			break;
@@ -247,7 +247,7 @@ bool decodeLine(ASM_CODE** code, int* len, ASM_TEXT** text, int* pos, FILE* file
 				status = STATUS_READING_BEFORE_LINE;
 				newText = (ASM_TEXT*)malloc(sizeof(ASM_TEXT));
 				if (newText == nullptr) {
-					lastError = MEMORY_MISSING;
+					__compiler__lastError = MEMORY_MISSING;
 					goto ERROR_END;
 				}
 				newText->lineOfCode = nullptr;
@@ -276,7 +276,7 @@ bool decodeLine(ASM_CODE** code, int* len, ASM_TEXT** text, int* pos, FILE* file
 				codeVal = (codeVal << 4) + sign + (10 - 'A');
 				break;
 			default:
-				lastError = "Unexpected Sign! Expected Space, Tab, 0-9, a-f, A-F while reading machine code.";
+				__compiler__lastError = "Unexpected Sign! Expected Space, Tab, 0-9, a-f, A-F while reading machine code.";
 				goto ERROR_END;
 			}
 			break;
@@ -287,7 +287,7 @@ bool decodeLine(ASM_CODE** code, int* len, ASM_TEXT** text, int* pos, FILE* file
 				status = STATUS_READING_LINE;
 			}
 			else {
-				lastError = "Unexpected Sign! Expected Space, Tab, 0-9 for Linenumber!";
+				__compiler__lastError = "Unexpected Sign! Expected Space, Tab, 0-9 for Linenumber!";
 				goto ERROR_END;
 			}
 			break;
@@ -301,7 +301,7 @@ bool decodeLine(ASM_CODE** code, int* len, ASM_TEXT** text, int* pos, FILE* file
 				else {
 					newText = (ASM_TEXT*)malloc(sizeof(ASM_TEXT));
 					if (newText == nullptr) {
-						lastError = MEMORY_MISSING;
+						__compiler__lastError = MEMORY_MISSING;
 						goto ERROR_END;
 					}
 					newText->bytecode = nullptr;
@@ -319,7 +319,7 @@ bool decodeLine(ASM_CODE** code, int* len, ASM_TEXT** text, int* pos, FILE* file
 				if (!appendToString(&string, &aktPosInString, sign, stringLen)) { goto ERROR_END; }
 			}
 			else {
-				lastError = "Unexpected Sign! Expected Space, Tab, 0-9 for Linenumber!";
+				__compiler__lastError = "Unexpected Sign! Expected Space, Tab, 0-9 for Linenumber!";
 				goto ERROR_END;
 			}
 			break;
@@ -332,7 +332,7 @@ bool decodeLine(ASM_CODE** code, int* len, ASM_TEXT** text, int* pos, FILE* file
 				if (!appendToString(&string, &aktPosInString, sign, stringLen)){goto ERROR_END;}
 			}
 			else {
-				lastError = "Unexpected Sign! Expected Space, Tab, a-z, A-Z, 0-9 for Label!";
+				__compiler__lastError = "Unexpected Sign! Expected Space, Tab, a-z, A-Z, 0-9 for Label!";
 				goto ERROR_END;
 			}
 			break;
@@ -345,7 +345,7 @@ bool decodeLine(ASM_CODE** code, int* len, ASM_TEXT** text, int* pos, FILE* file
 				if (!appendToString(&string, &aktPosInString, sign, stringLen)) { goto ERROR_END; }
 			}
 			else {
-				lastError = "Unexpected Sign! Expected Space, Tab, a-z, A-Z, 0-9 for Label!";
+				__compiler__lastError = "Unexpected Sign! Expected Space, Tab, a-z, A-Z, 0-9 for Label!";
 				goto ERROR_END;
 			}
 			break;
@@ -362,7 +362,7 @@ bool decodeLine(ASM_CODE** code, int* len, ASM_TEXT** text, int* pos, FILE* file
 				if (!appendToString(&string, &aktPosInString, sign, stringLen)) { goto ERROR_END; }
 			}
 			else {
-				lastError = "Unexpected Sign! Expected Space, Tab, a-z, A-Z, 0-9 for Label!";
+				__compiler__lastError = "Unexpected Sign! Expected Space, Tab, a-z, A-Z, 0-9 for Label!";
 				goto ERROR_END;
 			}
 			break;
@@ -372,7 +372,7 @@ bool decodeLine(ASM_CODE** code, int* len, ASM_TEXT** text, int* pos, FILE* file
 				break;
 			case ';':
 				if ((*code)->function != nullptr) {
-					lastError = "Expected assembly-code. Commend found!";
+					__compiler__lastError = "Expected assembly-code. Commend found!";
 					goto ERROR_END;
 				}
 				status = STATUS_READING_KOMMENT;
@@ -421,7 +421,7 @@ ERRORLESS_END:
 	DOIF(string != nullptr)PRINTF2("newText->next != nullptr (@%d, status: %d)\n", __LINE__, status);
 	return true;
 ERROR_END:
-	PRINTF1("ERROR_END ############: '%s'\n", lastError);
+	PRINTF1("ERROR_END ############: '%s'\n", __compiler__lastError);
 	if (newText != nullptr) {
 		if (newText->bytecode != nullptr)free(newText->bytecode);
 		if (newText->lineOfCode != nullptr)free(newText->lineOfCode);
@@ -861,7 +861,7 @@ bool decodeInstruction(int code, ASM_CODE* decoded) {
 bool appendToString(scannerstring** string, scannerstring** aktPosInString, char sign, int& len) {
 	scannerstring* append = (scannerstring*)malloc(sizeof(scannerstring));
 	if (append == nullptr) {
-		lastError = "Missing Memmory.";
+		__compiler__lastError = "Missing Memmory.";
 		return false;
 	}
 	append->sign = sign;
@@ -869,7 +869,7 @@ bool appendToString(scannerstring** string, scannerstring** aktPosInString, char
 	if (*string == nullptr) { DOIF(DEBUGLVL >= DEBUGLVL_MUCH)PRINTF("NEW STRING\n"); *string = append; len = 1; }
 	else if (aktPosInString == nullptr) {
 		free(append);
-		lastError = "Error in Calling Function 'appendToString'.";
+		__compiler__lastError = "Error in Calling Function 'appendToString'.";
 		return false;
 	}
 	else { DOIF(DEBUGLVL >= DEBUGLVL_MUCH)PRINTF("APPENDING TO STRING\n"); (*aktPosInString)->next = append; len++;}
@@ -882,7 +882,7 @@ bool appendToString(scannerstring** string, scannerstring** aktPosInString, char
 char* scannerString2PChar(scannerstring* string, int len) {
 	char *retString = (char*)malloc((len + 1) * sizeof(char));
 	if (retString == nullptr) {
-		lastError = MEMORY_MISSING;
+		__compiler__lastError = MEMORY_MISSING;
 		freeScannerString(string);
 		return nullptr;
 	}
@@ -941,10 +941,10 @@ void freeASM(ASM* toFree) {
 
 char * getCompilerError()
 {
-	return lastError;
+	return __compiler__lastError;
 }
 
-char* functionPointerToName(void(*f)(void*, void*)) {
+char* functionPointerToName(instruction_t f) {
 	if(f == instructions::ADDWF)		return "ADDWF";
 	else if(f == instructions::ANDWF)	return "ANDWF";
 	else if(f == instructions::CLRF)	return "CLRF";

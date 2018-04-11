@@ -16,6 +16,7 @@ int main(int argc, char *argv[]) {
 		}
 		if(test != nullptr)freeASM(test);
 		else { printf("test == nullptr\n"); system("pause"); }
+		system("pause");
 	}
 	system("pause");
 	/*/
