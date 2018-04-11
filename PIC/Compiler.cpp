@@ -7,6 +7,12 @@
 #define CANNOT_OPEN_FILE	"Kann Datei nicht öffnen."
 #define MEMORY_MISSING		"Es fehlt an Arbeitsspeicher."
 
+#define DEBUGLVL_NONE	0
+#define DEBUGLVL_NORMAL	1
+#define DEBUGLVL_MUCH	2
+#define DEBUGLVL_ALL	3
+VARDEF(int, DEBUGLVL, DEBUGLVL_NONE);
+
 typedef struct scannerstring {
 	char sign;
 	scannerstring* next;
@@ -28,12 +34,12 @@ typedef struct scannerstring {
 
 char* lastError = "Kein Fehler aufgetreten!";
 
-char* puffer;
-int bytesReaded, aktPufferPosition;
+char* puffer = nullptr;
+int bytesReaded = 0, aktPufferPosition = 0;
 DWORD pufferSize = 0;
-bool fileReadedTilEnd;
+bool fileReadedTilEnd = false;
 
-bool decodeLine(ASM_CODE** code, int* pos, ASM_TEXT** text, FILE* file);
+bool decodeLine(ASM_CODE** code, int* len, ASM_TEXT** text, int* pos, FILE* file);
 bool decodeInstruction(int code, ASM_CODE* decoded);
 bool appendToString(scannerstring** string, scannerstring** aktPosInString, char sign, int& len);
 char* scannerString2PChar(scannerstring* string, int len);
@@ -43,61 +49,100 @@ char getNextChar(FILE* file);
 ASM * compileFile(char * file, int memsize)
 {
 	FILE* f = fopen(file, "r");
+	DOIF(DEBUGLVL >= DEBUGLVL_MUCH)PRINTF2("Function: compileFile((char*):'%s', (int):%d)\n", file, memsize);
 	if (!f) { 
 		lastError = CANNOT_OPEN_FILE;
 		return nullptr;
 	}
-	if (pufferSize < 0 && (!GetDiskFreeSpace(CA2A(file), nullptr, &pufferSize, nullptr, nullptr) || pufferSize < 8)) {
+	bytesReaded = 0;
+	aktPufferPosition = 0;
+	if (!GetDiskFreeSpace(CA2A(file), nullptr, &pufferSize, nullptr, nullptr)) {
 		pufferSize = 64 * 1024;
+	}
+	DOIF(DEBUGLVL >= DEBUGLVL_MUCH)PRINTF1("PUFFERSIZE is set to: %d\n", pufferSize);
+	puffer = (char*)malloc(pufferSize * sizeof(char));
+	if (puffer == nullptr) {
+		lastError = MEMORY_MISSING;
+		fclose(f);
+		return nullptr;
 	}
 	fileReadedTilEnd = false;
 	ASM_CODE* asmcode = (ASM_CODE*)malloc(sizeof(ASM_CODE)*memsize);
+	memset(asmcode, 0, sizeof(ASM_CODE)*memsize);
 	if (asmcode == nullptr) {
+		free(puffer);
 		lastError = MEMORY_MISSING;
+		fclose(f);
 		return nullptr;
 	}
 	ASM_TEXT* aktLine = nullptr, *startLine = nullptr;
 	ASM* retASM = (ASM*)malloc(sizeof(ASM));
-	int aktPosInCode = 0;
+	int aktPosInCode = 0, codeLen = 0;
 	if (retASM == nullptr) {
+		free(puffer);
 		free(asmcode);
 		lastError = MEMORY_MISSING;
+		fclose(f);
 		return nullptr;
 	}
 	retASM->code = asmcode;
+	retASM->text = nullptr;
 	bytesReaded = -1;
+	DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF("START COMPILING...\n");
 	while (!fileReadedTilEnd) {
-		if (!decodeLine(&asmcode, &aktPosInCode, &aktLine, f)) {
+		if (!decodeLine(&asmcode, &codeLen, &aktLine, &aktPosInCode, f)) {
+			PRINTF("ERROR DURING COMPILING!\n");
 			goto ERROR_END;
 		}
 		else if(startLine == nullptr){
 			startLine = aktLine;
 		}
-		if ((int)(asmcode - retASM->code) > memsize) {
+		DOIF(DEBUGLVL >= DEBUGLVL_NORMAL && aktLine != nullptr)
+			PRINTF6("\tLINE: '%s'\n\tASM: '%s'\n\tCOM: '%s'\n\tLABEL: '%s'\n\tBytecode: '%s'\n\tFunctionpointer: '%s'\n\n", aktLine->lineOfCode, aktLine->asmCode, aktLine->comment, aktLine->label, aktLine->bytecode, (aktLine->bytecode != nullptr && asmcode != nullptr)?functionPointerToName(asmcode->function):nullptr);
+		DOIF(DEBUGLVL >= DEBUGLVL_MUCH)PRINTF2("\tPOS: %d\n\tCODE-LEN: %d\n", aktPosInCode, codeLen);
+		if (codeLen > memsize) {
 			lastError = "Programm to long.";
 			goto ERROR_END;
 		}
 	}
+	free(puffer);
 	retASM->text = startLine;
 	fclose(f);
 	return retASM;
 ERROR_END:
+	free(puffer);
+	PRINTF1("ERROR_END in compiler; lastError: '%s'\n\n", lastError);
 	retASM->text = startLine;
 	freeASM(retASM);
 	fclose(f);
 	return nullptr;
 }
 
-bool decodeLine(ASM_CODE** code, int* pos, ASM_TEXT** text, FILE* file) {
+bool decodeLine(ASM_CODE** code, int* len, ASM_TEXT** text, int* pos, FILE* file) {
+	DOIF(DEBUGLVL >= DEBUGLVL_MUCH)PRINTF1("Function: decodeLine(code, (int):%d, text, file)\n", *pos);
 	char sign, status = 0;
-	ASM_CODE* newCode = nullptr;
 	ASM_TEXT* newText = nullptr;
-	scannerstring* string = nullptr, *aktPosInString;
+	scannerstring* string = nullptr, *aktPosInString = nullptr;
 	int codeVal = 0, stringLen;
 	while (1) {
 		sign = getNextChar(file);
+		DOIF(DEBUGLVL >= DEBUGLVL_ALL)PRINTF3("READED SIGN: '%c' in STATUS: %d and EOF: %d\n", sign, status, fileReadedTilEnd);
 		if (fileReadedTilEnd || sign == '\n') {
-			if (status == STATUS_READING_CODE1 || 
+			if (status == STATUS_READING_ASM) {
+				newText->asmCode = scannerString2PChar(string, stringLen);
+				string = nullptr;
+				if (newText->asmCode == nullptr) {
+					goto ERROR_END;
+				}
+			}
+			else if (status == STATUS_READING_KOMMENT) {
+				newText->comment = scannerString2PChar(string, stringLen);
+				string = nullptr;
+				if (newText->comment == nullptr) {
+					goto ERROR_END;
+				}
+			}
+			else if (status == STATUS_READING_CODE1 || 
 				status == STATUS_READING_BEFORE_CODE2 ||
 				status == STATUS_READING_CODE2) {
 				if(fileReadedTilEnd)
@@ -105,7 +150,7 @@ bool decodeLine(ASM_CODE** code, int* pos, ASM_TEXT** text, FILE* file) {
 				else lastError = "Unerwartetes Zeilenende während des Lesens des Maschinencodes.";
 				goto ERROR_END; 
 			}
-			else if(newCode != nullptr){
+			else if((*code)->function != nullptr){
 				if (status == STATUS_READING_BEFORE_LINE ||
 					status == STATUS_READING_BEFORE_LABEL1 ||
 					status == STATUS_READING_BEFORE_LABEL2 ||
@@ -126,8 +171,8 @@ bool decodeLine(ASM_CODE** code, int* pos, ASM_TEXT** text, FILE* file) {
 			case ' ': case '\t':
 				status = STATUS_READING_BEFORE_LINE;
 				break;
-			case '0': case '1': case '3': case '4': case '5':
-			case '6': case '7': case '8': case '9':
+			case '0': case '1': case '2': case '3': case '4':
+			case '5': case '6': case '7': case '8': case '9':
 				status = STATUS_READING_CODE1;
 				if (!appendToString(&string, &aktPosInString, sign, stringLen)) { goto ERROR_END; }
 				codeVal = sign - '0';
@@ -153,19 +198,16 @@ bool decodeLine(ASM_CODE** code, int* pos, ASM_TEXT** text, FILE* file) {
 				status = STATUS_READING_BEFORE_CODE2;
 				if (!appendToString(&string, &aktPosInString, ' ', stringLen)) { goto ERROR_END; }
 				break;
-			case '0': case '1': case '3': case '4': case '5':
-			case '6': case '7': case '8': case '9':
-				status = STATUS_READING_CODE2;
+			case '0': case '1': case '2': case '3': case '4':
+			case '5': case '6': case '7': case '8': case '9':
 				if (!appendToString(&string, &aktPosInString, sign, stringLen)) { goto ERROR_END; }
 				codeVal = (codeVal << 4) + sign - '0';
 				break;
 			case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
-				status = STATUS_READING_CODE2;
 				if (!appendToString(&string, &aktPosInString, sign + ('A' - 'a'), stringLen)) { goto ERROR_END; }
 				codeVal = (codeVal << 4) + sign + (10 - 'a');
 				break;
 			case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
-				status = STATUS_READING_CODE2;
 				if (!appendToString(&string, &aktPosInString, sign, stringLen)) { goto ERROR_END; }
 				codeVal = (codeVal << 4) + sign + (10 - 'A');
 				break;
@@ -178,16 +220,19 @@ bool decodeLine(ASM_CODE** code, int* pos, ASM_TEXT** text, FILE* file) {
 			switch (sign) {
 			case ' ': case '\t':
 				break;
-			case '0': case '1': case '3': case '4': case '5':
-			case '6': case '7': case '8': case '9':
+			case '0': case '1': case '2': case '3': case '4':
+			case '5': case '6': case '7': case '8': case '9':
+				status = STATUS_READING_CODE2;
 				if (!appendToString(&string, &aktPosInString, sign, stringLen)) { goto ERROR_END; }
 				codeVal = (codeVal << 4) + sign - '0';
 				break;
 			case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
+				status = STATUS_READING_CODE2;
 				if (!appendToString(&string, &aktPosInString, sign + ('A' - 'a'), stringLen)) { goto ERROR_END; }
 				codeVal = (codeVal << 4) + sign + (10 - 'a');
 				break;
 			case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
+				status = STATUS_READING_CODE2;
 				if (!appendToString(&string, &aktPosInString, sign, stringLen)) { goto ERROR_END; }
 				codeVal = (codeVal << 4) + sign + (10 - 'A');
 				break;
@@ -203,40 +248,22 @@ bool decodeLine(ASM_CODE** code, int* pos, ASM_TEXT** text, FILE* file) {
 				newText = (ASM_TEXT*)malloc(sizeof(ASM_TEXT));
 				if (newText == nullptr) {
 					lastError = MEMORY_MISSING;
-					freeScannerString(string);
 					goto ERROR_END;
 				}
 				newText->lineOfCode = nullptr;
 				newText->label = nullptr;
 				newText->asmCode = nullptr;
 				newText->comment = nullptr;
-				newCode = (ASM_CODE*)malloc(sizeof(ASM_CODE));
-				if (newText == nullptr) {
-					lastError = MEMORY_MISSING;
-					free(newText);
-					freeScannerString(string);
-					goto ERROR_END;
-				}
+				newText->next = nullptr;
 				newText->bytecode = scannerString2PChar(string, stringLen);
 				string = nullptr;
-				if (newText->bytecode == nullptr) {
-					free(newText);
-					free(newCode);
-					freeScannerString(string);
-					goto ERROR_END;
-				}
-				newCode->guiText = newText;
+				if (newText->bytecode == nullptr) {goto ERROR_END;}
+				(*code)->guiText = newText;
 				//set functionpointers and params
-				if (!decodeInstruction(codeVal, newCode)) {
-					free(newText->bytecode);
-					free(newText);
-					free(newCode);
-					freeScannerString(string);
-					goto ERROR_END;
-				}
+				if (!decodeInstruction(codeVal, (*code))) {goto ERROR_END;}
 				break;
-			case '0': case '1': case '3': case '4': case '5':
-			case '6': case '7': case '8': case '9':
+			case '0': case '1': case '2': case '3': case '4':
+			case '5': case '6': case '7': case '8': case '9':
 				if (!appendToString(&string, &aktPosInString, sign, stringLen)) { goto ERROR_END; }
 				codeVal = (codeVal << 4) + sign - '0';
 				break;
@@ -268,13 +295,8 @@ bool decodeLine(ASM_CODE** code, int* pos, ASM_TEXT** text, FILE* file) {
 			if (sign == ' ' || sign == '\t') {
 				if (newText != nullptr) {
 					newText->lineOfCode = scannerString2PChar(string, stringLen);
-					if (newText->lineOfCode == nullptr) {
-						free(newText->bytecode);
-						free(newText);
-						free(newCode);
-						freeScannerString(string);
-						goto ERROR_END;
-					}
+					string = nullptr;
+					if (newText->lineOfCode == nullptr) {goto ERROR_END;}
 				}
 				else {
 					newText = (ASM_TEXT*)malloc(sizeof(ASM_TEXT));
@@ -284,9 +306,12 @@ bool decodeLine(ASM_CODE** code, int* pos, ASM_TEXT** text, FILE* file) {
 					}
 					newText->bytecode = nullptr;
 					newText->lineOfCode = scannerString2PChar(string, stringLen);
+					string = nullptr;
+					if (newText->lineOfCode == nullptr) {goto ERROR_END;}
 					newText->label = nullptr;
 					newText->asmCode = nullptr;
 					newText->comment = nullptr;
+					newText->next = nullptr;
 				}
 				status = STATUS_READING_BEFORE_LABEL1;
 			}
@@ -299,7 +324,7 @@ bool decodeLine(ASM_CODE** code, int* pos, ASM_TEXT** text, FILE* file) {
 			}
 			break;
 		case STATUS_READING_BEFORE_LABEL1:
-			if (sign == ' ' || sign == '\t');
+			if (sign == ' ' || sign == '\t')status = STATUS_READING_BEFORE_LABEL2;
 			else if ((sign >= 'a' && sign <= 'z') ||
 				(sign >= 'A' && sign <= 'Z') ||
 				(sign >= '0' && sign <= '9')) {
@@ -325,65 +350,88 @@ bool decodeLine(ASM_CODE** code, int* pos, ASM_TEXT** text, FILE* file) {
 			}
 			break;
 		case STATUS_READING_LABEL:
+			if (sign == ' ' || sign == '\t') {
+				newText->label = scannerString2PChar(string, stringLen);
+				string = nullptr;
+				if (newText->label == nullptr) {goto ERROR_END;}
+				status = STATUS_READING_BEFORE_ASM;
+			}
+			else  if ((sign >= 'a' && sign <= 'z') ||
+				(sign >= 'A' && sign <= 'Z') ||
+				(sign >= '0' && sign <= '9')) {
+				if (!appendToString(&string, &aktPosInString, sign, stringLen)) { goto ERROR_END; }
+			}
+			else {
+				lastError = "Unexpected Sign! Expected Space, Tab, a-z, A-Z, 0-9 for Label!";
+				goto ERROR_END;
+			}
 			break;
 		case STATUS_READING_BEFORE_ASM:
 			switch (sign) {
 			case ' ': case '\t':
 				break;
 			case ';':
-				if (newCode != nullptr) {
+				if ((*code)->function != nullptr) {
 					lastError = "Expected assembly-code. Commend found!";
 					goto ERROR_END;
 				}
 				status = STATUS_READING_KOMMENT;
+				break;
+			default:
+				status = STATUS_READING_ASM;
+				if (!appendToString(&string, &aktPosInString, sign, stringLen)) { goto ERROR_END; }
 			}
-			break;
-		default:
-			status = STATUS_READING_ASM;
-			if (!appendToString(&string, &aktPosInString, sign, stringLen)) { goto ERROR_END; }
 			break;
 		case STATUS_READING_ASM:
 			if (sign == ';') {
 				newText->asmCode = scannerString2PChar(string, stringLen);
-				if (newText->asmCode == nullptr) {
-					if (newCode != nullptr)free(newCode);
-					if (newText->bytecode != nullptr)free(newText->bytecode);
-					if (newText->lineOfCode != nullptr)free(newText->lineOfCode);
-					if (newText->label != nullptr)free(newText->label);
-					free(newText);
-					freeScannerString(string);
-					goto ERROR_END;
-				}
+				string = nullptr;
+				if (newText->asmCode == nullptr) {goto ERROR_END;}
+				status = STATUS_READING_KOMMENT;
 			}
 			else {
-				if (!appendToString(&string, &aktPosInString, sign, stringLen)) { 
-					freeScannerString(string);
-					goto ERROR_END;
-				}
+				if (!appendToString(&string, &aktPosInString, sign, stringLen)) { goto ERROR_END;}
 			}
 			break;
 		case STATUS_READING_KOMMENT:
+			if (!appendToString(&string, &aktPosInString, sign, stringLen)) {goto ERROR_END;}
 			break;
 		}
 	}
 ERRORLESS_END:
-	if (newCode != nullptr) {
-		*code = newCode;
-		code++;
+	DOIF(newText != nullptr && newText->next != nullptr)PRINTF2("newText->next != nullptr (@%d, status: %d)\n", __LINE__, status);
+	DOIF(DEBUGLVL >= DEBUGLVL_MUCH)PRINTF("ERRORLESS_END\n");
+	if ((*code)->function != nullptr) {
+		DOIF(DEBUGLVL >= DEBUGLVL_MUCH)PRINTF("NEW-CODE is set!\n");
+		(*code)++;
+		(*len)++;
 	}
 	if (newText != nullptr) {
+		DOIF(DEBUGLVL >= DEBUGLVL_MUCH)PRINTF("NEW-TEXT is set!\n");
 		if (*text != nullptr) {
 			(*text)->next = newText;
 			*text = newText;
-			*pos++;
+			(*pos)++;
 		}
 		else {
 			*text = newText;
 			*pos = 1;
 		}
 	}
+	DOIF(string != nullptr)PRINTF2("newText->next != nullptr (@%d, status: %d)\n", __LINE__, status);
 	return true;
 ERROR_END:
+	PRINTF1("ERROR_END ############: '%s'\n", lastError);
+	if (newText != nullptr) {
+		if (newText->bytecode != nullptr)free(newText->bytecode);
+		if (newText->lineOfCode != nullptr)free(newText->lineOfCode);
+		if (newText->label != nullptr)free(newText->label);
+		if (newText->asmCode != nullptr)free(newText->asmCode);
+		if (newText->comment != nullptr)free(newText->comment);
+		DOIF(newText->next != nullptr)PRINTF1("newText->next != nullptr (@%d)\n", __LINE__);
+		free(newText);
+	}
+	if(string != nullptr)freeScannerString(string);
 	return false;
 }
 
@@ -809,23 +857,28 @@ bool decodeInstruction(int code, ASM_CODE* decoded) {
 	}
 }
 
+//if false, donot forget to free the rest String!
 bool appendToString(scannerstring** string, scannerstring** aktPosInString, char sign, int& len) {
 	scannerstring* append = (scannerstring*)malloc(sizeof(scannerstring));
 	if (append == nullptr) {
 		lastError = "Missing Memmory.";
 		return false;
 	}
-	if (*string = nullptr) { *string = append; len = 1; }
+	append->sign = sign;
+	append->next = nullptr;
+	if (*string == nullptr) { DOIF(DEBUGLVL >= DEBUGLVL_MUCH)PRINTF("NEW STRING\n"); *string = append; len = 1; }
 	else if (aktPosInString == nullptr) {
 		free(append);
 		lastError = "Error in Calling Function 'appendToString'.";
 		return false;
 	}
-	else {(*aktPosInString)->next = append; len++;}
+	else { DOIF(DEBUGLVL >= DEBUGLVL_MUCH)PRINTF("APPENDING TO STRING\n"); (*aktPosInString)->next = append; len++;}
 	*aktPosInString = append;
 	return true;
 
 }
+
+//after call always set String to nullptr!
 char* scannerString2PChar(scannerstring* string, int len) {
 	char *retString = (char*)malloc((len + 1) * sizeof(char));
 	if (retString == nullptr) {
@@ -845,6 +898,7 @@ char* scannerString2PChar(scannerstring* string, int len) {
 	*tmpRet = 0;
 	return retString;
 }
+//after calling always set toFree to nullptr, if will be used later
 void freeScannerString(scannerstring* toFree) {
 	scannerstring* tmp;
 	while (toFree != nullptr) {
@@ -856,6 +910,8 @@ void freeScannerString(scannerstring* toFree) {
 char getNextChar(FILE* file) {
 	if (bytesReaded < 0 || bytesReaded <= aktPufferPosition) {
 		bytesReaded = fread(puffer, sizeof(char), pufferSize, file);
+		aktPufferPosition = 0;
+		DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF2("\t\t\treaded %d bytes (puffer size: %d)....\n\n", bytesReaded, pufferSize);
 	}
 	if (bytesReaded == 0) {
 		fileReadedTilEnd = true;
@@ -866,6 +922,7 @@ char getNextChar(FILE* file) {
 	return ret;
 }
 
+//after calling always set toFree to nullptr, if will be used later
 void freeASM(ASM* toFree) {
 	free(toFree->code);
 	ASM_TEXT* txt = toFree->text, *tmp;
@@ -888,42 +945,40 @@ char * getCompilerError()
 }
 
 char* functionPointerToName(void(*f)(void*, void*)) {
-	switch ((int)f) {
-	case (int)instructions::ADDWF: return "ADDWF";
-	case (int)instructions::ANDWF: return "ANDWF";
-	case (int)instructions::CLRF: return "CLRF";
-	case (int)instructions::CLRW: return "CLRW";
-	case (int)instructions::COMF: return "COMF";
-	case (int)instructions::DECF: return "DECF";
-	case (int)instructions::DECFSZ: return "DECFSZ";
-	case (int)instructions::INCF: return "INCF";
-	case (int)instructions::INCFSZ: return "INCFSZ";
-	case (int)instructions::IORWF: return "IORWF";
-	case (int)instructions::MOVF: return "MOVF";
-	case (int)instructions::MOVWF: return "MOVWF";
-	case (int)instructions::NOP: return "NOP";
-	case (int)instructions::RLF: return "RLF";
-	case (int)instructions::RRF: return "RRF";
-	case (int)instructions::SUBWF: return "SUBWF";
-	case (int)instructions::SUBWF: return "SUBWF";
-	case (int)instructions::XORWF: return "XORWF";
-	case (int)instructions::BCF: return "BCF";
-	case (int)instructions::BSF: return "BSF";
-	case (int)instructions::BTFSC: return "BTFSC";
-	case (int)instructions::BTFSS: return "BTFSS";
-	case (int)instructions::ADDLW: return "ADDLW";
-	case (int)instructions::ANDLW: return "ANDLW";
-	case (int)instructions::CALL: return "CALL";
-	case (int)instructions::CLRWDT: return "CLRWDT";
-	case (int)instructions::GOTO: return "GOTO";
-	case (int)instructions::IORLW: return "IORLW";
-	case (int)instructions::MOVLW: return "MOVLW";
-	case (int)instructions::RETFIE: return "RETFIE";
-	case (int)instructions::RETLW: return "RETLW";
-	case (int)instructions::RETURN: return "RETURN";
-	case (int)instructions::SLEEP: return "SLEEP";
-	case (int)instructions::SUBLW: return "SUBLW";
-	case (int)instructions::XORLW: return "XORLW";
-		return "Unknown";
-	}
+	if(f == instructions::ADDWF)		return "ADDWF";
+	else if(f == instructions::ANDWF)	return "ANDWF";
+	else if(f == instructions::CLRF)	return "CLRF";
+	else if(f == instructions::CLRW)	return "CLRW";
+	else if(f == instructions::COMF)	return "COMF";
+	else if(f == instructions::DECF)	return "DECF";
+	else if(f == instructions::DECFSZ)	return "DECFSZ";
+	else if(f == instructions::INCF)	return "INCF";
+	else if(f == instructions::INCFSZ)	return "INCFSZ";
+	else if(f == instructions::IORWF)	return "IORWF";
+	else if(f == instructions::MOVF)	return "MOVF";
+	else if(f == instructions::MOVWF)	return "MOVWF";
+	else if(f == instructions::NOP)		return "NOP";
+	else if(f == instructions::RLF)		return "RLF";
+	else if(f == instructions::RRF)		return "RRF";
+	else if(f == instructions::SUBWF)	return "SUBWF";
+	else if(f == instructions::SUBWF)	return "SUBWF";
+	else if(f == instructions::XORWF)	return "XORWF";
+	else if(f == instructions::BCF)		return "BCF";
+	else if(f == instructions::BSF)		return "BSF";
+	else if(f == instructions::BTFSC)	return "BTFSC";
+	else if(f == instructions::BTFSS)	return "BTFSS";
+	else if(f == instructions::ADDLW)	return "ADDLW";
+	else if(f == instructions::ANDLW)	return "ANDLW";
+	else if(f == instructions::CALL)	return "CALL";
+	else if(f == instructions::CLRWDT)	return "CLRWDT";
+	else if(f == instructions::GOTO)	return "GOTO";
+	else if(f == instructions::IORLW)	return "IORLW";
+	else if(f == instructions::MOVLW)	return "MOVLW";
+	else if(f == instructions::RETFIE)	return "RETFIE";
+	else if(f == instructions::RETLW)	return "RETLW";
+	else if(f == instructions::RETURN)	return "RETURN";
+	else if(f == instructions::SLEEP)	return "SLEEP";
+	else if(f == instructions::SUBLW)	return "SUBLW";
+	else if(f == instructions::XORLW)	return "XORLW";
+	else								return "Unknown";
 }

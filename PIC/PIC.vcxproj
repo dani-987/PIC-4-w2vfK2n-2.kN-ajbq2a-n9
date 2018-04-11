@@ -22,6 +22,7 @@
     <ClInclude Include="ASM.h" />
     <ClInclude Include="Backend.h" />
     <ClInclude Include="Compiler.h" />
+    <ClInclude Include="DEBUG.H" />
     <ClInclude Include="GUI.h" />
   </ItemGroup>
   <ItemGroup>

@@ -27,6 +27,9 @@
     <ClInclude Include="Compiler.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="DEBUG.H">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GUI.cpp">

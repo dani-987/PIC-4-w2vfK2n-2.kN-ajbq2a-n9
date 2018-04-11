@@ -1,7 +1,6 @@
 #include "GUI.h"
 
 
-
 GUI::GUI()
 {
 	backend = new Backend();

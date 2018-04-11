@@ -1,4 +1,5 @@
 #pragma once
+#include "DEBUG.H"
 
 typedef struct ASM_TEXT{
 	char *bytecode, *lineOfCode, *label, *asmCode, *comment;
@@ -10,7 +11,7 @@ typedef struct{
 	ASM_TEXT* guiText;
 }ASM_CODE;
 
-typedef struct {
+typedef struct{
 	ASM_TEXT* text;
 	ASM_CODE* code;
 }ASM;
