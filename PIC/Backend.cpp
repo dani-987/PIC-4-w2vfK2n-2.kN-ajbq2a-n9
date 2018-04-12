@@ -1,4 +1,6 @@
 #include "Backend.h"
+#include "Compiler.h"
+#include <Windows.h>
 
 #include <cstring>
 
@@ -9,6 +11,20 @@
 
 Backend::Backend()
 {
+	lastError = "Kein Fehler";
+	lastErrorLen = MSGLEN();
+	regW = 0;
+	code = nullptr;
+	aktCode = nullptr;
+	functionStack = nullptr;
+	uC = nullptr;
+	isRunning = false;
+	terminated = true;
+	isRunningLocked = false;
+	ram = (char*)malloc(UC_SIZE_RAM);
+	memset(ram,0,UC_SIZE_RAM);
+	eeprom = (char*)malloc(UC_SIZE_EEPROM);
+	memset(eeprom, 0, UC_SIZE_EEPROM);
 }
 
 
@@ -18,29 +34,53 @@ Backend::~Backend()
 
 bool Backend::LoadProgramm(char * c)
 {
-	m_lastError.lock();
-	lastError = NOT_IMPLEMENTED;
-	MSGLEN();
-	m_lastError.unlock();
-	return false;
+	bool ret = false;
+	m_isRunningLocked.lock();
+	isRunningLocked = true;
+	m_isRunningLocked.unlock();
+	Stop();
+	m_terminated.lock();
+	while (!terminated) {
+		m_terminated.unlock();
+		Sleep(50);
+		m_terminated.lock();
+	}
+	m_terminated.unlock();
+	Compiler comp;
+	ASM* prog = comp.compileFile(c, UC_SIZE_PROGRAM);
+	if (prog != nullptr) {
+		if (this->code)Compiler::freeASM(this->code);
+		this->code = prog;
+		this->aktCode = prog->code;
+		ret = true;
+	}
+	m_isRunningLocked.lock();
+	isRunningLocked = false;
+	m_isRunningLocked.unlock();
+	return ret;
 }
 
 bool Backend::Start()
 {
-	m_lastError.lock();
-	lastError = NOT_IMPLEMENTED;
-	MSGLEN();
-	m_lastError.unlock();
-	return false;
+	m_isRunningLocked.lock();
+	if (isRunningLocked) {
+		m_isRunningLocked.unlock();
+		return false;
+	}
+	m_isRunningLocked.unlock();
+	m_isRunning.lock();
+	isRunning = true;
+	m_isRunning.unlock();
+	uC = new std::thread();
+	return true;
 }
 
 bool Backend::Stop()
 {
-	m_lastError.lock();
-	lastError = NOT_IMPLEMENTED;
-	MSGLEN();
-	m_lastError.unlock();
-	return false;
+	m_isRunning.lock();
+	isRunning = false;
+	m_isRunning.unlock();
+	return true;
 }
 
 bool Backend::Step()

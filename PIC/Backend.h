@@ -39,12 +39,10 @@ private:
 	std::thread* uC;
 	bool isRunning;
 	std::mutex m_isRunning;
+	bool terminated;
+	std::mutex m_terminated;
 	bool isRunningLocked;
 	std::mutex m_isRunningLocked;
-
-	std::thread* fileLoader;
-	bool isLoadingFile;
-	std::mutex m_isLoadingFile;
 
 	char* ram;
 	std::mutex m_ram;

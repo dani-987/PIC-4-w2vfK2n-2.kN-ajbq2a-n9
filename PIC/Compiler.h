@@ -33,7 +33,7 @@ private:
 public:
 	Compiler();
 	ASM* compileFile(char* file, int memsize);
-	void freeASM(ASM* toFree);
+	static void freeASM(ASM* toFree);
 	char* getCompilerError();
 
 	static char* functionPointerToName(instruction_t);

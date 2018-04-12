@@ -67,4 +67,6 @@ void GUI::callback_load_file(){
 	while (chooser->shown()){Fl::wait();}
 	if (chooser->value() == NULL)return;
 	PRINTF1("Choosed File: '%s'", chooser->value());
+	if(!backend->LoadProgramm((char*)chooser->value()))
+		fl_alert(backend->getErrorMSG());
 }
