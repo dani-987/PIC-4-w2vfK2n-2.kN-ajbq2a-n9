@@ -1,4 +1,7 @@
 #pragma once
+
+class GUI;
+
 #include "Backend.h"
 
 class GUI
