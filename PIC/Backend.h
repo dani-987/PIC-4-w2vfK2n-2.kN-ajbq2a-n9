@@ -69,7 +69,7 @@ public:
 	char* getErrorMSG();			//nullptr möglich! BEDENKE malloc! -> free
 
 
-	//internal use only!
+	//following ist for internal use only and not thread-save!
 	int ADDWF(void*f, void*d);
 	int ANDWF(void*f, void*d);
 	int CLRF(void*f, void*ign);
