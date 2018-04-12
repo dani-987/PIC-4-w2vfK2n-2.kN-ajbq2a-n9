@@ -12,6 +12,8 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 	menubar = new Fl_Menu_Bar(0, 0, w, 20);
 	menubar->add("&Datei/&Lade Datei", nullptr, gui_callbacks::loadFile, this);
 	Fl::scheme(SCHEME);
+	size_range(600, 400);
+	color(FL_WHITE);
 
 	chooser = new Fl_File_Chooser(".",                      // directory
 		"*.LST",											// filter
@@ -47,8 +49,9 @@ void GUI::int_updateAll()
 //#######################################################################################
 
 void GUI::resize(int x, int y, int w, int h){
-	Fl_Double_Window::resize(x, y, w, 20);
-	menubar->resize(0, 0, w, h);
+	Fl_Double_Window::resize(x, y, w, h);
+	menubar->resize(0, 0, w, 20);
+	flush();
 }
 
 
