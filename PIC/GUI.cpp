@@ -1,10 +1,22 @@
 #include "GUI.h"
 
 
-GUI::GUI()
+namespace gui_callbacks {
+	void loadFile(Fl_Widget *, void *);
+}
+
+
+GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator")
 {
 	backend = new Backend();
-	printf("GUI Initialized!!!");
+	menubar = new Fl_Menu_Bar(0, 0, w, 20);
+	menubar->add("&Datei/&Lade Datei", nullptr, gui_callbacks::loadFile, this);
+	Fl::scheme(SCHEME);
+
+	chooser = new Fl_File_Chooser(".",                      // directory
+		"*.LST",											// filter
+		Fl_File_Chooser::SINGLE,							// chooser type
+		"Wähle .LST-Datei aus");							// title
 }
 
 
@@ -14,11 +26,45 @@ GUI::~GUI()
 
 int GUI::run()
 {
-	backend->GetBit(0, 0);
-	while (1) {
-		char* c = backend->getErrorMSG();
-		printf("%s\n", c);
-		free(c);
-	}
-	return 0;
+	this->show();
+	return Fl::run();
+}
+
+//#######################################################################################
+//#######################################################################################
+//######################	I	N	T	E	R	F	A	C	E	#########################
+//#######################################################################################
+//#######################################################################################
+
+void GUI::int_updateAll()
+{
+}
+
+//#######################################################################################
+//#######################################################################################
+//######################	O	V	E	R	R	I	D	E	S	#########################
+//#######################################################################################
+//#######################################################################################
+
+void GUI::resize(int x, int y, int w, int h){
+	Fl_Double_Window::resize(x, y, w, 20);
+	menubar->resize(0, 0, w, h);
+}
+
+
+//#######################################################################################
+//#######################################################################################
+//######################	C	A	L	L	B	A	C	K	S	#########################
+//#######################################################################################
+//#######################################################################################
+
+void gui_callbacks::loadFile(Fl_Widget *w, void *gui){
+	((GUI*)gui)->callback_load_file();
+}
+
+void GUI::callback_load_file(){
+	chooser->show();
+	while (chooser->shown()){Fl::wait();}
+	if (chooser->value() == NULL)return;
+	PRINTF1("Choosed File: '%s'", chooser->value());
 }

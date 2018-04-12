@@ -3,6 +3,7 @@
 #include "Compiler.h"
 
 int main(int argc, char *argv[]) {
+	/*
 	Compiler c;
 	while (1) {
 		ASM* test = c.compileFile("D:\\Daniel\\Documents\\Visual Studio 2017\\Projects\\PIC\\PIC-4-w2vfK2n-2.kN-ajbq2a-n9\\Debug\\Testprogramme\\TPicSim1.LST", 200);

@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef _WIN32
+#define WIN32
+#endif
+
 #ifdef _DEBUG
 #define PRINTF(a)				printf(a)
 #define PRINTF1(a,b)			printf(a,b)
