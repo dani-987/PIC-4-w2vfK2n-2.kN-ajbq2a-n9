@@ -23,7 +23,7 @@ class Backend
 
 	bool: false -> Error
 	void/int/.../char*: nullptr -> Error
-	int: -1 -> Error (für bool: 1 = true; 0 = false, char alle pos. Zahlen)
+	int: -1 -> Error (für bool: 1 = true; 0 = false, char all pos. Integers)
 	*/
 private:
 	byte tmp;
@@ -69,13 +69,13 @@ public:
 	bool Stop();
 	bool Step();
 	bool Reset();
-	bool SetMem(int from, int len, void* mem);//es wird kein free aufgerufen
+	bool SetMem(int from, int len, void* mem);//Free is not called
 	bool SetBit(int byte, int pos, bool val);
-	void* GetMem(int from, int len);//nullptr möglich! DEDENKE malloc! -> free
+	void* GetMem(int from, int len);//nullptr possible! Remember: malloc! -> free
 	int  GetBit(int byte, int pos);	//bool
 	int getRegW();					//char
 	bool setRegW(char val);
-	char* getErrorMSG();			//nullptr möglich! BEDENKE malloc! -> free
+	char* getErrorMSG();			//nullptr possible! Remember: malloc! -> free
 
 
 	//following ist for internal use only and not thread-save!
