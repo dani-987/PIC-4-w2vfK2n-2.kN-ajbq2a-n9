@@ -4,12 +4,17 @@ class Backend;
 
 #include "DEBUG.H"
 #include "ASM.h"
+#include "GUI.h"
 #include <mutex>
 #include <thread>
 
-#define UC_SIZE_RAM		100
+#define UC_SIZE_RAM		0x8F
 #define UC_SIZE_PROGRAM	100
 #define UC_SIZE_EEPROM	100
+
+#ifndef byte
+typedef unsigned char byte;
+#endif
 
 class Backend
 {
@@ -21,6 +26,8 @@ class Backend
 	int: -1 -> Error (für bool: 1 = true; 0 = false, char alle pos. Zahlen)
 	*/
 private:
+	byte tmp;
+
 	char* lastError;
 	int lastErrorLen;
 	std::mutex m_lastError;
@@ -44,13 +51,17 @@ private:
 	bool isRunningLocked;
 	std::mutex m_isRunningLocked;
 
-	char* ram;
+	byte* ram;
 	std::mutex m_ram;
 
 	char* eeprom;
 	std::mutex m_eeprom;
+
+	byte & getCell_unsafe(byte pos);
+	void reset(byte resetType);
+	GUI* gui;
 public:
-	Backend();
+	Backend(GUI* gui);
 	~Backend();
 
 	bool LoadProgramm(char* c);

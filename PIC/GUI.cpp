@@ -1,5 +1,5 @@
 #include "GUI.h"
-
+#include <FL\fl_ask.H>
 
 namespace gui_callbacks {
 	void loadFile(Fl_Widget *, void *);
@@ -8,17 +8,30 @@ namespace gui_callbacks {
 
 GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator")
 {
-	backend = new Backend();
+	backend = new Backend(this);
 	menubar = new Fl_Menu_Bar(0, 0, w, 20);
 	menubar->add("&Datei/&Lade Datei", nullptr, gui_callbacks::loadFile, this);
 	Fl::scheme(SCHEME);
-	size_range(600, 400);
+	size_range(620, 440);
 	color(FL_WHITE);
 
-	chooser = new Fl_File_Chooser(".",                      // directory
-		"*.LST",											// filter
-		Fl_File_Chooser::SINGLE,							// chooser type
-		"Wähle .LST-Datei aus");							// title
+	char* myPath = (char*)malloc(256);
+	if (myPath != nullptr) {
+		memset(myPath, 0, 256);
+		PWSTR path = NULL;
+		if (SHGetKnownFolderPath(FOLDERID_Documents, 0, NULL, &path)) {
+			wcstombs(myPath, path, 255);
+			CoTaskMemFree(path);
+		}
+	}
+
+	chooser = new Fl_Native_File_Chooser();
+	chooser->title("Programmdatei aussuchen...");
+	chooser->type(Fl_Native_File_Chooser::BROWSE_FILE);
+	chooser->filter("Programmdatei\t*.LST\n");
+	chooser->directory(myPath);	//myPath == nullptr macht keine Probleme...
+
+	if (myPath != nullptr)free(myPath);
 }
 
 
@@ -66,10 +79,11 @@ void gui_callbacks::loadFile(Fl_Widget *w, void *gui){
 }
 
 void GUI::callback_load_file(){
-	chooser->show();
-	while (chooser->shown()){Fl::wait();}
-	if (chooser->value() == NULL)return;
-	PRINTF1("Choosed File: '%s'", chooser->value());
-	if(!backend->LoadProgramm((char*)chooser->value()))
+	if (chooser->show() != 0)return;
+	PRINTF1("Choosed File: '%s'", chooser->filename());
+	if(!backend->LoadProgramm((char*)chooser->filename()))
 		fl_alert(backend->getErrorMSG());
+	else {
+		//updateAll();
+	}
 }

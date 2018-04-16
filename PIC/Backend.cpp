@@ -9,7 +9,39 @@
 
 #define MSGLEN()	(lastErrorLen = (std::strlen(lastError)+1))
 
-Backend::Backend()
+
+byte & Backend::getCell_unsafe(byte pos)
+{
+	if (pos == 0x00) {	//indirect addressing
+		pos = ram[0x04];
+	}
+	//rest
+	if (pos == 0x07 || pos > 0x4F || pos == 0x00 ) {
+		tmp = 0;
+		return tmp;
+	}
+	else if (pos > 0x0B) { 
+		return ram[pos]; 
+	}
+	else if (pos == 0x02) {}
+	else if (pos == 0x03) {}
+	else if (pos == 0x04) {}
+	else {
+		if (ram[0x03] & 0xC0) {
+			m_lastError.lock();
+			lastError = "Falsche Bank gewählt!";
+			lastErrorLen = MSGLEN();
+			m_lastError.unlock();
+		}
+	}
+}
+
+void Backend::reset(byte resetType)
+{
+
+}
+
+Backend::Backend(GUI* gui)
 {
 	lastError = "Kein Fehler";
 	lastErrorLen = MSGLEN();
@@ -21,8 +53,9 @@ Backend::Backend()
 	isRunning = false;
 	terminated = true;
 	isRunningLocked = false;
-	ram = (char*)malloc(UC_SIZE_RAM);
+	ram = (byte*)malloc(UC_SIZE_RAM);
 	memset(ram,0,UC_SIZE_RAM);
+	reset(1);
 	eeprom = (char*)malloc(UC_SIZE_EEPROM);
 	memset(eeprom, 0, UC_SIZE_EEPROM);
 }
