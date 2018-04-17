@@ -1,5 +1,19 @@
 #include "GUI.h"
 
+#define X_MENUBAR		0
+#define Y_MENUBAR		0
+#define W_MENUBAR		w
+#define H_MENUBAR		20
+
+#define W_IO_TAB		((CW*(CCIO + 1.2))+20)
+#define H_IO_TAB		(CH*(RCIO)+2)
+#define X_IO_TAB		10
+#define Y_IO_TAB		(h-(10+H_IO_TAB))
+
+#define X_MEM_TAB		X_IO_TAB
+#define Y_MEM_TAB		40
+#define W_MEM_TAB		W_IO_TAB
+#define H_MEM_TAB		(Y_IO_TAB-(Y_MEM_TAB+20))
 
 namespace gui_callbacks {
 	void loadFile(Fl_Widget *, void *);
@@ -9,7 +23,7 @@ namespace gui_callbacks {
 GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator")
 {
 	backend = new Backend(this);
-	menubar = new Fl_Menu_Bar(0, 0, w, 20);
+	menubar = new Fl_Menu_Bar(X_MENUBAR, Y_MENUBAR, W_MENUBAR, H_MENUBAR);
 	menubar->add("&Datei/&Lade Datei", nullptr, gui_callbacks::loadFile, this);
 	Fl::scheme(SCHEME);
 	size_range(620, 440);
@@ -34,7 +48,7 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 	if (myPath != nullptr)free(myPath);
 
 	//Table for the Memory
-	Mem_table = new MyTable(20, 40, CW*(CCMEM + 1.2), CH*(RCMEM + 1.2), 0, "Memory");
+	Mem_table = new MyTable(X_MEM_TAB, Y_MEM_TAB, W_MEM_TAB, H_MEM_TAB, 0, "Memory");
 	Mem_table->selection_color(FL_YELLOW);
 	Mem_table->when(FL_WHEN_RELEASE | FL_WHEN_CHANGED);
 	Mem_table->table_box(FL_NO_BOX);
@@ -55,7 +69,7 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 	Mem_table->col_width_all(CW);
 
 	//Table for the IO-Registers
-	IO_table = new MyTable(20, 60 + CH * (RCMEM + 1.2), CW*(CCMEM + 1.2), CW*(CCIO + 1.2), 1, "IO-Registers");
+	IO_table = new MyTable(X_IO_TAB, Y_IO_TAB, W_IO_TAB, H_IO_TAB, 1, "IO-Registers");
 	IO_table->when(FL_WHEN_RELEASE | FL_WHEN_CHANGED);
 	IO_table->table_box(FL_NO_BOX);
 
@@ -84,18 +98,6 @@ int GUI::run()
 }
 
 
-MyTable::MyTable(int x, int y, int w, int h, int t, const char *l) : Fl_Table_Row(x, y, w, h, l) {
-	cell_bgcolor = FL_WHITE;
-	cell_fgcolor = FL_BLACK;
-	callback(&event_callback, (void*)this);
-	typ = t;
-	end();
-}
-MyTable::~MyTable(){
-
-}
-
-
 //#######################################################################################
 //#######################################################################################
 //######################  I	  N	  T	  E	  R	  F	  A	  C	  E   S	#########################
@@ -114,140 +116,10 @@ void GUI::int_updateAll()
 
 void GUI::resize(int x, int y, int w, int h){
 	Fl_Double_Window::resize(x, y, w, h);
-	menubar->resize(0, 0, w, 20);
+	menubar->resize(X_MENUBAR, Y_MENUBAR, W_MENUBAR, H_MENUBAR);
+	Mem_table->resize(X_MEM_TAB, Y_MEM_TAB, W_MEM_TAB, H_MEM_TAB);
+	IO_table->resize(X_IO_TAB, Y_IO_TAB, W_IO_TAB, H_IO_TAB);
 	flush();
-}
-
-
-void MyTable::draw_cell(TableContext context, int R, int C, int X, int Y, int W, int H) {
-	switch (typ) {
-	case 0:draw_cell_MEM(context, R, C, X, Y, W, H); return;
-	case 1:draw_cell_IO(context, R, C, X, Y, W, H); return;
-	}
-}
-
-void MyTable::draw_cell_MEM(TableContext context, int R, int C, int X, int Y, int W, int H){
-	static char s[10];
-
-	switch (context)
-	{
-	case CONTEXT_STARTPAGE:
-		fl_font(FL_HELVETICA, 16);
-		return;
-
-	case CONTEXT_COL_HEADER:
-		sprintf_s(s, "%d%d", 0, C);
-		fl_push_clip(X, Y, W, H);
-		{
-			fl_draw_box(FL_THIN_UP_BOX, X, Y, W, H, col_header_color());
-			fl_color(FL_BLACK);
-			fl_draw(s, X, Y, W, H, FL_ALIGN_CENTER);
-		}
-		fl_pop_clip();
-		return;
-
-	case CONTEXT_ROW_HEADER:
-		sprintf_s(s, "%d%d", (int)floor(R / 2), (R % 2) ? 8 : 0);
-		fl_push_clip(X, Y, W, H);
-		{
-			fl_draw_box(FL_THIN_UP_BOX, X, Y, W, H, row_header_color());
-			fl_color(FL_BLACK);
-			fl_draw(s, X, Y, W, H, FL_ALIGN_CENTER);
-		}
-		fl_pop_clip();
-		return;
-
-	case CONTEXT_CELL:
-	{
-		sprintf_s(s, "%d%d", 0, 0);
-		fl_push_clip(X, Y, W, H);
-		{
-			// BG COLOR
-			fl_color(is_selected(R, C) ? selection_color() : cell_bgcolor);
-			fl_rectf(X, Y, W, H);
-
-			// TEXT
-			fl_color(cell_fgcolor);
-			fl_draw(s, X, Y, W, H, FL_ALIGN_CENTER);
-
-			// BORDER
-			fl_color(color());
-			fl_rect(X, Y, W, H);
-		}
-		fl_pop_clip();
-		return;
-	}
-
-	case CONTEXT_TABLE:
-		fprintf(stderr, "TABLE CONTEXT CALLED\n");
-		return;
-
-	case CONTEXT_ENDPAGE:
-	case CONTEXT_RC_RESIZE:
-	case CONTEXT_NONE:
-		return;
-	}
-}
-
-void MyTable::draw_cell_IO(TableContext context, int R, int C, int X, int Y, int W, int H){
-	static char s[10];
-
-	switch (context)
-	{
-	case CONTEXT_STARTPAGE:
-		fl_font(FL_HELVETICA, 16);
-		return;
-
-	case CONTEXT_ROW_HEADER:
-		switch (R) {
-		case 0: sprintf_s(s, "RA"); break;
-		case 1:case 4: sprintf_s(s, "Tris"); break;
-		case 2:case 5: sprintf_s(s, "Pin"); break;
-		case 3:sprintf_s(s, "RB"); break;
-		}
-		fl_push_clip(X, Y, W, H);
-		{
-			fl_draw_box(FL_THIN_UP_BOX, X, Y, W, H, row_header_color());
-			fl_color(FL_BLACK);
-			fl_draw(s, X, Y, W, H, FL_ALIGN_CENTER);
-		}
-		fl_pop_clip();
-		return;
-
-	case CONTEXT_CELL:
-	{
-		switch (R % 3) {
-		case 0: sprintf_s(s, "%d", 7 - C); break;
-		case 1: sprintf_s(s, "in"); break;
-		case 2: sprintf_s(s, "0"); break;
-		}
-		fl_push_clip(X, Y, W, H);
-		{
-			// BG COLOR
-			fl_color(is_selected(R, C) ? selection_color() : cell_bgcolor);
-			fl_rectf(X, Y, W, H);
-
-			// TEXT
-			fl_color(cell_fgcolor);
-			fl_draw(s, X, Y, W, H, FL_ALIGN_CENTER);
-
-			// BORDER
-			fl_color(color());
-			fl_rect(X, Y, W, H);
-		}
-		fl_pop_clip();
-		return;
-	}
-
-	case CONTEXT_TABLE:
-		fprintf(stderr, "TABLE CONTEXT CALLED\n");
-		return;
-
-	case CONTEXT_ENDPAGE:
-	case CONTEXT_RC_RESIZE:
-	case CONTEXT_NONE:
-		return;
-	}
 }
 
 //#######################################################################################
@@ -268,20 +140,4 @@ void GUI::callback_load_file(){
 	else {
 		//updateAll();
 	}
-}
-
-void MyTable::event_callback(Fl_Widget*, void *data)
-{
-	MyTable *o = (MyTable*)data;
-	o->event_callback2();
-}
-
-void MyTable::event_callback2()
-{
-	int R = callback_row(),
-		C = callback_col();
-	TableContext context = callback_context();
-	printf("'%s' callback: ", (label() ? label() : "?"));
-	printf("Row=%d Col=%d Context=%d Event=%d InteractiveResize? %d\n",
-		R, C, (int)context, (int)Fl::event(), (int)is_interactive_resize());
 }

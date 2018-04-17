@@ -24,6 +24,7 @@
     <ClInclude Include="Compiler.h" />
     <ClInclude Include="DEBUG.H" />
     <ClInclude Include="GUI.h" />
+    <ClInclude Include="MyTable.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ASM.cpp" />
@@ -31,6 +32,7 @@
     <ClCompile Include="Compiler.cpp" />
     <ClCompile Include="GUI.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="MyTable.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>

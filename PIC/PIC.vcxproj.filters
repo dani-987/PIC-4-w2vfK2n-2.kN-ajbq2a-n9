@@ -30,6 +30,9 @@
     <ClInclude Include="DEBUG.H">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="MyTable.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GUI.cpp">
@@ -45,6 +48,9 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="ASM.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="MyTable.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>
