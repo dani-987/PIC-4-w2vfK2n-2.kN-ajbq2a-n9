@@ -23,7 +23,7 @@ VARDEF(int, DEBUGLVL, DEBUGLVL_NORMAL);
 #define STATUS_READING_LABEL			8
 #define STATUS_READING_BEFORE_ASM		9
 #define STATUS_READING_ASM				10
-#define STATUS_READING_KOMMENT			11
+#define STATUS_READING_COMMENT			11
 
 
 Compiler::Compiler()
@@ -125,7 +125,7 @@ bool Compiler::decodeLine(ASM_CODE** code, int* len, ASM_TEXT** text, int* pos, 
 					goto ERROR_END;
 				}
 			}
-			else if (status == STATUS_READING_KOMMENT) {
+			else if (status == STATUS_READING_COMMENT) {
 				newText->comment = scannerString2PChar(string, stringLen);
 				string = nullptr;
 				if (newText->comment == nullptr) {
@@ -365,7 +365,7 @@ bool Compiler::decodeLine(ASM_CODE** code, int* len, ASM_TEXT** text, int* pos, 
 					this->lastError = "Expected assembly-code. Commend found!";
 					goto ERROR_END;
 				}
-				status = STATUS_READING_KOMMENT;
+				status = STATUS_READING_COMMENT;
 				break;
 			default:
 				status = STATUS_READING_ASM;
@@ -377,13 +377,13 @@ bool Compiler::decodeLine(ASM_CODE** code, int* len, ASM_TEXT** text, int* pos, 
 				newText->asmCode = scannerString2PChar(string, stringLen);
 				string = nullptr;
 				if (newText->asmCode == nullptr) {goto ERROR_END;}
-				status = STATUS_READING_KOMMENT;
+				status = STATUS_READING_COMMENT;
 			}
 			else {
 				if (!appendToString(&string, &aktPosInString, sign, stringLen)) { goto ERROR_END;}
 			}
 			break;
-		case STATUS_READING_KOMMENT:
+		case STATUS_READING_COMMENT:
 			if (!appendToString(&string, &aktPosInString, sign, stringLen)) {goto ERROR_END;}
 			break;
 		}
