@@ -17,6 +17,7 @@ typedef int(*instruction_t)(void*, void*, Backend*);
 
 struct ASM_TEXT{
 	char *bytecode, *lineOfCode, *label, *asmCode, *comment;
+	int lineNumber;
 	ASM_TEXT* next;
 };
 

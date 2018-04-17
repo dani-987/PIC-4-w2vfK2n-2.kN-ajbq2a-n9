@@ -8,13 +8,24 @@ class Backend;
 #include <mutex>
 #include <thread>
 
-#define UC_SIZE_RAM		0x8F
-#define UC_SIZE_PROGRAM	100
-#define UC_SIZE_EEPROM	100
+#define UC_SIZE_RAM		94
+#define UC_SIZE_PROGRAM	1024
+#define UC_SIZE_EEPROM	64
+
+#define MOD_STANDARD	0
+#define MOD_STEP		1
+#define MOD_STEP_OUT	2
+#define MOD_STEP_OVER	3
+#define MOD_IGNORE		4
 
 #ifndef byte
 typedef unsigned char byte;
 #endif
+
+struct call_in_other_thread_s {
+	Backend* backend;
+	int modus;
+};
 
 class Backend
 {
@@ -57,9 +68,18 @@ private:
 	char* eeprom;
 	std::mutex m_eeprom;
 
+	GUI* gui;
+
+	call_in_other_thread_s callInOtherThread;
+	std::mutex m_callInOtherThread;
+
+	unsigned int runtime;
+	std::mutex m_runtime;
+
 	byte & getCell_unsafe(byte pos);
 	void reset(byte resetType);
-	GUI* gui;
+	void Stop_And_Wait();
+	bool letRun(int modus);
 public:
 	Backend(GUI* gui);
 	~Backend();
@@ -116,5 +136,7 @@ public:
 	int SLEEP(void*ign1, void*ign2);
 	int SUBLW(void*k, void*ign);
 	int XORLW(void*k, void*ign);
+
+	void run_in_other_thread(byte modus);
 };
 

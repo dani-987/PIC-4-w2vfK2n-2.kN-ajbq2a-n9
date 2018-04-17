@@ -3,12 +3,24 @@
 #include <Windows.h>
 
 #include <cstring>
+#include <chrono>
 
 #define NOT_IMPLEMENTED	"Nicht implementiert!"
 #define MEMORY_MISSING "Memory is missing."
 
+#define RESET_POWER_UP		0
+#define RESET_CLRWDT		1
+#define RESET_SLEEP			2
+#define RESET_WDT_TIMEOUT	3
+
 #define MSGLEN()	(lastErrorLen = (std::strlen(lastError)+1))
 
+//set PC to ram[0x02] = 0;
+
+void call_backup_in(void* _callInOtherThread) {
+	struct call_in_other_thread_s* callInOtherThread = (struct call_in_other_thread_s*)_callInOtherThread;
+	callInOtherThread->backend->run_in_other_thread(callInOtherThread->modus);
+}
 
 byte & Backend::getCell_unsafe(byte pos)
 {
@@ -20,25 +32,84 @@ byte & Backend::getCell_unsafe(byte pos)
 		tmp = 0;
 		return tmp;
 	}
-	else if (pos > 0x0B) { 
+	else if (pos >= 0x0A || (pos >= 0x02 && pos <= 0x04)) { 
 		return ram[pos]; 
 	}
-	else if (pos == 0x02) {}
-	else if (pos == 0x03) {}
-	else if (pos == 0x04) {}
 	else {
 		if (ram[0x03] & 0xC0) {
 			m_lastError.lock();
 			lastError = "Falsche Bank gewählt!";
 			lastErrorLen = MSGLEN();
 			m_lastError.unlock();
+			tmp = 0;
+			return tmp;
+		}
+		else if (ram[0x03] & 0x40) {
+			return ram[82 + pos];
+		}
+		else {
+			return ram[pos];
 		}
 	}
 }
 
 void Backend::reset(byte resetType)
 {
+	ram[0x02] = 0x00;
+	ram[0x03] &= 0x1F;
+	ram[0x0A] = 0;
+	ram[0x0B] &= 0xFE;
 
+	ram[83] = 0xFF;
+	ram[84] = 0x00;
+	ram[87] = 0x1F;
+	ram[88] = 0xFF;
+
+
+	switch (resetType) {
+	case RESET_SLEEP:
+		ram[0x03] |= 0x10;
+		break;
+	case RESET_WDT_TIMEOUT:
+		ram[0x03] |= 0x08;
+		break;
+	case RESET_CLRWDT:
+	case RESET_POWER_UP:
+	default:
+		ram[0x03] |= 0x18;
+		ram[89] |= 0x10;
+		break;
+	}
+}
+
+void Backend::Stop_And_Wait()
+{
+	m_isRunningLocked.lock();
+	isRunningLocked = true;
+	m_isRunningLocked.unlock();
+	Stop();
+	m_terminated.lock();
+	while (!terminated) {
+		m_terminated.unlock();
+		Sleep(50);
+		m_terminated.lock();
+	}
+	m_terminated.unlock();
+}
+
+bool Backend::letRun(int modus)
+{
+	m_isRunningLocked.lock();
+	if (isRunningLocked) {
+		m_isRunningLocked.unlock();
+		return false;
+	}
+	m_isRunningLocked.unlock();
+	m_isRunning.lock();
+	isRunning = true;
+	m_isRunning.unlock();
+	uC = new std::thread();
+	return true;
 }
 
 Backend::Backend(GUI* gui)
@@ -55,7 +126,7 @@ Backend::Backend(GUI* gui)
 	isRunningLocked = false;
 	ram = (byte*)malloc(UC_SIZE_RAM);
 	memset(ram,0,UC_SIZE_RAM);
-	reset(1);
+	reset(RESET_POWER_UP);
 	eeprom = (char*)malloc(UC_SIZE_EEPROM);
 	memset(eeprom, 0, UC_SIZE_EEPROM);
 }
@@ -63,22 +134,17 @@ Backend::Backend(GUI* gui)
 
 Backend::~Backend()
 {
+	Stop_And_Wait();
+	free(eeprom);
+	free(ram);
+	if (functionStack != nullptr)free(functionStack);
+	if (code != nullptr) Compiler::freeASM(code);
 }
 
 bool Backend::LoadProgramm(char * c)
 {
 	bool ret = false;
-	m_isRunningLocked.lock();
-	isRunningLocked = true;
-	m_isRunningLocked.unlock();
-	Stop();
-	m_terminated.lock();
-	while (!terminated) {
-		m_terminated.unlock();
-		Sleep(50);
-		m_terminated.lock();
-	}
-	m_terminated.unlock();
+	Stop_And_Wait();
 	Compiler comp;
 	ASM* prog = comp.compileFile(c, UC_SIZE_PROGRAM);
 	if (prog != nullptr) {
@@ -87,6 +153,8 @@ bool Backend::LoadProgramm(char * c)
 		this->aktCode = prog->code;
 		ret = true;
 	}
+	memset(ram, 0, UC_SIZE_RAM);
+	reset(RESET_POWER_UP);
 	m_isRunningLocked.lock();
 	isRunningLocked = false;
 	m_isRunningLocked.unlock();
@@ -95,17 +163,7 @@ bool Backend::LoadProgramm(char * c)
 
 bool Backend::Start()
 {
-	m_isRunningLocked.lock();
-	if (isRunningLocked) {
-		m_isRunningLocked.unlock();
-		return false;
-	}
-	m_isRunningLocked.unlock();
-	m_isRunning.lock();
-	isRunning = true;
-	m_isRunning.unlock();
-	uC = new std::thread();
-	return true;
+	return letRun(MOD_STANDARD);
 }
 
 bool Backend::Stop()
@@ -118,11 +176,7 @@ bool Backend::Stop()
 
 bool Backend::Step()
 {
-	m_lastError.lock();
-	lastError = NOT_IMPLEMENTED;
-	MSGLEN();
-	m_lastError.unlock();
-	return false;
+	return letRun(MOD_STEP);
 }
 
 bool Backend::Reset()
@@ -216,7 +270,7 @@ char * Backend::getErrorMSG()
 #define BYTE_Z		0x03
 
 int Backend::ADDWF(void*f, void*d) {
-	int tmp = (regW + ram[(int)f]);
+	int tmp = ((regW & 0xFF) + (getCell_unsafe((int)f) & 0xFF));
 	if (tmp & 0x0100)ram[BYTE_C] |= BIT_C;
 	else ram[BYTE_C] &= ~BIT_C;
 	if (tmp & 0x0010)ram[BYTE_DC] |= BIT_DC;
@@ -224,17 +278,17 @@ int Backend::ADDWF(void*f, void*d) {
 	tmp &= 0xFF;
 	if (tmp)ram[BYTE_Z] &= ~BIT_Z;
 	else ram[BYTE_Z] |= BIT_Z;
-	if (d)regW = tmp;
-	else ram[(int)f] = tmp;
+	if (d)regW = tmp & 0xFF;
+	else getCell_unsafe((int)f) = tmp & 0xFF;
 	aktCode++;
 	return 1;
 }
 int Backend::ANDWF(void*f, void*d) {
-	int tmp = (regW & ram[(int)f]) & 0xFF;
+	int tmp = (regW & getCell_unsafe((int)f)) & 0xFF;
 	if (tmp)ram[BYTE_Z] &= ~BIT_Z;
 	else ram[BYTE_Z] |= BIT_Z;
 	if (d)regW = tmp;
-	else ram[(int)f] = tmp;
+	else getCell_unsafe((int)f) = tmp;
 	aktCode++;
 	return 1;
 }
@@ -256,17 +310,17 @@ int Backend::SWAPF(void*f, void*d) { lastError = NOT_IMPLEMENTED; return -1; }
 int Backend::XORWF(void*f, void*d) { lastError = NOT_IMPLEMENTED; return -1; }
 
 int Backend::BCF(void*f, void*b) {
-	ram[(char)f] &= ~(1 << (char)b);
+	getCell_unsafe((char)f) &= ~(1 << (char)b);
 	aktCode++;
 	return 1;
 }
 int Backend::BSF(void*f, void*b) {
-	ram[(char)f] |= (1 << (char)b);
+	getCell_unsafe((char)f) |= (1 << (char)b);
 	aktCode++;
 	return 1;
 }
 int Backend::BTFSC(void*f, void*b) {
-	if (ram[(char)f] & (1 << (char)b)) {	//set -> no skip
+	if (getCell_unsafe((char)f) & (1 << (char)b)) {	//set -> no skip
 		aktCode++;
 		return 1;
 	}
@@ -276,7 +330,7 @@ int Backend::BTFSC(void*f, void*b) {
 	}
 }
 int Backend::BTFSS(void*f, void*b) {
-	if (ram[(char)f] & (1 << (char)b)) {	//set -> skip
+	if (getCell_unsafe((char)f) & (1 << (char)b)) {	//set -> skip
 		aktCode += 2;
 		return 2;
 	}
@@ -287,7 +341,7 @@ int Backend::BTFSS(void*f, void*b) {
 }
 
 int Backend::ADDLW(void*k, void*ign) {
-	regW = (regW + (char)k);
+	regW = ((regW & 0xFF) + ((char)k & 0xFF));
 	if (regW & 0x0100)ram[BYTE_C] |= BIT_C;
 	else ram[BYTE_C] &= ~BIT_C;
 	if (regW & 0x0010)ram[BYTE_DC] |= BIT_DC;
@@ -328,3 +382,39 @@ int Backend::RETURN(void*ign1, void*ign2) { lastError = NOT_IMPLEMENTED; return 
 int Backend::SLEEP(void*ign1, void*ign2) { lastError = NOT_IMPLEMENTED; return -1; }
 int Backend::SUBLW(void*k, void*ign) { lastError = NOT_IMPLEMENTED; return -1; }
 int Backend::XORLW(void*k, void*ign) { lastError = NOT_IMPLEMENTED; return -1; }
+
+void Backend::run_in_other_thread(byte modus)
+{
+	m_terminated.lock();
+	terminated = false;
+	m_terminated.unlock();
+	if (modus != MOD_STEP) {
+		m_isRunning.lock();
+		isRunning = true;
+		m_isRunning.unlock();
+	}
+	else {
+		m_isRunning.lock();
+		isRunning = false;
+		m_isRunning.unlock();
+	}
+	int needTime;
+	do {
+		auto start_time = std::chrono::high_resolution_clock::now();
+		needTime = aktCode->function(aktCode->param1, aktCode->param2, this);
+		needTime = (needTime * 1000);
+		auto end_time = std::chrono::high_resolution_clock::now();
+		auto time = end_time - start_time;
+		Sleep( - time.count());
+		m_isRunning.lock();
+	} while (needTime > 0 && isRunning);
+	m_isRunning.unlock();
+
+	while (functionStack != nullptr) {
+		
+	}
+
+	m_terminated.lock();
+	terminated = true;
+	m_terminated.unlock();
+}

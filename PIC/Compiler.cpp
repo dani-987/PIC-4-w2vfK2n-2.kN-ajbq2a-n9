@@ -401,10 +401,12 @@ ERRORLESS_END:
 		if (*text != nullptr) {
 			(*text)->next = newText;
 			*text = newText;
+			(*text)->lineNumber = *pos;
 			(*pos)++;
 		}
 		else {
 			*text = newText;
+			(*text)->lineNumber = 0;
 			*pos = 1;
 		}
 	}
