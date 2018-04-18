@@ -35,7 +35,6 @@ struct ASM{
 struct STACK {
 	ASM_CODE* jumpTo;
 	STACK* next;
-	bool isInterupt;
 };
 
 

@@ -83,6 +83,7 @@ private:
 	ASM_CODE* aktCode;
 
 	STACK* functionStack;
+	size_t stopAtStackZero;
 
 	std::thread* uC;
 	bool isRunning;
@@ -93,6 +94,7 @@ private:
 	std::mutex m_isRunningLocked;
 
 	byte* ram;
+	bool sleep;
 	byte posDamaged;
 	std::mutex m_ram;
 

@@ -7,6 +7,7 @@
 
 #define NOT_IMPLEMENTED	"Nicht implementiert!"
 #define MEMORY_MISSING "Memory is missing."
+#define FUNCTIONSTACK_EMPTY	"Fuctionstack is empty!"
 
 #define RESET_POWER_UP		0
 #define RESET_CLRWDT		1
@@ -68,6 +69,7 @@ void Backend::reset(byte resetType)
 	ram[87] = 0x1F;
 	ram[88] = 0xFF;
 
+	sleep = false;
 
 	switch (resetType) {
 	case RESET_SLEEP:
@@ -428,22 +430,22 @@ int Backend::ANDWF(void*f, void*d) {
 	aktCode++;
 	return 1;
 }
-int Backend::CLRF(void*f, void*ign) { lastError = NOT_IMPLEMENTED; return -1; }
-int Backend::CLRW(void*ign1, void*ign2) { lastError = NOT_IMPLEMENTED; return -1; }
-int Backend::COMF(void*f, void*d) { lastError = NOT_IMPLEMENTED; return -1; }
-int Backend::DECF(void*f, void*d) { lastError = NOT_IMPLEMENTED; return -1; }
-int Backend::DECFSZ(void*f, void*d) { lastError = NOT_IMPLEMENTED; return -1; }
-int Backend::INCF(void*f, void*d) { lastError = NOT_IMPLEMENTED; return -1; }
-int Backend::INCFSZ(void*f, void*d) { lastError = NOT_IMPLEMENTED; return -1; }
-int Backend::IORWF(void*f, void*d) { lastError = NOT_IMPLEMENTED; return -1; }
-int Backend::MOVF(void*f, void*d) { lastError = NOT_IMPLEMENTED; return -1; }
-int Backend::MOVWF(void*f, void*ign) { lastError = NOT_IMPLEMENTED; return -1; }
-int Backend::NOP(void*ign1, void*ign2) { lastError = NOT_IMPLEMENTED; return -1; }
-int Backend::RLF(void*f, void*d) { lastError = NOT_IMPLEMENTED; return -1; }
-int Backend::RRF(void*f, void*d) { lastError = NOT_IMPLEMENTED; return -1; }
-int Backend::SUBWF(void*f, void*d) { lastError = NOT_IMPLEMENTED; return -1; }
-int Backend::SWAPF(void*f, void*d) { lastError = NOT_IMPLEMENTED; return -1; }
-int Backend::XORWF(void*f, void*d) { lastError = NOT_IMPLEMENTED; return -1; }
+int Backend::CLRF(void*f, void*ign) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
+int Backend::CLRW(void*ign1, void*ign2) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
+int Backend::COMF(void*f, void*d) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
+int Backend::DECF(void*f, void*d) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
+int Backend::DECFSZ(void*f, void*d) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
+int Backend::INCF(void*f, void*d) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
+int Backend::INCFSZ(void*f, void*d) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
+int Backend::IORWF(void*f, void*d) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
+int Backend::MOVF(void*f, void*d) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
+int Backend::MOVWF(void*f, void*ign) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
+int Backend::NOP(void*ign1, void*ign2) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
+int Backend::RLF(void*f, void*d) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
+int Backend::RRF(void*f, void*d) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
+int Backend::SUBWF(void*f, void*d) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
+int Backend::SWAPF(void*f, void*d) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
+int Backend::XORWF(void*f, void*d) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
 
 int Backend::BCF(void*f, void*b) {
 	getCell_unsafe((char)f) &= ~(1 << (char)b);
@@ -504,12 +506,17 @@ int Backend::CALL(void*k, void*ign) {
 	}
 	newAdress->jumpTo = aktCode + 1;
 	newAdress->next = functionStack;
-	newAdress->isInterupt = false;
 	functionStack = newAdress;
 	aktCode = &(code->code[(int)k]);
+	if (stopAtStackZero >= 0)stopAtStackZero++;
 	return 2;
 }
-int Backend::CLRWDT(void*ign1, void*ign2) { lastError = NOT_IMPLEMENTED; return -1; }
+int Backend::CLRWDT(void*ign1, void*ign2) {
+	//TODO: wo sind die entsprechenden regs?
+	ram[0x03] |= 0x18;
+	ram[83] &= 0xF0;
+	return 1;
+}
 int Backend::GOTO(void*k, void*ign) { 
 	aktCode = &(code->code[(int)k]);
 	return 2;
@@ -526,10 +533,55 @@ int Backend::MOVLW(void*k, void*ign) {
 	aktCode++;
 	return 1;
 }
-int Backend::RETFIE(void*ign1, void*ign2) { lastError = NOT_IMPLEMENTED; return -1; }
-int Backend::RETLW(void*k, void*ign) { lastError = NOT_IMPLEMENTED; return -1; }
-int Backend::RETURN(void*ign1, void*ign2) { lastError = NOT_IMPLEMENTED; return -1; }
-int Backend::SLEEP(void*ign1, void*ign2) { lastError = NOT_IMPLEMENTED; return -1; }
+int Backend::RETFIE(void*ign1, void*ign2) {
+	if (functionStack == nullptr) {
+		lastError = FUNCTIONSTACK_EMPTY;
+		MSGLEN();
+		return -1;
+	}
+	STACK* oldStack = functionStack;
+	aktCode = functionStack->jumpTo;
+	functionStack = functionStack->next;
+	free(oldStack);
+	if (stopAtStackZero > 0)stopAtStackZero--;
+	ram[0x0B] |= 0x80;
+	return 2;
+}
+int Backend::RETLW(void*k, void*ign) {
+	if (functionStack == nullptr) {
+		lastError = FUNCTIONSTACK_EMPTY;
+		MSGLEN();
+		return -1;
+	}
+	STACK* oldStack = functionStack;
+	aktCode = functionStack->jumpTo;
+	functionStack = functionStack->next;
+	free(oldStack);
+	if (stopAtStackZero > 0)stopAtStackZero--;
+	regW = ((char)k);
+	return 2;
+}
+int Backend::RETURN(void*ign1, void*ign2) {
+	if (functionStack == nullptr) {
+		lastError = FUNCTIONSTACK_EMPTY;
+		MSGLEN();
+		return -1;
+	}
+	STACK* oldStack = functionStack;
+	aktCode = functionStack->jumpTo;
+	functionStack = functionStack->next;
+	free(oldStack);
+	if (stopAtStackZero > 0)stopAtStackZero--;
+	return 2; 
+}
+int Backend::SLEEP(void*ign1, void*ign2) { 
+	sleep = true;
+	//TODO: richtige regs?
+	ram[0x03] |= 0x10;
+	ram[0x03] &= 0xF7;
+	ram[83] &= 0xF0;
+	return 1;
+}
 int Backend::SUBLW(void*k, void*ign) { 
 	char tmpW = regW;
 	regW = (((char)k & 0xFF) - (regW & 0xFF));
@@ -560,6 +612,20 @@ void Backend::run_in_other_thread(byte modus)
 		m_isRunning.lock();
 		isRunning = true;
 		m_isRunning.unlock();
+		switch (modus){
+		case MOD_STEP_OVER:
+			stopAtStackZero = 0;
+			break;
+		case MOD_STEP_OUT:
+			stopAtStackZero = 1;
+		case MOD_STANDARD:
+			stopAtStackZero = -1;
+#ifdef _DEBUG
+		default:
+			PRINTF1("MODUS (= %d ) ist nicht definiert!\n", modus);
+#endif
+		}
+		
 	}
 	else {
 		m_isRunning.lock();
@@ -569,6 +635,7 @@ void Backend::run_in_other_thread(byte modus)
 	int needTime;
 	do {
 		//locks in correct order
+		m_lastError.lock();
 		m_regW.lock();
 		m_run_code.lock();
 		m_isRunning.lock();
@@ -580,8 +647,21 @@ void Backend::run_in_other_thread(byte modus)
 
 		//asm-execution
 		posDamaged = 0;
-		needTime = aktCode->function(aktCode->param1, aktCode->param2, this);
+		if (!sleep) {
+			needTime = aktCode->function(aktCode->param1, aktCode->param2, this);
+		}
+		else needTime = 1;
 
+		//interupts, timers, etc...
+
+
+		//clear "read as '0'"-bits...
+		switch (posDamaged) {
+		case 0x05: case 0x0A: case 83: case 86:
+			ram[posDamaged] &= 0x1F;
+		}
+
+		//wait for 1000us if asm could be executed
 		if (needTime < 1) {
 			reset(RESET_POWER_UP);
 			isRunning = false;
@@ -589,12 +669,6 @@ void Backend::run_in_other_thread(byte modus)
 		else {
 			runtime += needTime;
 			needTime = (needTime * 1000);
-
-			//clear "read as '0'"-bits...
-			switch (posDamaged) {
-			case 0x05: case 0x0A: case 83: case 86:
-				ram[posDamaged] &= 0x1F;
-			}
 
 			//wait for the correct time
 			auto end_time = std::chrono::high_resolution_clock::now();
@@ -609,6 +683,7 @@ void Backend::run_in_other_thread(byte modus)
 		m_isRunning.unlock();
 		m_run_code.unlock();
 		m_regW.unlock();
+		m_lastError.unlock();
 
 		m_isRunning.lock();
 	} while (isRunning);
