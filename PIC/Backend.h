@@ -18,6 +18,8 @@ class Backend;
 #define MOD_STEP_OVER	3
 #define MOD_IGNORE		4
 
+#define STACK_SIZE		8
+
 #ifndef byte
 typedef unsigned char byte;
 #endif

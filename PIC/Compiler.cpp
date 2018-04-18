@@ -88,7 +88,7 @@ ASM * Compiler::compileFile(char * file, int memsize)
 			startLine = aktLine;
 		}
 		DOIF(DEBUGLVL >= DEBUGLVL_NORMAL && aktLine != nullptr)
-			PRINTF6("\tLINE: '%s'\n\tASM: '%s'\n\tCOM: '%s'\n\tLABEL: '%s'\n\tBytecode: '%s'\n\tFunctionpointer: '%s'\n\n", aktLine->lineOfCode, aktLine->asmCode, aktLine->comment, aktLine->label, aktLine->bytecode, (aktLine->bytecode != nullptr && asmcode != nullptr)?functionPointerToName(asmcode->function):nullptr);
+			PRINTF6("\tLINE: '%s'\n\tASM: '%s'\n\tCOM: '%s'\n\tLABEL: '%s'\n\tBytecode: '%s'\n\tFunctionpointer: '%s'\n\n", aktLine->lineOfCode, aktLine->asmCode, aktLine->comment, aktLine->label, aktLine->bytecode, (aktLine->bytecode != nullptr && (asmcode-1) != nullptr)?functionPointerToName((asmcode-1)->function):nullptr);
 		DOIF(DEBUGLVL >= DEBUGLVL_MUCH)PRINTF2("\tPOS: %d\n\tCODE-LEN: %d\n", aktPosInCode, codeLen);
 		if (codeLen > memsize) {
 			this->lastError = "Programm to long.";

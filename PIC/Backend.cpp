@@ -59,6 +59,8 @@ byte & Backend::getCell_unsafe(byte pos)
 
 void Backend::reset(byte resetType)
 {
+	//TODO: clear stack!
+
 	ram[0x02] = 0x00;
 	ram[0x03] &= 0x1F;
 	ram[0x0A] = 0;
@@ -403,6 +405,9 @@ char * Backend::getErrorMSG()
 //Zerobit
 #define BIT_Z		0x04
 #define BYTE_Z		0x03
+//Programmcounter
+#define PCL			0x02
+#define PCH			0x0A
 
 int Backend::ADDWF(void*f, void*d) {
 	byte &cell = getCell_unsafe((int)f);
@@ -430,22 +435,210 @@ int Backend::ANDWF(void*f, void*d) {
 	aktCode++;
 	return 1;
 }
-int Backend::CLRF(void*f, void*ign) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
-int Backend::CLRW(void*ign1, void*ign2) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
-int Backend::COMF(void*f, void*d) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
-int Backend::DECF(void*f, void*d) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
-int Backend::DECFSZ(void*f, void*d) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
-int Backend::INCF(void*f, void*d) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
-int Backend::INCFSZ(void*f, void*d) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
-int Backend::IORWF(void*f, void*d) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
-int Backend::MOVF(void*f, void*d) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
-int Backend::MOVWF(void*f, void*ign) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
-int Backend::NOP(void*ign1, void*ign2) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
-int Backend::RLF(void*f, void*d) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
-int Backend::RRF(void*f, void*d) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
-int Backend::SUBWF(void*f, void*d) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
-int Backend::SWAPF(void*f, void*d) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
-int Backend::XORWF(void*f, void*d) { lastError = NOT_IMPLEMENTED; MSGLEN();  return -1; }
+int Backend::CLRF(void*f, void*ign) { 
+	ram[BYTE_Z] |= BIT_Z;
+	getCell_unsafe((byte)f) = 0;
+	aktCode++;
+	return 1;
+}
+int Backend::CLRW(void*ign1, void*ign2) {
+	ram[BYTE_Z] |= BIT_Z;
+	regW = 0;
+	aktCode++;
+	return 1;
+}
+int Backend::COMF(void*f, void*d) { 
+	if (d == nullptr) {
+		regW = ~(getCell_unsafe((int)f));
+		if (regW == 0)ram[BYTE_Z] |= BIT_Z;
+		else ram[BYTE_Z] &= ~BIT_Z;
+	}
+	else {
+		byte& cell = getCell_unsafe((int)f);
+		cell = ~cell;
+		if (cell == 0)ram[BYTE_Z] |= BIT_Z;
+		else ram[BYTE_Z] &= ~BIT_Z;
+	}
+	aktCode++;
+	return 1;	
+}
+int Backend::DECF(void*f, void*d) {
+	if (d == nullptr) {
+		regW = getCell_unsafe((int)f) - 1;
+		if (regW == 0)ram[BYTE_Z] |= BIT_Z;
+		else ram[BYTE_Z] &= ~BIT_Z;
+	}
+	else { 
+		byte& cell = getCell_unsafe((int)f); 
+		cell--;
+		if (cell == 0)ram[BYTE_Z] |= BIT_Z;
+		else ram[BYTE_Z] &= ~BIT_Z;
+	}
+	aktCode++;
+	return 1;
+}
+int Backend::DECFSZ(void*f, void*d) { 
+	if (d == nullptr) { 
+		regW = getCell_unsafe((int)f) - 1; 
+		if (regW == 0) {
+			aktCode += 2;
+			return 2;
+		}
+		aktCode++;
+		return 1;
+	}
+	else {
+		byte& cell = getCell_unsafe((int)f);
+		cell--;
+		if (cell == 0) {
+			aktCode += 2;
+			return 2;
+		}
+		aktCode++;
+		return 1;
+	}
+}
+int Backend::INCF(void*f, void*d) {
+	if (d == nullptr) {
+		regW = getCell_unsafe((int)f) + 1;
+		if (regW == 0)ram[BYTE_Z] |= BIT_Z;
+		else ram[BYTE_Z] &= ~BIT_Z;
+	}
+	else {
+		byte& cell = getCell_unsafe((int)f);
+		cell++;
+		if (cell == 0)ram[BYTE_Z] |= BIT_Z;
+		else ram[BYTE_Z] &= ~BIT_Z;
+	}
+	aktCode++;
+	return 1;
+}
+int Backend::INCFSZ(void*f, void*d) {
+	if (d == nullptr) {
+		regW = getCell_unsafe((int)f) + 1;
+		if (regW == 0) {
+			aktCode += 2;
+			return 2;
+		}
+		aktCode++;
+		return 1;
+	}
+	else {
+		byte& cell = getCell_unsafe((int)f);
+		cell++;
+		if (cell == 0) {
+			aktCode += 2;
+			return 2;
+		}
+		aktCode++;
+		return 1;
+	}
+}
+int Backend::IORWF(void*f, void*d) {
+	if (d == nullptr) {
+		regW |= getCell_unsafe((int)f);
+		if (regW != 0)ram[BYTE_Z] |= BIT_Z;
+		else ram[BYTE_Z] &= ~BIT_Z;
+	}
+	else {
+		byte& cell = getCell_unsafe((int)f);
+		cell |= regW;
+		if (cell != 0)ram[BYTE_Z] |= BIT_Z;
+		else ram[BYTE_Z] &= ~BIT_Z;
+	}
+	aktCode++;
+	return 1;
+}
+int Backend::MOVF(void*f, void*d) { 
+	if (d == nullptr) {
+		regW = getCell_unsafe((int)f);
+		if (regW == 0)ram[BYTE_Z] |= BIT_Z;
+		else ram[BYTE_Z] &= ~BIT_Z;
+	}
+	else if (getCell_unsafe((int)f) == 0)ram[BYTE_Z] |= BIT_Z;
+	else ram[BYTE_Z] &= ~BIT_Z;
+	aktCode++;
+	return 1;
+}
+int Backend::MOVWF(void*f, void*ign) {
+	getCell_unsafe((int)f) = regW;
+	aktCode++;
+	return 1;
+}
+int Backend::NOP(void*ign1, void*ign2) {
+	aktCode++;
+	return 1;
+}
+int Backend::RLF(void*f, void*d) { 
+	byte& cell = getCell_unsafe((int)f);
+	int tmp = ram[BYTE_C] & BIT_C;
+	if (cell & 0x80) ram[BYTE_C] |= BIT_C;
+	else ram[BYTE_C] &= ~BIT_C;
+	if (d == nullptr) {
+		regW = cell << 1;
+		if (tmp) regW |= 0x01;
+		else regW &= ~0x01;
+	}
+	else {
+		cell <<= 1;
+		if (tmp) cell |= 0x01;
+		else cell &= ~0x01;
+	}
+	aktCode++;
+	return 1;
+}
+int Backend::RRF(void*f, void*d) {
+	byte& cell = getCell_unsafe((int)f);
+	int tmp = ram[BYTE_C] & BIT_C;
+	if (cell & 0x01) ram[BYTE_C] |= BIT_C;
+	else ram[BYTE_C] &= ~BIT_C;
+	if (d == nullptr) {
+		regW = cell >> 1;
+		if (tmp) regW |= 0x80;
+		else regW &= ~0x80;
+	}
+	else {
+		cell >>= 1;
+		if (tmp) cell |= 0x80;
+		else cell &= ~0x80;
+	}
+	aktCode++;
+	return 1;
+}
+int Backend::SUBWF(void*f, void*d) {
+	byte &cell = getCell_unsafe((int)f);
+	byte tmpCell = cell;
+	int tmp = ((cell & 0xFF) - (regW & 0xFF));
+	if (tmp >= 0)ram[BYTE_C] |= BIT_C;
+	else ram[BYTE_C] &= ~BIT_C;
+	if ((tmp ^ tmpCell) & 0x0010)ram[BYTE_DC] |= BIT_DC;
+	else ram[BYTE_DC] &= ~BIT_DC;
+	tmp &= 0xFF;
+	if (tmp)ram[BYTE_Z] &= ~BIT_Z;
+	else ram[BYTE_Z] |= BIT_Z;
+	if (d)regW = tmp;
+	else cell = tmp;
+	aktCode++;
+	return 1;
+}
+int Backend::SWAPF(void*f, void*d) { 
+	byte& cell = getCell_unsafe((int)f);
+	byte tmp = ((cell & 0xF0) >> 4) | ((cell & 0x0F) << 4);
+	if (d)regW = tmp;
+	else cell = tmp;
+	aktCode++;
+	return 1;
+}
+int Backend::XORWF(void*f, void*d) {
+	byte &cell = getCell_unsafe((int)f);
+	int tmp = (regW ^ cell) & 0xFF;
+	if (tmp)ram[BYTE_Z] &= ~BIT_Z;
+	else ram[BYTE_Z] |= BIT_Z;
+	if (d)regW = tmp;
+	else cell = tmp;
+	aktCode++;
+	return 1;
+}
 
 int Backend::BCF(void*f, void*b) {
 	getCell_unsafe((char)f) &= ~(1 << (char)b);
@@ -512,9 +705,10 @@ int Backend::CALL(void*k, void*ign) {
 	return 2;
 }
 int Backend::CLRWDT(void*ign1, void*ign2) {
-	//TODO: wo sind die entsprechenden regs?
+	//TODO: wo sind die entsprechenden regs? wo ist der WDT?
 	ram[0x03] |= 0x18;
 	ram[83] &= 0xF0;
+	aktCode++;
 	return 1;
 }
 int Backend::GOTO(void*k, void*ign) { 
@@ -576,21 +770,22 @@ int Backend::RETURN(void*ign1, void*ign2) {
 }
 int Backend::SLEEP(void*ign1, void*ign2) { 
 	sleep = true;
-	//TODO: richtige regs?
+	//TODO: richtige regs? s.o.
 	ram[0x03] |= 0x10;
 	ram[0x03] &= 0xF7;
 	ram[83] &= 0xF0;
+	aktCode++;
 	return 1;
 }
 int Backend::SUBLW(void*k, void*ign) { 
-	char tmpW = regW;
-	regW = (((char)k & 0xFF) - (regW & 0xFF));
-	if ((regW ^ tmpW) & 0x0100)ram[BYTE_C] |= BIT_C;
+	char tmpW = (((char)k & 0xFF) - (regW & 0xFF));
+	if (tmpW >= 0)ram[BYTE_C] |= BIT_C;
 	else ram[BYTE_C] &= ~BIT_C;
 	if ((regW ^ tmpW) & 0x0010)ram[BYTE_DC] |= BIT_DC;
 	else ram[BYTE_DC] &= ~BIT_DC;
+	regW = tmpW;
 	regW &= 0xFF;
-	if (regW)ram[BYTE_Z] &= ~BIT_Z;
+	if (tmpW)ram[BYTE_Z] &= ~BIT_Z;
 	else ram[BYTE_Z] |= BIT_Z;
 	aktCode++;
 	return 1;
@@ -634,6 +829,7 @@ void Backend::run_in_other_thread(byte modus)
 	}
 	int needTime;
 	do {
+		auto start_time = std::chrono::high_resolution_clock::now();
 		//locks in correct order
 		m_lastError.lock();
 		m_regW.lock();
@@ -643,7 +839,15 @@ void Backend::run_in_other_thread(byte modus)
 		m_eeprom.lock();
 		m_runtime.lock();
 
-		auto start_time = std::chrono::high_resolution_clock::now();
+		//Programmcounter -> Pointer
+		int PC = ((ram[PCH] & 0x1F) << 8) | (ram[PCL]);
+		if (PC >= UC_SIZE_PROGRAM) {
+			reset(RESET_POWER_UP);
+			isRunning = false;
+			lastError = "Programmcounter ist außerhalb des Programmspeichers!";
+			MSGLEN();
+		}
+		aktCode = &(code->code[PC]);
 
 		//asm-execution
 		posDamaged = 0;
@@ -654,26 +858,21 @@ void Backend::run_in_other_thread(byte modus)
 
 		//interupts, timers, etc...
 
+		//Pointer -> Programmcounter
+		PC = (aktCode - &(code->code[0])) % UC_SIZE_PROGRAM;
+		ram[PCH] = (PC >> 8) & 0x1F;
+		ram[PCL] = PC & 0xFF;
 
 		//clear "read as '0'"-bits...
-		switch (posDamaged) {
-		case 0x05: case 0x0A: case 83: case 86:
-			ram[posDamaged] &= 0x1F;
-		}
+		ram[0x05] &= 0x1F;
+		ram[0x0A] &= 0x1F;
+		ram[83] &= 0x1F;
+		ram[86] &= 0x1F;
 
-		//wait for 1000us if asm could be executed
+		//stop if error in execution
 		if (needTime < 1) {
 			reset(RESET_POWER_UP);
 			isRunning = false;
-		}
-		else {
-			runtime += needTime;
-			needTime = (needTime * 1000);
-
-			//wait for the correct time
-			auto end_time = std::chrono::high_resolution_clock::now();
-			auto time = end_time - start_time;
-			Sleep(needTime - time.count());
 		}
 
 		//unlocks in correct order
@@ -685,13 +884,20 @@ void Backend::run_in_other_thread(byte modus)
 		m_regW.unlock();
 		m_lastError.unlock();
 
-		m_isRunning.lock();
-	} while (isRunning);
-	m_isRunning.unlock();
+		//wait for 1000us if asm could be executed
+		if (needTime >= 1) {
+			runtime += needTime;
+			needTime = (needTime * 1000);
 
-	while (functionStack != nullptr) {
-		
-	}
+			//wait for the correct time
+			auto end_time = std::chrono::high_resolution_clock::now();
+			auto time = end_time - start_time;
+			Sleep(needTime - time.count());
+		}
+
+		m_isRunning.lock();
+	} while (isRunning && stopAtStackZero);
+	m_isRunning.unlock();
 
 	m_terminated.lock();
 	terminated = true;
