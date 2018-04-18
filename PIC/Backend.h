@@ -27,6 +27,8 @@ struct call_in_other_thread_s {
 	int modus;
 };
 
+//Die Datei "TPicSim1.LST" sollte lauffähig sein...
+
 class Backend
 {
 	/*
@@ -37,6 +39,34 @@ class Backend
 	int: -1 -> Error (für bool: 1 = true; 0 = false, char all pos. Integers)
 	*/
 private:
+	/*
+	if more than one mutex must be locked, only lock in following order:
+	m_lastError.lock();
+	m_regW.lock();
+	m_text_code.lock();
+	m_run_code.lock();
+	m_isRunning.lock();
+	m_terminated.lock();
+	m_isRunningLocked.lock();
+	m_ram.lock();
+	m_eeprom.lock();
+	m_callInOtherThread.lock();
+	m_runtime.lock();
+
+	<code>
+
+	m_runtime.unlock();
+	m_callInOtherThread.unlock();
+	m_eeprom.unlock();
+	m_ram.unlock();
+	m_isRunningLocked.unlock();
+	m_terminated.unlock();
+	m_isRunning.unlock();
+	m_run_code.unlock();
+	m_text_code.unlock();
+	m_regW.unlock();
+	m_lastError.unlock();
+	*/
 	byte tmp;
 
 	char* lastError;
@@ -63,6 +93,7 @@ private:
 	std::mutex m_isRunningLocked;
 
 	byte* ram;
+	byte posDamaged;
 	std::mutex m_ram;
 
 	char* eeprom;
@@ -84,17 +115,18 @@ public:
 	Backend(GUI* gui);
 	~Backend();
 
+	//thread-save functions for external usage:
 	bool LoadProgramm(char* c);
-	bool Start();
+	bool Start();	//do not call -> not all asm-funcs implemented
 	bool Stop();
-	bool Step();
-	bool Reset();
-	bool SetMem(int from, int len, void* mem);//Free is not called
-	bool SetBit(int byte, int pos, bool val);
-	void* GetMem(int from, int len);//nullptr possible! Remember: malloc! -> free
-	int  GetBit(int byte, int pos);	//bool
+	bool Step();	//do not call -> not all asm-funcs implemented
+	bool Reset();	//not implemented
+	int  GetByte(int reg, byte bank);			//bank: 0 or 1
+	bool SetByte(int reg, byte bank, byte val);	//bank: 0 or 1
+	int  GetBit(int b, byte bank, int pos);	//bool
+	bool SetBit(int b, byte bank, int pos, bool val);
 	int getRegW();					//char
-	bool setRegW(char val);
+	bool setRegW(byte val);
 	char* getErrorMSG();			//nullptr possible! Remember: malloc! -> free
 
 
