@@ -43,87 +43,99 @@ class Backend
 private:
 	/*
 	if more than one mutex must be locked, only lock in following order:
-	m_lastError.lock();
-	m_regW.lock();
-	m_text_code.lock();
-	m_run_code.lock();
-	m_isRunning.lock();
-	m_terminated.lock();
-	m_isRunningLocked.lock();
-	m_ram.lock();
-	m_eeprom.lock();
-	m_callInOtherThread.lock();
-	m_runtime.lock();
+	LOCK_MUTEX(m_lastError);
+	LOCK_MUTEX(m_regW);
+	LOCK_MUTEX(m_text_code);
+	LOCK_MUTEX(m_run_code);
+	LOCK_MUTEX(m_isRunning);
+	LOCK_MUTEX(m_terminated);
+	LOCK_MUTEX(m_isRunningLocked);
+	LOCK_MUTEX(m_ram);
+	LOCK_MUTEX(m_eeprom);
+	LOCK_MUTEX(m_callInOtherThread);
+	LOCK_MUTEX(m_runtime);
 
 	<code>
 
-	m_runtime.unlock();
-	m_callInOtherThread.unlock();
-	m_eeprom.unlock();
-	m_ram.unlock();
-	m_isRunningLocked.unlock();
-	m_terminated.unlock();
-	m_isRunning.unlock();
-	m_run_code.unlock();
-	m_text_code.unlock();
-	m_regW.unlock();
-	m_lastError.unlock();
+	UNLOCK_MUTEX(m_runtime);
+	UNLOCK_MUTEX(m_callInOtherThread);
+	UNLOCK_MUTEX(m_eeprom);
+	UNLOCK_MUTEX(m_ram);
+	UNLOCK_MUTEX(m_isRunningLocked);
+	UNLOCK_MUTEX(m_terminated);
+	UNLOCK_MUTEX(m_isRunning);
+	UNLOCK_MUTEX(m_run_code);
+	UNLOCK_MUTEX(m_text_code);
+	UNLOCK_MUTEX(m_regW);
+	UNLOCK_MUTEX(m_lastError);
 	*/
 	byte tmp;
 
 	char* lastError;
 	int lastErrorLen;
-	std::mutex m_lastError;
+	bool errorInThreadHappend;
+	HANDLE m_lastError;
 
-	char regW;
-	std::mutex m_regW;
+	byte regW;
+	HANDLE m_regW;
 
 	ASM* code;
-	std::mutex m_text_code;
-	std::mutex m_run_code;
+	HANDLE m_text_code;
+	HANDLE m_run_code;
 
 	ASM_CODE* aktCode;
 
 	STACK* functionStack;
+	size_t stackSize;
 	size_t stopAtStackZero;
 
 	std::thread* uC;
 	bool isRunning;
-	std::mutex m_isRunning;
+	HANDLE m_isRunning;
 	bool terminated;
-	std::mutex m_terminated;
+	HANDLE m_terminated;
 	bool isRunningLocked;
-	std::mutex m_isRunningLocked;
+	HANDLE m_isRunningLocked;
 
 	byte* ram;
+	byte ram_rb_cpy;
 	bool sleep;
-	byte posDamaged;
-	std::mutex m_ram;
+	size_t prescaler_timer;
+	size_t eeprom_write_time;
+	byte eeprom_write_state;
+	unsigned long long time_eeprom_error_write;	//used for write errors at much write cycles
+	byte eeprom_wr_addr;						//needed for wirte errors
+	bool eeprom_wr, eeprom_rd;
+	int lastInput;
+	HANDLE m_ram;
 
 	char* eeprom;
-	std::mutex m_eeprom;
+	HANDLE m_eeprom;
 
 	GUI* gui;
 
 	call_in_other_thread_s callInOtherThread;
-	std::mutex m_callInOtherThread;
+	HANDLE m_callInOtherThread;
 
 	unsigned int runtime;
-	std::mutex m_runtime;
+	HANDLE m_runtime;
 
 	byte & getCell_unsafe(byte pos);
 	void reset(byte resetType);
 	void Stop_And_Wait();
 	bool letRun(int modus);
+	bool do_interrupts(int& needTime);
+	bool do_timer();
+	bool do_eeprom();
 public:
 	Backend(GUI* gui);
 	~Backend();
 
 	//thread-save functions for external usage:
 	bool LoadProgramm(char* c);
-	bool Start();	//do not call -> not all asm-funcs implemented
+	bool Start();
 	bool Stop();
-	bool Step();	//do not call -> not all asm-funcs implemented
+	bool Step();
 	bool Reset();	//not implemented
 	int  GetByte(int reg, byte bank);			//bank: 0 or 1
 	bool SetByte(int reg, byte bank, byte val);	//bank: 0 or 1
@@ -132,6 +144,7 @@ public:
 	int getRegW();					//char
 	bool setRegW(byte val);
 	char* getErrorMSG();			//nullptr possible! Remember: malloc! -> free
+	void Wait_For_End();
 
 
 	//following ist for internal use only and not thread-save!

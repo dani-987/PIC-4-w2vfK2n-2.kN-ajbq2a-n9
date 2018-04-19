@@ -1,8 +1,12 @@
 #pragma once
+#include <Windows.h>
 
 #ifdef _WIN32
 #define WIN32
 #endif
+
+#define LOCK_MUTEX(m)			{DWORD res;do{res=WaitForSingleObject(m,INFINITE);}while(res==WAIT_ABANDONED);}
+#define UNLOCK_MUTEX(m)			{while(!ReleaseMutex(m));}
 
 #ifdef _DEBUG
 #define PRINTF(a)				printf(a)
