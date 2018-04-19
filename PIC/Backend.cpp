@@ -317,33 +317,6 @@ bool Backend::do_eeprom()
 Backend::Backend(GUI* gui)
 {
 	lastError = "Kein Fehler";
-
-	m_lastError  = CreateMutex(NULL,false,NULL);
-	m_regW  = CreateMutex(NULL,false,NULL);
-	m_text_code  = CreateMutex(NULL,false,NULL);
-	m_run_code  = CreateMutex(NULL,false,NULL);
-	m_isRunning  = CreateMutex(NULL,false,NULL);
-	m_terminated  = CreateMutex(NULL,false,NULL);
-	m_isRunningLocked  = CreateMutex(NULL,false,NULL);
-	m_ram  = CreateMutex(NULL,false,NULL);
-	m_eeprom  = CreateMutex(NULL,false,NULL);
-	m_callInOtherThread  = CreateMutex(NULL,false,NULL);
-	m_runtime  = CreateMutex(NULL,false,NULL);
-	if (!m_lastError || 
-		!m_regW ||
-		!m_text_code ||
-		!m_run_code ||
-		!m_isRunning ||
-		!m_terminated ||
-		!m_isRunningLocked ||
-		!m_ram ||
-		!m_eeprom ||
-		!m_callInOtherThread ||
-		!m_runtime) {
-		lastError = "Kann MUTEX nicht erstellen...";
-		PRINTF1("Kann MUTEX nicht erstellen... (Error: %d)\n", GetLastError());
-	}
-
 	lastErrorLen = MSGLEN();
 	regW = 0;
 	code = nullptr;
@@ -366,18 +339,6 @@ Backend::Backend(GUI* gui)
 
 Backend::~Backend()
 {
-	CloseHandle(m_lastError);
-	CloseHandle(m_regW);
-	CloseHandle(m_text_code);
-	CloseHandle(m_run_code);
-	CloseHandle(m_isRunning);
-	CloseHandle(m_terminated);
-	CloseHandle(m_isRunningLocked);
-	CloseHandle(m_ram);
-	CloseHandle(m_eeprom);
-	CloseHandle(m_callInOtherThread);
-	CloseHandle(m_runtime);
-
 	Stop_And_Wait();
 	free(eeprom);
 	free(ram);

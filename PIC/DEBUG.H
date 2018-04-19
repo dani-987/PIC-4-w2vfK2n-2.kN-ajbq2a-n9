@@ -5,8 +5,8 @@
 #define WIN32
 #endif
 
-#define LOCK_MUTEX(m)			{DWORD res;do{res=WaitForSingleObject(m,INFINITE);}while(res==WAIT_ABANDONED);}
-#define UNLOCK_MUTEX(m)			{while(!ReleaseMutex(m));}
+#define LOCK_MUTEX(m)			m.lock()
+#define UNLOCK_MUTEX(m)			m.unlock()
 
 #ifdef _DEBUG
 #define PRINTF(a)				printf(a)

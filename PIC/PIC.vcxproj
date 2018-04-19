@@ -24,6 +24,7 @@
     <ClInclude Include="Compiler.h" />
     <ClInclude Include="DEBUG.H" />
     <ClInclude Include="GUI.h" />
+    <ClInclude Include="MUTEX.H" />
     <ClInclude Include="MyTable.h" />
   </ItemGroup>
   <ItemGroup>
@@ -32,6 +33,7 @@
     <ClCompile Include="Compiler.cpp" />
     <ClCompile Include="GUI.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="MUTEX.cpp" />
     <ClCompile Include="MyTable.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

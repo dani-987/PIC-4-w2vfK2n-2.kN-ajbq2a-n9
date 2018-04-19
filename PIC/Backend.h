@@ -5,6 +5,7 @@ class Backend;
 #include "DEBUG.H"
 #include "ASM.h"
 #include "GUI.h"
+#include "MUTEX.H"
 #include <mutex>
 #include <thread>
 
@@ -74,14 +75,14 @@ private:
 	char* lastError;
 	int lastErrorLen;
 	bool errorInThreadHappend;
-	HANDLE m_lastError;
+	MUTEX m_lastError;
 
 	byte regW;
-	HANDLE m_regW;
+	MUTEX m_regW;
 
 	ASM* code;
-	HANDLE m_text_code;
-	HANDLE m_run_code;
+	MUTEX m_text_code;
+	MUTEX m_run_code;
 
 	ASM_CODE* aktCode;
 
@@ -91,11 +92,11 @@ private:
 
 	std::thread* uC;
 	bool isRunning;
-	HANDLE m_isRunning;
+	MUTEX m_isRunning;
 	bool terminated;
-	HANDLE m_terminated;
+	MUTEX m_terminated;
 	bool isRunningLocked;
-	HANDLE m_isRunningLocked;
+	MUTEX m_isRunningLocked;
 
 	byte* ram;
 	byte ram_rb_cpy;
@@ -107,18 +108,18 @@ private:
 	byte eeprom_wr_addr;						//needed for wirte errors
 	bool eeprom_wr, eeprom_rd;
 	int lastInput;
-	HANDLE m_ram;
+	MUTEX m_ram;
 
 	char* eeprom;
-	HANDLE m_eeprom;
+	MUTEX m_eeprom;
 
 	GUI* gui;
 
 	call_in_other_thread_s callInOtherThread;
-	HANDLE m_callInOtherThread;
+	MUTEX m_callInOtherThread;
 
 	unsigned int runtime;
-	HANDLE m_runtime;
+	MUTEX m_runtime;
 
 	byte & getCell_unsafe(byte pos);
 	void reset(byte resetType);

@@ -33,6 +33,9 @@
     <ClInclude Include="MyTable.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="MUTEX.H">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GUI.cpp">
@@ -51,6 +54,9 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="MyTable.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="MUTEX.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>
