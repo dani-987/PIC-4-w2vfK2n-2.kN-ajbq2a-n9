@@ -1,12 +1,15 @@
 #pragma once
 
+//some header need WIN32 defined, but VS sets _WIN32 instead
 #ifdef _WIN32
 #define WIN32
 #endif
 
+//lock and unlock functions of mutex
 #define LOCK_MUTEX(m)			m.lock()
 #define UNLOCK_MUTEX(m)			m.unlock()
 
+//functions for debuging (e.g. PRINTF or Variabledefines, that are ignored at release-build)
 #ifdef _DEBUG
 #define PRINTF(a)				printf(a)
 #define PRINTF1(a,b)			printf(a,b)

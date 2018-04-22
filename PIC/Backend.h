@@ -21,6 +21,8 @@ class Backend;
 
 #define STACK_SIZE		8
 
+#define UC_STANDARD_SPEED	1000
+
 #ifndef byte
 typedef unsigned char byte;
 #endif
@@ -100,6 +102,7 @@ private:
 
 	byte* ram;
 	byte ram_rb_cpy;
+	size_t sleeptime;
 	bool sleep;
 	size_t prescaler_timer;
 	size_t eeprom_write_time;
@@ -132,23 +135,25 @@ public:
 	Backend(GUI* gui);
 	~Backend();
 
-	//thread-save functions for external usage:
+	//thread-save functions for external usage in GUI:
 	bool LoadProgramm(char* c);
 	bool Start();
 	bool Stop();
 	bool Step();
-	bool Reset();	//not implemented
+	void setCommandSpeed(size_t speed);			//standard speed: 'UC_STANDARD_SPEED'
+	bool Reset();								//not implemented
 	int  GetByte(int reg, byte bank);			//bank: 0 or 1
 	bool SetByte(int reg, byte bank, byte val);	//bank: 0 or 1
-	int  GetBit(int b, byte bank, int pos);	//bool
+	int  GetBit(int b, byte bank, int pos);		//bool
 	bool SetBit(int b, byte bank, int pos, bool val);
-	int getRegW();					//char
+	int getRegW();								//char
 	bool setRegW(byte val);
-	char* getErrorMSG();			//nullptr possible! Remember: malloc! -> free
-	void Wait_For_End();
+	char* getErrorMSG();						//nullptr possible! Remember: malloc! -> free
+	void Wait_For_End();						//joins all runnig threads. do not forget to call 'Stop' before!
 
 
 	//following ist for internal use only and not thread-save!
+	//asm-commands:
 	int ADDWF(void*f, void*d);
 	int ANDWF(void*f, void*d);
 	int CLRF(void*f, void*ign);
@@ -187,6 +192,7 @@ public:
 	int SUBLW(void*k, void*ign);
 	int XORLW(void*k, void*ign);
 
+	//main loop of the uC!
 	void run_in_other_thread(byte modus);
 };
 

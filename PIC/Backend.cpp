@@ -337,6 +337,7 @@ Backend::Backend(GUI* gui)
 	eeprom_wr = false;
 	eeprom_rd = false;
 	uC = nullptr;
+	sleeptime = UC_STANDARD_SPEED;
 }
 
 
@@ -386,6 +387,13 @@ bool Backend::Stop()
 bool Backend::Step()
 {
 	return letRun(MOD_STEP);
+}
+
+void Backend::setCommandSpeed(size_t speed)
+{
+	LOCK_MUTEX(m_ram);
+	sleeptime = speed;
+	UNLOCK_MUTEX(m_ram);
 }
 
 bool Backend::Reset()
@@ -1127,7 +1135,7 @@ void Backend::run_in_other_thread(byte modus)
 		if (!errorInThreadHappend && needTime >= 1) {
 			UNLOCK_MUTEX(m_lastError);
 			runtime += needTime;
-			needTime = (needTime * 1000);
+			needTime = (needTime * sleeptime);
 
 			//wait for the correct time
 			auto end_time = std::chrono::high_resolution_clock::now();

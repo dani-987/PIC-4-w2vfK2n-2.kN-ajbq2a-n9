@@ -1,5 +1,7 @@
 #pragma once
 
+//Handwritten MUTEX, to locate errors faster
+
 #ifndef  byte
 typedef unsigned char byte;
 #endif // ! byte
