@@ -1,18 +1,7 @@
-#include <chrono>
-#include <thread>
 #include "MUTEX.H"
 
-byte __try_lock(byte*);
-
-
-MUTEX::MUTEX() { mtx = 0; }
-void MUTEX::lock() {
-	while (__try_lock(&mtx)) {
-		std::this_thread::sleep_for(std::chrono::nanoseconds(1));
-	}
-}
-void MUTEX::unlock() { mtx = 0; }
-
+#include <chrono>
+#include <thread>
 
 byte __try_lock(byte* mutex) {
 	byte ret = 1;
@@ -25,4 +14,10 @@ byte __try_lock(byte* mutex) {
 	return ret;
 }
 
-typedef class MUTEX MUTEX;
+MUTEX::MUTEX() { mtx = 0; }
+void MUTEX::unlock() { mtx = 0; }
+void MUTEX::lock() {
+	while (__try_lock(&mtx) == 1) {
+		std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+	}
+}

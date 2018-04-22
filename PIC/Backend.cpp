@@ -26,9 +26,12 @@
 
 VARDEF(int, DEBUG_LVL, DEBUG_ALL);
 
-void call_backup_in(void* _callInOtherThread) {
+void call_backup_in_other_thread(void* _callInOtherThread) {
 	struct call_in_other_thread_s* callInOtherThread = (struct call_in_other_thread_s*)_callInOtherThread;
+	DOIF(callInOtherThread->modus > 4 || callInOtherThread->modus < 0)
+		PRINTF1("WRONG MODUS! (%d)\n", callInOtherThread->modus);
 	callInOtherThread->backend->run_in_other_thread(callInOtherThread->modus);
+	delete(_callInOtherThread);
 }
 
 byte & Backend::getCell_unsafe(byte pos)
@@ -158,8 +161,8 @@ bool Backend::letRun(int modus)
 		uC->join();
 		delete(uC);
 	}
-	call_in_other_thread_s data = { this, modus };
-	uC = new std::thread(call_backup_in, &data);
+	call_in_other_thread_s* data = new call_in_other_thread_s{ this, modus };
+	uC = new std::thread(call_backup_in_other_thread, data);
 	return true;
 }
 
@@ -581,7 +584,7 @@ void Backend::Wait_For_End()
 	LOCK_MUTEX(m_terminated);
 	while (!terminated) {
 		UNLOCK_MUTEX(m_terminated);
-		Sleep(1);
+		std::this_thread::sleep_for(std::chrono::nanoseconds(1));
 		LOCK_MUTEX(m_terminated);
 	}
 	UNLOCK_MUTEX(m_terminated);

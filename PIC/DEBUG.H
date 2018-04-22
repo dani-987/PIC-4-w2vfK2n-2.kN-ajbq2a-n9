@@ -1,5 +1,4 @@
 #pragma once
-#include <Windows.h>
 
 #ifdef _WIN32
 #define WIN32
