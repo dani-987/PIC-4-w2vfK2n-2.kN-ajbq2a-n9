@@ -13,33 +13,37 @@ typedef struct STACK STACK;
 #include "DEBUG.H"
 #include "Backend.h"
 
+//functionpointer of asm-commands
 typedef int(*instruction_t)(void*, void*, Backend*);
 
+//datastructure, to hold the .LST-file-data for displaying in GUI (with e.g. label and comments)
 struct ASM_TEXT{
 	char *bytecode, *lineOfCode, *label, *asmCode, *comment;
 	int lineNumber;
 	ASM_TEXT* next;
 };
 
+//executable datastructure
  struct ASM_CODE{
 	instruction_t function;
 	void *param1, *param2;
 	ASM_TEXT* guiText;
 };
 
+ //datastructur that hold display information and executable data
 struct ASM{
 	ASM_TEXT* text;
 	ASM_CODE* code;
 };
 
+//stack for functioncalls
 struct STACK {
 	ASM_CODE* jumpTo;
 	STACK* next;
-	bool isInterupt;
 };
 
 
-
+//asm-commands, that calls: 'call->[instruction](param1, param2);', will be executed in Backend-Class
 namespace instructions {
 	int ADDWF(void*f, void*d, Backend* call);
 	int ANDWF(void*f, void*d, Backend* call);

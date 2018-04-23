@@ -24,6 +24,7 @@
     <ClInclude Include="Compiler.h" />
     <ClInclude Include="DEBUG.H" />
     <ClInclude Include="GUI.h" />
+    <ClInclude Include="MUTEX.H" />
     <ClInclude Include="MyTable.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="tablestyle_config.h" />
@@ -34,6 +35,7 @@
     <ClCompile Include="Compiler.cpp" />
     <ClCompile Include="GUI.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="MUTEX.cpp" />
     <ClCompile Include="MyTable.cpp" />
     <ClCompile Include="tablestyle_config.cpp" />
   </ItemGroup>
@@ -140,7 +142,8 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PreBuildEvent>
-      <Command>copy /b info.cpp +,,</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

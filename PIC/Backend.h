@@ -5,7 +5,14 @@ class Backend;
 #include "DEBUG.H"
 #include "ASM.h"
 #include "GUI.h"
+
+#ifdef USE_MY_MUTEX
+#include "MUTEX.H"
+#else // USE_MY_MUTEX
 #include <mutex>
+typedef std::mutex MUTEX;
+#endif // !USE_MY_MUTEX
+
 #include <thread>
 
 #define UC_SIZE_RAM		94
@@ -18,6 +25,10 @@ class Backend;
 #define MOD_STEP_OVER	3
 #define MOD_IGNORE		4
 
+#define STACK_SIZE		8
+
+#define UC_STANDARD_SPEED	1000
+
 #ifndef byte
 typedef unsigned char byte;
 #endif
@@ -26,6 +37,8 @@ struct call_in_other_thread_s {
 	Backend* backend;
 	int modus;
 };
+
+//Die Datei "TPicSim1.LST" sollte lauffähig sein...
 
 class Backend
 {
@@ -37,68 +50,116 @@ class Backend
 	int: -1 -> Error (für bool: 1 = true; 0 = false, char all pos. Integers)
 	*/
 private:
+	/*
+	if more than one mutex must be locked, only lock in following order:
+	LOCK_MUTEX(m_lastError);
+	LOCK_MUTEX(m_regW);
+	LOCK_MUTEX(m_text_code);
+	LOCK_MUTEX(m_run_code);
+	LOCK_MUTEX(m_isRunning);
+	LOCK_MUTEX(m_terminated);
+	LOCK_MUTEX(m_isRunningLocked);
+	LOCK_MUTEX(m_ram);
+	LOCK_MUTEX(m_eeprom);
+	LOCK_MUTEX(m_callInOtherThread);
+	LOCK_MUTEX(m_runtime);
+
+	<code>
+
+	UNLOCK_MUTEX(m_runtime);
+	UNLOCK_MUTEX(m_callInOtherThread);
+	UNLOCK_MUTEX(m_eeprom);
+	UNLOCK_MUTEX(m_ram);
+	UNLOCK_MUTEX(m_isRunningLocked);
+	UNLOCK_MUTEX(m_terminated);
+	UNLOCK_MUTEX(m_isRunning);
+	UNLOCK_MUTEX(m_run_code);
+	UNLOCK_MUTEX(m_text_code);
+	UNLOCK_MUTEX(m_regW);
+	UNLOCK_MUTEX(m_lastError);
+	*/
 	byte tmp;
 
 	char* lastError;
 	int lastErrorLen;
-	std::mutex m_lastError;
+	bool errorInThreadHappend;
+	MUTEX m_lastError;
 
-	char regW;
-	std::mutex m_regW;
+	byte regW;
+	MUTEX m_regW;
 
 	ASM* code;
-	std::mutex m_text_code;
-	std::mutex m_run_code;
+	MUTEX m_text_code;
+	MUTEX m_run_code;
 
 	ASM_CODE* aktCode;
 
 	STACK* functionStack;
+	size_t stackSize;
+	size_t stopAtStackZero;
 
 	std::thread* uC;
 	bool isRunning;
-	std::mutex m_isRunning;
+	MUTEX m_isRunning;
 	bool terminated;
-	std::mutex m_terminated;
+	MUTEX m_terminated;
 	bool isRunningLocked;
-	std::mutex m_isRunningLocked;
+	MUTEX m_isRunningLocked;
 
 	byte* ram;
-	std::mutex m_ram;
+	byte ram_rb_cpy;
+	size_t sleeptime;
+	bool sleep;
+	size_t prescaler_timer;
+	size_t eeprom_write_time;
+	byte eeprom_write_state;
+	unsigned long long time_eeprom_error_write;	//used for write errors at much write cycles
+	byte eeprom_wr_addr;						//needed for wirte errors
+	bool eeprom_wr, eeprom_rd;
+	int lastInput;
+	MUTEX m_ram;
 
 	char* eeprom;
-	std::mutex m_eeprom;
+	MUTEX m_eeprom;
 
 	GUI* gui;
 
 	call_in_other_thread_s callInOtherThread;
-	std::mutex m_callInOtherThread;
+	MUTEX m_callInOtherThread;
 
 	unsigned int runtime;
-	std::mutex m_runtime;
+	MUTEX m_runtime;
 
 	byte & getCell_unsafe(byte pos);
 	void reset(byte resetType);
 	void Stop_And_Wait();
 	bool letRun(int modus);
+	bool do_interrupts(int& needTime);
+	bool do_timer();
+	bool do_eeprom();
 public:
 	Backend(GUI* gui);
 	~Backend();
 
+	//thread-save functions for external usage in GUI:
 	bool LoadProgramm(char* c);
 	bool Start();
 	bool Stop();
 	bool Step();
-	bool Reset();
-	bool SetMem(int from, int len, void* mem);//Free is not called
-	bool SetBit(int byte, int pos, bool val);
-	void* GetMem(int from, int len);//nullptr possible! Remember: malloc! -> free
-	int  GetBit(int byte, int pos);	//bool
-	int getRegW();					//char
-	bool setRegW(char val);
-	char* getErrorMSG();			//nullptr possible! Remember: malloc! -> free
+	void setCommandSpeed(size_t speed);			//standard speed: 'UC_STANDARD_SPEED'
+	bool Reset();								//not implemented
+	int  GetByte(int reg, byte bank);			//bank: 0 or 1
+	bool SetByte(int reg, byte bank, byte val);	//bank: 0 or 1
+	int  GetBit(int b, byte bank, int pos);		//bool
+	bool SetBit(int b, byte bank, int pos, bool val);
+	int getRegW();								//char
+	bool setRegW(byte val);
+	char* getErrorMSG();						//nullptr possible! Remember: malloc! -> free
+	void Wait_For_End();						//joins all runnig threads. do not forget to call 'Stop' before!
 
 
 	//following ist for internal use only and not thread-save!
+	//asm-commands:
 	int ADDWF(void*f, void*d);
 	int ANDWF(void*f, void*d);
 	int CLRF(void*f, void*ign);
@@ -137,6 +198,7 @@ public:
 	int SUBLW(void*k, void*ign);
 	int XORLW(void*k, void*ign);
 
+	//main loop of the uC!
 	void run_in_other_thread(byte modus);
 };
 

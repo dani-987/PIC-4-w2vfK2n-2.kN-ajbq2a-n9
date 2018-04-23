@@ -12,6 +12,7 @@
 #define DEBUGLVL_ALL	3
 VARDEF(int, DEBUGLVL, DEBUGLVL_NORMAL);
 
+//states of scanner/parser (both are combinated into one because the .LST-file is a context-sensitive-language)
 #define STATUS_START					0
 #define STATUS_READING_CODE1			1
 #define STATUS_READING_BEFORE_CODE2		2
@@ -88,7 +89,7 @@ ASM * Compiler::compileFile(char * file, int memsize)
 			startLine = aktLine;
 		}
 		DOIF(DEBUGLVL >= DEBUGLVL_NORMAL && aktLine != nullptr)
-			PRINTF6("\tLINE: '%s'\n\tASM: '%s'\n\tCOM: '%s'\n\tLABEL: '%s'\n\tBytecode: '%s'\n\tFunctionpointer: '%s'\n\n", aktLine->lineOfCode, aktLine->asmCode, aktLine->comment, aktLine->label, aktLine->bytecode, (aktLine->bytecode != nullptr && asmcode != nullptr)?functionPointerToName(asmcode->function):nullptr);
+			PRINTF6("\tLINE: '%s'\n\tASM: '%s'\n\tCOM: '%s'\n\tLABEL: '%s'\n\tBytecode: '%s'\n\tFunctionpointer: '%s'\n\n", aktLine->lineOfCode, aktLine->asmCode, aktLine->comment, aktLine->label, aktLine->bytecode, (aktLine->bytecode != nullptr && (asmcode-1) != nullptr)?functionPointerToName((asmcode-1)->function):nullptr);
 		DOIF(DEBUGLVL >= DEBUGLVL_MUCH)PRINTF2("\tPOS: %d\n\tCODE-LEN: %d\n", aktPosInCode, codeLen);
 		if (codeLen > memsize) {
 			this->lastError = "Programm to long.";
@@ -97,6 +98,8 @@ ASM * Compiler::compileFile(char * file, int memsize)
 	}
 	free(puffer);
 	retASM->text = startLine;
+	//fill code with  nop to protect uC against nullptr-exceptions!
+	for (int i = 0; i < memsize; i++)if(asmcode[i].function == 0)asmcode[i] = { instructions::NOP, 0, 0, startLine };
 	fclose(f);
 	return retASM;
 ERROR_END:
@@ -953,7 +956,7 @@ char* Compiler::functionPointerToName(instruction_t f) {
 	else if(f == instructions::RLF)		return "RLF";
 	else if(f == instructions::RRF)		return "RRF";
 	else if(f == instructions::SUBWF)	return "SUBWF";
-	else if(f == instructions::SUBWF)	return "SUBWF";
+	else if(f == instructions::SWAPF)	return "SWAPF";
 	else if(f == instructions::XORWF)	return "XORWF";
 	else if(f == instructions::BCF)		return "BCF";
 	else if(f == instructions::BSF)		return "BSF";
