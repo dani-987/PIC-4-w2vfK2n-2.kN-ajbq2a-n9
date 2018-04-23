@@ -5,6 +5,7 @@ class GUI;
 #include "DEBUG.H"
 #include "Backend.h"
 #include "MyTable.h"
+#include "tablestyle_config.h"
 
 #include <FL\Fl.H>
 #include <FL\Fl_Double_Window.H>
@@ -14,6 +15,17 @@ class GUI;
 #include <FL/Fl_Check_Button.H>
 #include <FL/Fl_Choice.H>
 #include <FL/fl_ask.H>
+#include <FL/Fl_Box.H>
+#include <FL/Enumerations.H>
+
+#define CW 40		//Width of a Cell
+#define CH 30		//Heigth of a Cell
+#define RCMEM 16	//Number of Rows of the Memory Table
+#define CCMEM 8		//Number of Colums of the Memory Table
+#define CellsMEM 153//Total number of Cells of the Memory Table (including headers)
+#define RCIO 6		//Number of Rows of the IO-Table
+#define CCIO 8		//Number of Colums of the IO-Table
+#define CellsIO 54	//Total number of Cells of the IO-Table (including headers)
 
 
 #define WINDOW_BASE_X_OFFSET	10
@@ -39,13 +51,14 @@ public:
 
 	int run();
 
-	//interface to backend
+	//		All interfaces to backend
 	void int_updateAll();
 
-	//overrides
+	//		All Overrides of the GUI
 	void resize(int x, int y, int w, int h);
 
-	//callbacks
+	//		All Callbacks 
+	//Callback for opneing file
 	void callback_load_file();
 
 	//void callback_xy();
