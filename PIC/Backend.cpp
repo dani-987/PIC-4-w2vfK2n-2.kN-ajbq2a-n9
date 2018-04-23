@@ -7,6 +7,10 @@
 #include <stdlib.h>
 #include <time.h>
 
+//TODO: iorwf C-Flag?!
+//SUB: C: Flag?!
+//ADD: DC-Flag?!
+
 #define NOT_IMPLEMENTED	"Nicht implementiert!"
 #define MEMORY_MISSING "Memory is missing."
 #define FUNCTIONSTACK_EMPTY	"Fuctionstack is empty!"
@@ -135,19 +139,21 @@ bool Backend::letRun(int modus)
 		lastError = "Der Start ist gesperrt!";
 		MSGLEN();
 		UNLOCK_MUTEX(m_lastError);
-		DOIF(DEBUG_LVL >= DEBUG_MORE)PRINTF("Start is locked\n");
+		PRINTF("Start is locked\n");
 		return false;
 	}
 	UNLOCK_MUTEX(m_isRunningLocked);
+	LOCK_MUTEX(m_run_code);
 	LOCK_MUTEX(m_isRunning);
 	if (isRunning) {
 		UNLOCK_MUTEX(m_isRunning);
+		UNLOCK_MUTEX(m_run_code);
 		LOCK_MUTEX(m_terminated);
 		if (!terminated) {
 			UNLOCK_MUTEX(m_terminated);
 			LOCK_MUTEX(m_lastError);
 			lastError = "Der Kontroller läuft aktuell!";
-			DOIF(DEBUG_LVL >= DEBUG_MORE)PRINTF("Kontroller is running already\n");
+			PRINTF("Kontroller is running already\n");
 			MSGLEN();
 			UNLOCK_MUTEX(m_lastError);
 			return false;
@@ -155,14 +161,26 @@ bool Backend::letRun(int modus)
 		UNLOCK_MUTEX(m_terminated);
 		LOCK_MUTEX(m_isRunning);
 	}
-	isRunning = true;
-	UNLOCK_MUTEX(m_isRunning);
 	if (uC != nullptr) {
 		uC->join();
 		delete(uC);
+		uC = nullptr;
 	}
+	if (code == nullptr || code->code == nullptr) {
+		UNLOCK_MUTEX(m_isRunning);
+		UNLOCK_MUTEX(m_run_code);
+		LOCK_MUTEX(m_lastError);
+		lastError = "Kein Programm geladen!";
+		PRINTF("Kein Programm geladen\n");
+		MSGLEN();
+		UNLOCK_MUTEX(m_lastError);
+		return false;
+	}
+	isRunning = true;
+	UNLOCK_MUTEX(m_isRunning);
 	call_in_other_thread_s* data = new call_in_other_thread_s{ this, modus };
 	uC = new std::thread(call_backup_in_other_thread, data);
+	UNLOCK_MUTEX(m_run_code);
 	return true;
 }
 
@@ -817,12 +835,11 @@ int Backend::RRF(void*f, void*d) {
 int Backend::SUBWF(void*f, void*d) {
 	byte &cell = getCell_unsafe((int)f);
 	byte tmpCell = cell;
-	int tmp = ((cell & 0xFF) - (regW & 0xFF));
-	if (tmp >= 0)ram[BYTE_C] |= BIT_C;
+	byte tmp = ((cell & 0xFF) - (regW & 0xFF));
+	if ((tmp & 0x80) == 0)ram[BYTE_C] |= BIT_C;
 	else ram[BYTE_C] &= ~BIT_C;
 	if ((tmp ^ tmpCell) & 0x0010)ram[BYTE_DC] |= BIT_DC;
 	else ram[BYTE_DC] &= ~BIT_DC;
-	tmp &= 0xFF;
 	if (tmp)ram[BYTE_Z] &= ~BIT_Z;
 	else ram[BYTE_Z] |= BIT_Z;
 	if (!d)regW = tmp;
@@ -987,13 +1004,12 @@ int Backend::SLEEP(void*ign1, void*ign2) {
 	return 1;
 }
 int Backend::SUBLW(void*k, void*ign) { 
-	char tmpW = (((char)k & 0xFF) - (regW & 0xFF));
-	if (tmpW >= 0)ram[BYTE_C] |= BIT_C;
+	byte tmpW = (((char)k & 0xFF) - (regW & 0xFF));
+	if ((tmpW & 0x80) == 0)ram[BYTE_C] |= BIT_C;
 	else ram[BYTE_C] &= ~BIT_C;
 	if ((regW ^ tmpW) & 0x0010)ram[BYTE_DC] |= BIT_DC;
 	else ram[BYTE_DC] &= ~BIT_DC;
 	regW = tmpW;
-	regW &= 0xFF;
 	if (tmpW)ram[BYTE_Z] &= ~BIT_Z;
 	else ram[BYTE_Z] |= BIT_Z;
 	aktCode++;

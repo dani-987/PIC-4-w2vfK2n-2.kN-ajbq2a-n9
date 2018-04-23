@@ -12,6 +12,7 @@
 #define DEBUGLVL_ALL	3
 VARDEF(int, DEBUGLVL, DEBUGLVL_NORMAL);
 
+//states of scanner/parser (both are combinated into one because the .LST-file is a context-sensitive-language)
 #define STATUS_START					0
 #define STATUS_READING_CODE1			1
 #define STATUS_READING_BEFORE_CODE2		2
@@ -97,6 +98,8 @@ ASM * Compiler::compileFile(char * file, int memsize)
 	}
 	free(puffer);
 	retASM->text = startLine;
+	//fill code with  nop to protect uC against nullptr-exceptions!
+	for (int i = 0; i < memsize; i++)if(asmcode[i].function == 0)asmcode[i] = { instructions::NOP, 0, 0, startLine };
 	fclose(f);
 	return retASM;
 ERROR_END:
@@ -953,7 +956,7 @@ char* Compiler::functionPointerToName(instruction_t f) {
 	else if(f == instructions::RLF)		return "RLF";
 	else if(f == instructions::RRF)		return "RRF";
 	else if(f == instructions::SUBWF)	return "SUBWF";
-	else if(f == instructions::SUBWF)	return "SUBWF";
+	else if(f == instructions::SWAPF)	return "SWAPF";
 	else if(f == instructions::XORWF)	return "XORWF";
 	else if(f == instructions::BCF)		return "BCF";
 	else if(f == instructions::BSF)		return "BSF";

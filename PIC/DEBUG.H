@@ -5,6 +5,9 @@
 #define WIN32
 #endif
 
+#define USE_STD_MUTEX
+//#define USE_MY_MUTEX
+
 //lock and unlock functions of mutex
 #define LOCK_MUTEX(m)			m.lock()
 #define UNLOCK_MUTEX(m)			m.unlock()

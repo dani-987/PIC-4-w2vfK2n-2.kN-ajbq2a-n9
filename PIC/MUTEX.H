@@ -1,6 +1,7 @@
 #pragma once
 
 //Handwritten MUTEX, to locate errors faster
+//define USE_MY_MUTEX in DEBUG.H for use this file, else std::mutex will be used
 
 #ifndef  byte
 typedef unsigned char byte;

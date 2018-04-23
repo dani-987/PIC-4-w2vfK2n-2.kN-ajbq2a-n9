@@ -5,8 +5,14 @@ class Backend;
 #include "DEBUG.H"
 #include "ASM.h"
 #include "GUI.h"
+
+#ifdef USE_MY_MUTEX
 #include "MUTEX.H"
+#else // USE_MY_MUTEX
 #include <mutex>
+typedef std::mutex MUTEX;
+#endif // !USE_MY_MUTEX
+
 #include <thread>
 
 #define UC_SIZE_RAM		94
