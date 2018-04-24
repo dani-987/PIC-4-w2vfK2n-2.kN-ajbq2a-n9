@@ -13,8 +13,9 @@ int main(int argc, char *argv[]) {
 		system("pause");
 	}
 	return true;/*/
-	GUI* gui = new GUI();
 	Fl::lock();
+
+	GUI* gui = new GUI();
 	return gui->run();
 	//*/
 }

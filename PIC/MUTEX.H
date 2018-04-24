@@ -1,5 +1,5 @@
 #pragma once
-
+#ifdef USE_MY_MUTEX
 //Handwritten MUTEX, to locate errors faster
 //define USE_MY_MUTEX in DEBUG.H for use this file, else std::mutex will be used
 
@@ -15,3 +15,4 @@ public:
 	void lock();
 	void unlock();
 };
+#endif

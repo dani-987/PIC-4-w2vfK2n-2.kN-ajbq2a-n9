@@ -1,3 +1,5 @@
+#include "DEBUG.H"
+#ifdef USE_MY_MUTEX
 #include "MUTEX.H"
 
 #include <chrono>
@@ -21,3 +23,4 @@ void MUTEX::lock() {
 		std::this_thread::sleep_for(std::chrono::nanoseconds(1));
 	}
 }
+#endif
