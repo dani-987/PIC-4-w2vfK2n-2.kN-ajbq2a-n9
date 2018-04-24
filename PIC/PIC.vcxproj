@@ -26,6 +26,8 @@
     <ClInclude Include="GUI.h" />
     <ClInclude Include="MUTEX.H" />
     <ClInclude Include="MyTable.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="tablestyle_config.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ASM.cpp" />
@@ -35,6 +37,10 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MUTEX.cpp" />
     <ClCompile Include="MyTable.cpp" />
+    <ClCompile Include="tablestyle_config.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="PIC.rc" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>

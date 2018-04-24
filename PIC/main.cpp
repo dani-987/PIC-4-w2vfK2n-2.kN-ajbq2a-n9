@@ -14,6 +14,7 @@ int main(int argc, char *argv[]) {
 	}
 	return true;/*/
 	GUI* gui = new GUI();
+	Fl::lock();
 	return gui->run();
 	//*/
 }
