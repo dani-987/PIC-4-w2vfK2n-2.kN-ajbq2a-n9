@@ -1,5 +1,8 @@
 #include "GUI.h"
 
+int __font_size_table_ = 16;
+int __get_font_size_table_() {return __font_size_table_;}
+
 //Position and size of the menu-bar
 #define X_MENUBAR		0
 #define Y_MENUBAR		0

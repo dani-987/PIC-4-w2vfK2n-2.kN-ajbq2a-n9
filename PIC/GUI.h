@@ -18,14 +18,18 @@ class GUI;
 #include <FL/Fl_Box.H>
 #include <FL/Enumerations.H>
 
-#define CW 40		//Width of a Cell
-#define CH 30		//Heigth of a Cell
-#define RCMEM 16	//Number of Rows of the Memory Table
-#define CCMEM 8		//Number of Colums of the Memory Table
-#define CellsMEM 153//Total number of Cells of the Memory Table (including headers)
-#define RCIO 6		//Number of Rows of the IO-Table
-#define CCIO 8		//Number of Colums of the IO-Table
-#define CellsIO 54	//Total number of Cells of the IO-Table (including headers)
+int __get_font_size_table_();
+
+#define FONT_SIZE_TABLE __get_font_size_table_()
+
+#define CW ((int)(2.5f * (float)FONT_SIZE_TABLE))		//Width of a Cell
+#define CH ((int)(1.875f * (float)FONT_SIZE_TABLE))		//Heigth of a Cell
+#define RCMEM 16										//Number of Rows of the Memory Table
+#define CCMEM 8											//Number of Colums of the Memory Table
+#define CellsMEM 153									//Total number of Cells of the Memory Table (including headers)
+#define RCIO 6											//Number of Rows of the IO-Table
+#define CCIO 8											//Number of Colums of the IO-Table
+#define CellsIO 54										//Total number of Cells of the IO-Table (including headers)
 
 
 #define WINDOW_BASE_X_OFFSET	10

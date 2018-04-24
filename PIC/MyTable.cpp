@@ -44,9 +44,16 @@ void MyTable::draw_cell(TableContext context, int R, int C, int X, int Y, int W,
 
 		fl_push_clip(X, Y, W, H);
 		{
+			// BG COLOR
+			fl_color(mystyle[position].backgroundcolor);
+			fl_rectf(X, Y, W, H);
+
 			fl_draw_box(mystyle[position].boxtyp, X, Y, W, H, mystyle[position].bordercolor);
-			//fl_color(FL_BLACK);
+			fl_color(mystyle[position].textcolor);
 			fl_draw(mystyle[position].label, X, Y, W, H, mystyle[position].align);
+
+			fl_color(color());
+			fl_rect(X, Y, W, H);
 		}
 		fl_pop_clip();
 		return;
@@ -58,9 +65,16 @@ void MyTable::draw_cell(TableContext context, int R, int C, int X, int Y, int W,
 
 		fl_push_clip(X, Y, W, H);
 		{
+			// BG COLOR
+			fl_color(mystyle[position].backgroundcolor);
+			fl_rectf(X, Y, W, H);
+
 			fl_draw_box(mystyle[position].boxtyp, X, Y, W, H, mystyle[position].bordercolor);
-			//fl_color(FL_BLACK);
+			fl_color(mystyle[position].textcolor);
 			fl_draw(mystyle[position].label, X, Y, W, H, mystyle[position].align);
+
+			fl_color(color());
+			fl_rect(X, Y, W, H);
 		}
 		fl_pop_clip();
 		return;
@@ -80,7 +94,7 @@ void MyTable::draw_cell(TableContext context, int R, int C, int X, int Y, int W,
 			fl_draw(mystyle[position].label, X, Y, W, H, mystyle[position].align);
 
 			// BORDER
-			//fl_color(color());
+			fl_color(color());
 			fl_rect(X, Y, W, H);
 		}
 		fl_pop_clip();

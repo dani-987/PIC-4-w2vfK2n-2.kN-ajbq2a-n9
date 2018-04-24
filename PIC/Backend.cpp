@@ -11,7 +11,7 @@
 #define USE_RANDOM_VALUES
 //TODO:
 
-//timer: schreibe 1, lese 2
+//GUI-Funkionen, damage
 //Interrupts
 
 #define NOT_IMPLEMENTED	"Nicht implementiert!"
@@ -31,7 +31,7 @@
 #define DEBUG_MORE	3
 #define DEBUG_ALL	4
 
-VARDEF(int, DEBUG_LVL, DEBUG_MORE);
+VARDEF(int, DEBUG_LVL, DEBUG_ALL);
 
 void call_backup_in_other_thread(void* _callInOtherThread) {
 	struct call_in_other_thread_s* callInOtherThread = (struct call_in_other_thread_s*)_callInOtherThread;
@@ -457,7 +457,13 @@ bool Backend::LoadProgramm(char * c)
 		this->aktCode = prog->code;
 		ret = true;
 	}
-	memset(ram, 0, UC_SIZE_RAM);
+	for (int i = 0; i < UC_SIZE_RAM; i++) {
+#ifdef USE_RANDOM_VALUES
+		ram[i] = rand() & 0xFF;
+#else
+		ram[i] = 0;
+#endif
+	};
 	reset(RESET_POWER_UP);
 	LOCK_MUTEX(m_isRunningLocked);
 	isRunningLocked = false;
@@ -836,7 +842,7 @@ int Backend::ADDWF(void*f, void*d) {
 	int tmp = ((regW & 0xFF) + (cell & 0xFF));
 	if (tmp & 0x0100)ram[BYTE_C] |= BIT_C;
 	else ram[BYTE_C] &= ~BIT_C;
-	if ((regW & 0x0F) + (cell & 0x0F))ram[BYTE_DC] |= BIT_DC;
+	if (((regW & 0x0F) + (cell & 0x0F)) & 0x10)ram[BYTE_DC] |= BIT_DC;
 	else ram[BYTE_DC] &= ~BIT_DC;
 	tmp &= 0xFF;
 	if (tmp)ram[BYTE_Z] &= ~BIT_Z;
@@ -956,15 +962,16 @@ int Backend::INCFSZ(void*f, void*d) {
 	}
 }
 int Backend::IORWF(void*f, void*d) {
+
 	if (d == nullptr) {
 		regW |= getCell_unsafe((int)f);
-		if (regW)ram[BYTE_Z] |= BIT_Z;
+		if (!regW)ram[BYTE_Z] |= BIT_Z;
 		else ram[BYTE_Z] &= ~BIT_Z;
 	}
 	else {
 		byte& cell = getCell_unsafe((int)f);
 		cell |= regW;
-		if (cell)ram[BYTE_Z] |= BIT_Z;
+		if (!cell)ram[BYTE_Z] |= BIT_Z;
 		else ram[BYTE_Z] &= ~BIT_Z;
 	}
 	aktCode++;
@@ -1029,10 +1036,10 @@ int Backend::RRF(void*f, void*d) {
 int Backend::SUBWF(void*f, void*d) {
 	byte &cell = getCell_unsafe((int)f);
 	byte tmpCell = cell;
-	int tmp = ((cell & 0xFF) - (regW & 0xFF));
+	int tmp = (((int)(cell & 0xFF)) - ((int)(regW & 0xFF)));
 	if (tmp >= 0)ram[BYTE_C] |= BIT_C;
 	else ram[BYTE_C] &= ~BIT_C;
-	if (((tmpCell & 0x0F) - (regW & 0x0F)) >= 0)ram[BYTE_DC] |= BIT_DC;
+	if ((((char)(tmpCell & 0x0F)) - ((char)(regW & 0x0F))) >= 0)ram[BYTE_DC] |= BIT_DC;
 	else ram[BYTE_DC] &= ~BIT_DC;
 	tmp &= 0xFF;
 	if (tmp)ram[BYTE_Z] &= ~BIT_Z;
@@ -1093,13 +1100,12 @@ int Backend::BTFSS(void*f, void*b) {
 }
 
 int Backend::ADDLW(void*k, void*ign) {
-	char tmpW = regW;
-	regW = ((regW & 0xFF) + ((char)k & 0xFF));
-	if ((regW ^ tmpW) & 0x0100)ram[BYTE_C] |= BIT_C;
+	int tmpW = ((regW & 0xFF) + ((char)k & 0xFF));
+	if (tmpW & 0x0100)ram[BYTE_C] |= BIT_C;
 	else ram[BYTE_C] &= ~BIT_C;
-	if ((regW ^ tmpW) & 0x0010)ram[BYTE_DC] |= BIT_DC;
+	if (((regW & 0x0F) + ((char)k & 0x0F)) & 0x10)ram[BYTE_DC] |= BIT_DC;
 	else ram[BYTE_DC] &= ~BIT_DC;
-	regW &= 0xFF;
+	regW = tmpW & 0xFF;
 	if (regW)ram[BYTE_Z] &= ~BIT_Z;
 	else ram[BYTE_Z] |= BIT_Z;
 	aktCode++;
@@ -1138,7 +1144,7 @@ int Backend::GOTO(void*k, void*ign) {
 }
 int Backend::IORLW(void*k, void*ign) { 
 	regW = ((regW & 0xFF) | ((char)k & 0xFF));
-	if (regW)ram[BYTE_Z] &= ~BIT_Z;
+	if (!regW)ram[BYTE_Z] &= ~BIT_Z;
 	else ram[BYTE_Z] |= BIT_Z;
 	aktCode++;
 	return 1;
@@ -1202,7 +1208,7 @@ int Backend::SUBLW(void*k, void*ign) {
 	int tmpW = (((char)k & 0xFF) - (regW & 0xFF));
 	if (tmpW >= 0)ram[BYTE_C] |= BIT_C;
 	else ram[BYTE_C] &= ~BIT_C;
-	if ((((char)k & 0x0F) - (regW & 0x0F)) >= 0)ram[BYTE_DC] |= BIT_DC;
+	if ((((char)((char)k & 0x0F)) - ((char)(regW & 0x0F))) >= 0)ram[BYTE_DC] |= BIT_DC;
 	else ram[BYTE_DC] &= ~BIT_DC;
 	regW = tmpW & 0xFF;
 	if (tmpW)ram[BYTE_Z] &= ~BIT_Z;
