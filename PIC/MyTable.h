@@ -16,7 +16,7 @@ class MyTable : public Fl_Table_Row
 private:
 	Fl_Color cell_bgcolor;				// color of cell's bg color
 	Fl_Color cell_fgcolor;				// color of cell's fg color
-	struct tablestyle* mystyle;				// the style-Array of the table
+	tablestyle* mystyle;				// the style-Array of the table
 
 protected:
 	void draw_cell(TableContext context,  		// table cell drawing

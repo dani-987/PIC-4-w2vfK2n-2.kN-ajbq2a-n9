@@ -3,11 +3,13 @@
 //This is realized through the struct tablestyle. It contains all the necessary properties to draw cells with the correct colors, labels, ...
 //Each Table gets an Array of tablestyles with one Object per Cell, including headers
 
-#include "GUI.h"
-
 struct tablestyle;
-
 typedef struct tablestyle tablestyle;
+
+
+#include "GUI.h"
+#include <FL\Enumerations.H>
+
 
 //Contains all necessary style information to draw a cell
 struct tablestyle {
