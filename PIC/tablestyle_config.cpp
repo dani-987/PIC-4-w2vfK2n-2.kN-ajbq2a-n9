@@ -29,12 +29,12 @@ tablestyle * setstyle_MEM()
 			else sprintf(txt, "%d%d", ((i-36)/9)/2, (i%2)?8:0);
 			s[i].label = txt;
 		}
-		else if (i == 17 || (i > 21 && i < 27) || (i > 39 && i < 49) || i > 99) {
+		else if (i == 17 || (i > 21 && i < 27) || i == 35 || (i > 39 && i < 49) || i > 99) {
 			s[i] = MEM_Uninstalled;
 			s[i].label = "00";
 		}
 		//Anything below here is initilaized with "00" and has it's label updated on change of the respective Memory Adress
-		else if (i > 22) {
+		else if (i < 22) {
 			s[i] = MEM_Reserved_B0;
 			s[i].label = "00";
 		}

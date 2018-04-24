@@ -94,7 +94,6 @@ void MyTable::draw_cell(TableContext context, int R, int C, int X, int Y, int W,
 			fl_draw(mystyle[position].label, X, Y, W, H, mystyle[position].align);
 
 			// BORDER
-			fl_color(color());
 			fl_rect(X, Y, W, H);
 		}
 		fl_pop_clip();
