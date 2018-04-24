@@ -5,7 +5,7 @@
 #define DEBUG_LVL_NORMAL	1
 #define DEBUG_LVL_MUCH	2
 #define DEBUG_LVL_ALL	3
-VARDEF(int, DEBUG___LVL, DEBUG_LVL_NORMAL);
+VARDEF(int, DEBUG___LVL, DEBUG_LVL_MUCH);
 
 
 #define COLHEADERPOS(C) (C+1)
@@ -34,8 +34,9 @@ void MyTable::draw_cell(TableContext context, int R, int C, int X, int Y, int W,
 	switch (context)
 	{
 	case CONTEXT_STARTPAGE:
-		DOIF(DEBUG___LVL >= DEBUG_LVL_MUCH)PRINTF("Called Startpage Context\n");
+		DOIF(DEBUG___LVL >= DEBUG_LVL_MUCH)PRINTF6("Called Startpage Context (R: %d C: %d X: %d Y: %d W: %d H: %d)\n",R,C,X,Y,W,H);
 		fl_font(mystyle[position].font, mystyle[position].fontsize);
+
 		return;
 
 	case CONTEXT_COL_HEADER:
@@ -52,7 +53,7 @@ void MyTable::draw_cell(TableContext context, int R, int C, int X, int Y, int W,
 			fl_color(mystyle[position].textcolor);
 			fl_draw(mystyle[position].label, X, Y, W, H, mystyle[position].align);
 
-			fl_color(color());
+			fl_color(mystyle[position].bordercolor);
 			fl_rect(X, Y, W, H);
 		}
 		fl_pop_clip();
@@ -73,7 +74,7 @@ void MyTable::draw_cell(TableContext context, int R, int C, int X, int Y, int W,
 			fl_color(mystyle[position].textcolor);
 			fl_draw(mystyle[position].label, X, Y, W, H, mystyle[position].align);
 
-			fl_color(color());
+			fl_color(mystyle[position].bordercolor);
 			fl_rect(X, Y, W, H);
 		}
 		fl_pop_clip();
@@ -90,10 +91,11 @@ void MyTable::draw_cell(TableContext context, int R, int C, int X, int Y, int W,
 			fl_rectf(X, Y, W, H);
 
 			// TEXT
-			//fl_color(cell_fgcolor);
+			fl_color(mystyle[position].textcolor);
 			fl_draw(mystyle[position].label, X, Y, W, H, mystyle[position].align);
 
 			// BORDER
+			fl_color(mystyle[position].bordercolor);
 			fl_rect(X, Y, W, H);
 		}
 		fl_pop_clip();

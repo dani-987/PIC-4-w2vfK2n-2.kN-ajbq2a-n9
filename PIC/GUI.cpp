@@ -1,6 +1,6 @@
 #include "GUI.h"
 
-int __font_size_table_ = 16;
+int __font_size_table_ = 14;
 int __get_font_size_table_() {return __font_size_table_;}
 
 //Position and size of the menu-bar
@@ -30,6 +30,12 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 {
 	//Create Backend
 	backend = new Backend(this);
+
+	/*//TODO: fontsize ändern
+	if (w < 750)__font_size_table_ = 12;
+	else if (w < 1000)__font_size_table_ = 14;
+	else __font_size_table_ = 16;
+	*/
 
 	//create Menubar
 	menubar = new Fl_Menu_Bar(X_MENUBAR, Y_MENUBAR, W_MENUBAR, H_MENUBAR);
@@ -131,6 +137,11 @@ void GUI::int_updateAll()
 //#######################################################################################
 
 void GUI::resize(int x, int y, int w, int h){
+	/*//TODO: fonsize ändern
+	if (w < 750)__font_size_table_ = 12;
+	else if (w < 1000)__font_size_table_ = 14;
+	else __font_size_table_ = 16;
+	*/
 	Fl_Double_Window::resize(x, y, w, h);
 	menubar->resize(X_MENUBAR, Y_MENUBAR, W_MENUBAR, H_MENUBAR);
 	Mem_table->resize(X_MEM_TAB, Y_MEM_TAB, W_MEM_TAB, H_MEM_TAB);
