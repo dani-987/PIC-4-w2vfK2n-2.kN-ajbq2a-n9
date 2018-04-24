@@ -31,7 +31,7 @@
 #define DEBUG_MORE	3
 #define DEBUG_ALL	4
 
-VARDEF(int, DEBUG_LVL, DEBUG_ALL);
+VARDEF(int, DEBUG_LVL, DEBUG_MORE);
 
 void call_backup_in_other_thread(void* _callInOtherThread) {
 	struct call_in_other_thread_s* callInOtherThread = (struct call_in_other_thread_s*)_callInOtherThread;

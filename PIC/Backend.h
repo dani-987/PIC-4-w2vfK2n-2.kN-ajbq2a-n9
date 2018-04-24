@@ -27,7 +27,7 @@ typedef std::mutex MUTEX;
 
 #define STACK_SIZE		8
 
-#define UC_STANDARD_SPEED	1000		//in ns
+#define UC_STANDARD_SPEED	1000		//in us
 
 #ifndef byte
 typedef unsigned char byte;
@@ -151,6 +151,7 @@ public:
 	~Backend();
 
 	//thread-save functions for external usage in GUI:
+	bool getNextChangedCell(int &reg, byte &bank);
 	bool LoadProgramm(char* c);
 	bool Start();
 	bool Stop();

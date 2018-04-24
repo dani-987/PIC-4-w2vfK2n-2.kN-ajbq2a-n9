@@ -1,13 +1,13 @@
 #include "tablestyle_config.h"
 
 //Tablestyles for the Memory Table
-tablestyle MEM_Startpage,
-	MEM_Rowheaders,
-	MEM_Colheaders,
-	MEM_Reserved_B0,
-	MEM_Reserved_B1,
-	MEM_Available,
-	MEM_Uninstalled;
+tablestyle MEM_Startpage = {nullptr, FL_HELVETICA, 16, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_WHITE, FL_ALIGN_CENTER},
+	MEM_Rowheaders = { nullptr, FL_HELVETICA, 16, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_WHITE, FL_ALIGN_CENTER },
+	MEM_Colheaders = { nullptr, FL_HELVETICA, 16, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_WHITE, FL_ALIGN_CENTER },
+	MEM_Reserved_B0 = { nullptr, FL_HELVETICA, 16, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_WHITE, FL_ALIGN_CENTER },
+	MEM_Reserved_B1 = { nullptr, FL_HELVETICA, 16, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_WHITE, FL_ALIGN_CENTER },
+	MEM_Available = { nullptr, FL_HELVETICA, 16, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_WHITE, FL_ALIGN_CENTER },
+	MEM_Uninstalled = { nullptr, FL_HELVETICA, 16, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_WHITE, FL_ALIGN_CENTER };
 
 tablestyle * setstyle_MEM()
 {
@@ -49,10 +49,10 @@ tablestyle * setstyle_MEM()
 }
 
 
-tablestyle IO_Rowheaders,
-	IO_DigitEnum,
-	IO_TrisValues,
-	IO_Values;
+tablestyle IO_Rowheaders = { nullptr, FL_HELVETICA, 16, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_WHITE, FL_ALIGN_CENTER },
+	IO_DigitEnum = { nullptr, FL_HELVETICA, 16, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_WHITE, FL_ALIGN_CENTER },
+	IO_TrisValues = { nullptr, FL_HELVETICA, 16, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_WHITE, FL_ALIGN_CENTER },
+	IO_Values = { nullptr, FL_HELVETICA, 16, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_WHITE, FL_ALIGN_CENTER };
 
 tablestyle * setstyle_IO()
 {

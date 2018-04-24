@@ -4,7 +4,7 @@
 
 int main(int argc, char *argv[]) {
 	// use '//*' in folowing line for testing the backend, use '/*' for running programm with GUI
-	//*
+	/*
 	Backend* b = new Backend(new GUI());
 	b->LoadProgramm("..\\Debug\\Testprogramme\\TPicSim3.LST");
 	while (1) {
