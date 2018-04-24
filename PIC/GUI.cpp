@@ -60,6 +60,7 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 
 	//Table for the Memory
 	Mem_table = new MyTable(X_MEM_TAB, Y_MEM_TAB, W_MEM_TAB, H_MEM_TAB, "Memory");
+	Mem_table->getstyle() = setstyle_MEM();
 	Mem_table->selection_color(FL_YELLOW);
 	Mem_table->when(FL_WHEN_RELEASE | FL_WHEN_CHANGED);
 	Mem_table->table_box(FL_NO_BOX);
@@ -81,6 +82,7 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 
 	//Table for the IO-Registers
 	IO_table = new MyTable(X_IO_TAB, Y_IO_TAB, W_IO_TAB, H_IO_TAB, "IO-Registers");
+	IO_table->getstyle() = setstyle_IO();
 	IO_table->when(FL_WHEN_RELEASE | FL_WHEN_CHANGED);
 	IO_table->table_box(FL_NO_BOX);
 

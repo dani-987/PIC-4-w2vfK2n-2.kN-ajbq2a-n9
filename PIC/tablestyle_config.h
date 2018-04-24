@@ -5,7 +5,8 @@
 
 struct tablestyle;
 typedef struct tablestyle tablestyle;
-
+// ROW ->    Collum |
+//					v
 
 #include "GUI.h"
 #include <FL\Enumerations.H>

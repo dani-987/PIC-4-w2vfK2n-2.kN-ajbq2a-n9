@@ -1,7 +1,16 @@
 #include "MyTable.h"
+
+//define debug-level
+#define DEBUG_LVL_NONE	0
+#define DEBUG_LVL_NORMAL	1
+#define DEBUG_LVL_MUCH	2
+#define DEBUG_LVL_ALL	3
+VARDEF(int, DEBUG___LVL, DEBUG_LVL_NORMAL);
+
+
 #define COLHEADERPOS(C) (C+1)
-#define ROWHEADERPOS(R) (R*(rows()+1))
-#define CELLPOS(R,C)	((R+1)*(rows()+1)+C+1)
+#define ROWHEADERPOS(R) ((R+((col_header())?(1):(0)))*(cols()+1))
+#define CELLPOS(R,C)	((R+((col_header())?(1):(0)))*(cols()+1)+C+1)
 
 
 MyTable::MyTable(int x, int y, int w, int h,  const char *l) : Fl_Table_Row(x, y, w, h, l) {
@@ -13,6 +22,11 @@ MyTable::~MyTable() {
 
 }
 
+tablestyle *& MyTable::getstyle()
+{
+	return mystyle;
+}
+
 
 void MyTable::draw_cell(TableContext context, int R, int C, int X, int Y, int W, int H) {
 
@@ -20,13 +34,16 @@ void MyTable::draw_cell(TableContext context, int R, int C, int X, int Y, int W,
 	switch (context)
 	{
 	case CONTEXT_STARTPAGE:
+		DOIF(DEBUG___LVL >= DEBUG_LVL_MUCH)PRINTF("Called Startpage Context\n");
 		fl_font(mystyle[position].font, mystyle[position].fontsize);
 		return;
 
 	case CONTEXT_COL_HEADER:
+		position = COLHEADERPOS(C);
+		DOIF(DEBUG___LVL >= DEBUG_LVL_MUCH)PRINTF3("Called Col_Header Context with: R=%d, C=%d, label=%s\n",R,C,mystyle[position].label);
+
 		fl_push_clip(X, Y, W, H);
 		{
-			position = COLHEADERPOS(C);
 			fl_draw_box(mystyle[position].boxtyp, X, Y, W, H, mystyle[position].bordercolor);
 			//fl_color(FL_BLACK);
 			fl_draw(mystyle[position].label, X, Y, W, H, mystyle[position].align);
@@ -36,9 +53,11 @@ void MyTable::draw_cell(TableContext context, int R, int C, int X, int Y, int W,
 
 	case CONTEXT_ROW_HEADER:
 		//sprintf_s(s, "%d%d", (int)floor(R / 2), (R % 2) ? 8 : 0);
+		position = ROWHEADERPOS(R);
+		DOIF(DEBUG___LVL >= DEBUG_LVL_MUCH)PRINTF4("Called ROW_Header Context with: R=%d, C=%d, position=%d label=%s\n", R, C, position, mystyle[position].label);
+
 		fl_push_clip(X, Y, W, H);
 		{
-			position = ROWHEADERPOS(R);
 			fl_draw_box(mystyle[position].boxtyp, X, Y, W, H, mystyle[position].bordercolor);
 			//fl_color(FL_BLACK);
 			fl_draw(mystyle[position].label, X, Y, W, H, mystyle[position].align);

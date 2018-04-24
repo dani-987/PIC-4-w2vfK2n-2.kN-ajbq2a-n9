@@ -18,13 +18,15 @@ tablestyle * setstyle_MEM()
 		else if (i < 9) { 
 			s[i] = MEM_Colheaders; 
 			char *txt = (char*)malloc(3);
-			sprintf(txt, "%02d", 8 - i);
+			sprintf(txt, "%02d", i - 1);
 			s[i].label = txt;
 		}
 		else if (!(i % 9)) {
 			s[i] = MEM_Rowheaders;
 			char *txt = (char*)malloc(3);
-			sprintf(txt, "%d%d", (i<36)?0:(((i-36)%9)/2), (i%2)?0:8);
+
+			if (i < 45) sprintf(txt, "%d%d", (i<27)?0:8, (i % 2) ? 0 : 8);
+			else sprintf(txt, "%d%d", ((i-36)/9)/2, (i%2)?8:0);
 			s[i].label = txt;
 		}
 		else if (i == 17 || (i > 21 && i < 27) || (i > 39 && i < 49) || i > 99) {
@@ -60,8 +62,8 @@ tablestyle * setstyle_IO()
 	for (int i = 0; i < CellsIO; i++) {
 		if (!(i % 9)) {
 			s[i] = IO_Rowheaders;
-			char txt[10];
-			switch (i % 9) {
+			char *txt = (char*)malloc(5);
+			switch (i / 9) {
 			case 0: sprintf(txt, "RA"); break;
 			case 1: case 4: sprintf(txt, "Tris"); break;
 			case 2: case 5: sprintf(txt, "Pin"); break;
@@ -71,7 +73,7 @@ tablestyle * setstyle_IO()
 		}
 		else if ((i % 27) > 0 && (i % 27) < 9) {
 			s[i] = IO_DigitEnum;
-			char txt[2];
+			char *txt = (char*)malloc(10);
 			sprintf(txt, "%d", 8 - (i % 9));
 		}
 		else if ((i % 27) > 9 && (i % 27) < 18) {
