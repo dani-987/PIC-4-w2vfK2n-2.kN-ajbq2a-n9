@@ -17,13 +17,13 @@ tablestyle * setstyle_MEM()
 		//the first few types have unchanging labels that are set here and never change
 		else if (i < 9) { 
 			s[i] = MEM_Colheaders; 
-			char txt[2];
+			char *txt = (char*)malloc(3);
 			sprintf(txt, "%02d", 8 - i);
 			s[i].label = txt;
 		}
 		else if (!(i % 9)) {
 			s[i] = MEM_Rowheaders;
-			char txt[2];
+			char *txt = (char*)malloc(3);
 			sprintf(txt, "%d%d", (i<36)?0:(((i-36)%9)/2), (i%2)?0:8);
 			s[i].label = txt;
 		}
