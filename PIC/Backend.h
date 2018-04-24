@@ -27,7 +27,7 @@ typedef std::mutex MUTEX;
 
 #define STACK_SIZE		8
 
-#define UC_STANDARD_SPEED	1000
+#define UC_STANDARD_SPEED	1000		//in ns
 
 #ifndef byte
 typedef unsigned char byte;
@@ -63,9 +63,11 @@ private:
 	LOCK_MUTEX(m_eeprom);
 	LOCK_MUTEX(m_callInOtherThread);
 	LOCK_MUTEX(m_runtime);
+	LOCK_MUTEX(m_wdt);
 
 	<code>
 
+	UNLOCK_MUTEX(m_wdt);
 	UNLOCK_MUTEX(m_runtime);
 	UNLOCK_MUTEX(m_callInOtherThread);
 	UNLOCK_MUTEX(m_eeprom);
@@ -93,6 +95,7 @@ private:
 	MUTEX m_run_code;
 
 	ASM_CODE* aktCode;
+	Breakpointlist* breakpoints;
 
 	STACK* functionStack;
 	size_t stackSize;
@@ -130,6 +133,10 @@ private:
 	unsigned int runtime;
 	MUTEX m_runtime;
 
+	size_t wdt_timer, wdt_prescaler, wdt_end;
+	bool wdt_active, wdt_int_accured;
+	MUTEX m_wdt;
+
 	byte & getCell_unsafe(byte pos);
 	void reset(byte resetType);
 	void Stop_And_Wait();
@@ -137,6 +144,8 @@ private:
 	bool do_interrupts(int& needTime);
 	bool do_timer();
 	bool do_eeprom();
+	bool do_wdt();
+	void reset_wdt();
 public:
 	Backend(GUI* gui);
 	~Backend();
@@ -146,16 +155,23 @@ public:
 	bool Start();
 	bool Stop();
 	bool Step();
-	void setCommandSpeed(size_t speed);			//standard speed: 'UC_STANDARD_SPEED'
-	bool Reset();								//not implemented
-	int  GetByte(int reg, byte bank);			//bank: 0 or 1
-	bool SetByte(int reg, byte bank, byte val);	//bank: 0 or 1
-	int  GetBit(int b, byte bank, int pos);		//bool
+	bool IsRunning();
+	void EnableWatchdog();
+	void DisableWatchdog();
+	bool isWatchdogEnabled();
+	long long ToggleBreakpoint(size_t textline);	//returns -1 on error, -2 if breakpoint was unsettet, -3 if breakpoints were unchanged, else the line, where the breakpoint was set
+	Breakpointlist* GetBreakpoints();				//returns nullptr on empty list (NOT ERROR!), new! -> freeBreakpoints()
+	void freeBreakpoints(Breakpointlist*& list);	//frees the datastructure returned by GetBreakpionts()
+	void setCommandSpeed(size_t speed);				//standard speed: 'UC_STANDARD_SPEED' (in ns)
+	bool Reset();
+	int  GetByte(int reg, byte bank);				//bank: 0 or 1
+	bool SetByte(int reg, byte bank, byte val);		//bank: 0 or 1
+	int  GetBit(int b, byte bank, int pos);			//bool
 	bool SetBit(int b, byte bank, int pos, bool val);
-	int getRegW();								//char
+	int getRegW();									//byte
 	bool setRegW(byte val);
-	char* getErrorMSG();						//nullptr possible! Remember: malloc! -> free
-	void Wait_For_End();						//joins all runnig threads. do not forget to call 'Stop' before!
+	char* getErrorMSG();							//nullptr possible! Remember: malloc! -> free
+	void Wait_For_End();							//joins all runnig threads. do not forget to call 'Stop' before!
 
 
 	//following ist for internal use only and not thread-save!

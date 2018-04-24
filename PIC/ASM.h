@@ -4,11 +4,13 @@ struct ASM_TEXT;
 struct ASM_CODE;
 struct ASM;
 struct STACK;
+struct Breakpointlist;
 
 typedef struct ASM_TEXT ASM_TEXT;
 typedef struct ASM_CODE ASM_CODE;
 typedef struct ASM ASM;
 typedef struct STACK STACK;
+typedef struct Breakpointlist Breakpointlist;
 
 #include "DEBUG.H"
 #include "Backend.h"
@@ -28,6 +30,7 @@ struct ASM_TEXT{
 	instruction_t function;
 	void *param1, *param2;
 	ASM_TEXT* guiText;
+	bool breakpoint;
 };
 
  //datastructur that hold display information and executable data
@@ -40,6 +43,12 @@ struct ASM{
 struct STACK {
 	ASM_CODE* jumpTo;
 	STACK* next;
+};
+
+//list for all settet breakpoints
+struct Breakpointlist {
+	size_t line;
+	Breakpointlist* next;
 };
 
 

@@ -99,7 +99,7 @@ ASM * Compiler::compileFile(char * file, int memsize)
 	free(puffer);
 	retASM->text = startLine;
 	//fill code with  nop to protect uC against nullptr-exceptions!
-	for (int i = 0; i < memsize; i++)if(asmcode[i].function == 0)asmcode[i] = { instructions::NOP, 0, 0, startLine };
+	for (int i = 0; i < memsize; i++)if(asmcode[i].function == 0)asmcode[i] = { instructions::NOP, 0, 0, startLine, false };
 	fclose(f);
 	return retASM;
 ERROR_END:
@@ -445,12 +445,14 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 						decoded->function = instructions::ADDLW;
 						decoded->param1 = (void*)(code & 0x00FF);
 						decoded->param2 = nullptr;
+						decoded->breakpoint = false;
 						return true;
 					}
 					else { //11 110X XXXX XXXX
 						decoded->function = instructions::SUBLW;
 						decoded->param1 = (void*)(code & 0x00FF);
 						decoded->param2 = nullptr;
+						decoded->breakpoint = false;
 						return true;
 					}
 				}
@@ -460,12 +462,14 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 							decoded->function = instructions::NOP;
 							decoded->param1 = nullptr;
 							decoded->param2 = nullptr;
+							decoded->breakpoint = false;
 							return false;
 						}
 						else { //11 1010 XXXX XXXX
 							decoded->function = instructions::XORLW;
 							decoded->param1 = (void*)(code & 0x00FF);
 							decoded->param2 = nullptr;
+							decoded->breakpoint = false;
 							return true;
 						}
 					}
@@ -474,12 +478,14 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 							decoded->function = instructions::ANDLW;
 							decoded->param1 = (void*)(code & 0x00FF);
 							decoded->param2 = nullptr;
+							decoded->breakpoint = false;
 							return true;
 						}
 						else { //11 1000 XXXX XXXX
 							decoded->function = instructions::IORLW;
 							decoded->param1 = (void*)(code & 0x00FF);
 							decoded->param2 = nullptr;
+							decoded->breakpoint = false;
 							return true;
 						}
 					}
@@ -490,12 +496,14 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 					decoded->function = instructions::RETLW;
 					decoded->param1 = (void*)(code & 0x00FF);
 					decoded->param2 = nullptr;
+					decoded->breakpoint = false;
 					return true;
 				}
 				else { //11 00XX XXXX XXXX
 					decoded->function = instructions::MOVLW;
 					decoded->param1 = (void*)(code & 0x00FF);
 					decoded->param2 = nullptr;
+					decoded->breakpoint = false;
 					return true;
 				}
 			}
@@ -505,12 +513,14 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 				decoded->function = instructions::GOTO;
 				decoded->param1 = (void*)(code & 0x07FF);
 				decoded->param2 = nullptr;
+				decoded->breakpoint = false;
 				return true;
 			}
 			else { //10 0XXX XXXX XXXX
 				decoded->function = instructions::CALL;
 				decoded->param1 = (void*)(code & 0x07FF);
 				decoded->param2 = nullptr;
+				decoded->breakpoint = false;
 				return true;
 			}
 		}
@@ -522,12 +532,14 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 					decoded->function = instructions::BTFSS;
 					decoded->param1 = (void*)(code & 0x007F);
 					decoded->param2 = (void*)((code >> 7) & 0x0007);
+					decoded->breakpoint = false;
 					return true;
 				}
 				else { //01 10XX XXXX XXXX
 					decoded->function = instructions::BTFSC;
 					decoded->param1 = (void*)(code & 0x007F);
 					decoded->param2 = (void*)((code >> 7) & 0x0007);
+					decoded->breakpoint = false;
 					return true;
 				}
 			}
@@ -536,12 +548,14 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 					decoded->function = instructions::BSF;
 					decoded->param1 = (void*)(code & 0x007F);
 					decoded->param2 = (void*)((code >> 7) & 0x0007);
+					decoded->breakpoint = false;
 					return true;
 				}
 				else { //01 00XX XXXX XXXX
 					decoded->function = instructions::BCF;
 					decoded->param1 = (void*)(code & 0x007F);
 					decoded->param2 = (void*)((code >> 7) & 0x0007);
+					decoded->breakpoint = false;
 					return true;
 				}
 			}
@@ -554,12 +568,14 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 							decoded->function = instructions::INCFSZ;
 							decoded->param1 = (void*)(code & 0x007F);
 							decoded->param2 = (void*)((code >> 7) & 0x0001);
+							decoded->breakpoint = false;
 							return true;
 						}
 						else { //00 1110 XXXX XXXX
 							decoded->function = instructions::SWAPF;
 							decoded->param1 = (void*)(code & 0x007F);
 							decoded->param2 = (void*)((code >> 7) & 0x0001);
+							decoded->breakpoint = false;
 							return true;
 						}
 					}
@@ -568,12 +584,14 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 							decoded->function = instructions::RLF;
 							decoded->param1 = (void*)(code & 0x007F);
 							decoded->param2 = (void*)((code >> 7) & 0x0001);
+							decoded->breakpoint = false;
 							return true;
 						}
 						else { //00 1100 XXXX XXXX
 							decoded->function = instructions::RRF;
 							decoded->param1 = (void*)(code & 0x007F);
 							decoded->param2 = (void*)((code >> 7) & 0x0001);
+							decoded->breakpoint = false;
 							return true;
 						}
 					}
@@ -584,12 +602,14 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 							decoded->function = instructions::DECFSZ;
 							decoded->param1 = (void*)(code & 0x007F);
 							decoded->param2 = (void*)((code >> 7) & 0x0001);
+							decoded->breakpoint = false;
 							return true;
 						}
 						else { //00 1010 XXXX XXXX
 							decoded->function = instructions::INCF;
 							decoded->param1 = (void*)(code & 0x007F);
 							decoded->param2 = (void*)((code >> 7) & 0x0001);
+							decoded->breakpoint = false;
 							return true;
 						}
 					}
@@ -598,12 +618,14 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 							decoded->function = instructions::COMF;
 							decoded->param1 = (void*)(code & 0x007F);
 							decoded->param2 = (void*)((code >> 7) & 0x0001);
+							decoded->breakpoint = false;
 							return true;
 						}
 						else { //00 1000 XXXX XXXX
 							decoded->function = instructions::MOVF;
 							decoded->param1 = (void*)(code & 0x007F);
 							decoded->param2 = (void*)((code >> 7) & 0x0001);
+							decoded->breakpoint = false;
 							return true;
 						}
 					}
@@ -616,12 +638,14 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 							decoded->function = instructions::ADDWF;
 							decoded->param1 = (void*)(code & 0x007F);
 							decoded->param2 = (void*)((code >> 7) & 0x0001);
+							decoded->breakpoint = false;
 							return true;
 						}
 						else { //00 0110 XXXX XXXX
 							decoded->function = instructions::XORWF;
 							decoded->param1 = (void*)(code & 0x007F);
 							decoded->param2 = (void*)((code >> 7) & 0x0001);
+							decoded->breakpoint = false;
 							return true;
 						}
 					}
@@ -630,12 +654,14 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 							decoded->function = instructions::ANDWF;
 							decoded->param1 = (void*)(code & 0x007F);
 							decoded->param2 = (void*)((code >> 7) & 0x0001);
+							decoded->breakpoint = false;
 							return true;
 						}
 						else { //00 0100 XXXX XXXX
 							decoded->function = instructions::IORWF;
 							decoded->param1 = (void*)(code & 0x007F);
 							decoded->param2 = (void*)((code >> 7) & 0x0001);
+							decoded->breakpoint = false;
 							return true;
 						}
 					}
@@ -646,12 +672,14 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 							decoded->function = instructions::DECF;
 							decoded->param1 = (void*)(code & 0x007F);
 							decoded->param2 = (void*)((code >> 7) & 0x0001);
+							decoded->breakpoint = false;
 							return true;
 						}
 						else { //00 0010 XXXX XXXX
 							decoded->function = instructions::SUBWF;
 							decoded->param1 = (void*)(code & 0x007F);
 							decoded->param2 = (void*)((code >> 7) & 0x0001);
+							decoded->breakpoint = false;
 							return true;
 						}
 					}
@@ -661,12 +689,14 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 								decoded->function = instructions::CLRF;
 								decoded->param1 = (void*)(code & 0x007F);
 								decoded->param2 = nullptr;
+								decoded->breakpoint = false;
 								return true;
 							}
 							else { //00 0001 0XXX XXXX
 								decoded->function = instructions::CLRW;
 								decoded->param1 = (void*)(code & 0x007F);
 								decoded->param2 = nullptr;
+								decoded->breakpoint = false;
 								return true;
 							}
 						}
@@ -675,6 +705,7 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 								decoded->function = instructions::MOVWF;
 								decoded->param1 = (void*)(code & 0x007F);
 								decoded->param2 = nullptr;
+								decoded->breakpoint = false;
 								return true;
 							}
 							else { //00 0000 0XXX XXXX
@@ -684,6 +715,7 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 											decoded->function = instructions::NOP;
 											decoded->param1 = nullptr;
 											decoded->param2 = nullptr;
+											decoded->breakpoint = false;
 											return false;
 										}
 										else { //00 0000 0110 XXXX
@@ -691,6 +723,7 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 												decoded->function = instructions::NOP;
 												decoded->param1 = nullptr;
 												decoded->param2 = nullptr;
+												decoded->breakpoint = false;
 												return false;
 											}
 											else { //00 0000 0110 0XXX
@@ -699,6 +732,7 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 														decoded->function = instructions::NOP;
 														decoded->param1 = nullptr;
 														decoded->param2 = nullptr;
+														decoded->breakpoint = false;
 														return false;
 													}
 													else { //00 0000 0110 010X
@@ -706,12 +740,14 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 															decoded->function = instructions::NOP;
 															decoded->param1 = nullptr;
 															decoded->param2 = nullptr;
+															decoded->breakpoint = false;
 															return false;
 														}
 														else { //00 0000 0110 0100
 															decoded->function = instructions::CLRWDT;
 															decoded->param1 = nullptr;
 															decoded->param2 = nullptr;
+															decoded->breakpoint = false;
 															return true;
 														}
 													}
@@ -722,12 +758,14 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 															decoded->function = instructions::SLEEP;
 															decoded->param1 = nullptr;
 															decoded->param2 = nullptr;
+															decoded->breakpoint = false;
 															return true;
 														}
 														else { //00 0000 0110 0010
 															decoded->function = instructions::NOP;
 															decoded->param1 = nullptr;
 															decoded->param2 = nullptr;
+															decoded->breakpoint = false;
 															return false;
 														}
 													}
@@ -736,12 +774,14 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 															decoded->function = instructions::NOP;
 															decoded->param1 = nullptr;
 															decoded->param2 = nullptr;
+															decoded->breakpoint = false;
 															return false;
 														}
 														else { //00 0000 0110 0000
 															decoded->function = instructions::NOP;
 															decoded->param1 = nullptr;
 															decoded->param2 = nullptr;
+															decoded->breakpoint = false;
 															return true;
 														}
 													}
@@ -754,6 +794,7 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 											decoded->function = instructions::NOP;
 											decoded->param1 = nullptr;
 											decoded->param2 = nullptr;
+											decoded->breakpoint = false;
 											return false;
 										}
 										else { //00 0000 0100 XXXX
@@ -761,12 +802,14 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 												decoded->function = instructions::NOP;
 												decoded->param1 = nullptr;
 												decoded->param2 = nullptr;
+												decoded->breakpoint = false;
 												return false;
 											}
 											else { //00 0000 0100 0000
 												decoded->function = instructions::NOP;
 												decoded->param1 = nullptr;
 												decoded->param2 = nullptr;
+												decoded->breakpoint = false;
 												return true;
 											}
 										}
@@ -778,6 +821,7 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 											decoded->function = instructions::NOP;
 											decoded->param1 = nullptr;
 											decoded->param2 = nullptr;
+											decoded->breakpoint = false;
 											return false;
 										}
 										else { //00 0000 0010 XXXX
@@ -785,12 +829,14 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 												decoded->function = instructions::NOP;
 												decoded->param1 = nullptr;
 												decoded->param2 = nullptr;
+												decoded->breakpoint = false;
 												return false;
 											}
 											else { //00 0000 0010 0000
 												decoded->function = instructions::NOP;
 												decoded->param1 = nullptr;
 												decoded->param2 = nullptr;
+												decoded->breakpoint = false;
 												return true;
 											}
 										}
@@ -800,6 +846,7 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 											decoded->function = instructions::NOP;
 											decoded->param1 = nullptr;
 											decoded->param2 = nullptr;
+											decoded->breakpoint = false;
 											return false;
 										}
 										else { //00 0000 0000 XXXX
@@ -808,6 +855,7 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 													decoded->function = instructions::NOP;
 													decoded->param1 = nullptr;
 													decoded->param2 = nullptr;
+													decoded->breakpoint = false;
 													return false;
 												}
 												else { //00 0000 0000 100X
@@ -815,6 +863,7 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 														decoded->function = instructions::RETFIE;
 														decoded->param1 = nullptr;
 														decoded->param2 = nullptr;
+														decoded->breakpoint = false;
 														return true;
 
 													}
@@ -822,6 +871,7 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 														decoded->function = instructions::RETURN;
 														decoded->param1 = nullptr;
 														decoded->param2 = nullptr;
+														decoded->breakpoint = false;
 														return true;
 													}
 												}
@@ -831,12 +881,14 @@ bool Compiler::decodeInstruction(int code, ASM_CODE* decoded) {
 													decoded->function = instructions::NOP;
 													decoded->param1 = nullptr;
 													decoded->param2 = nullptr;
+													decoded->breakpoint = false;
 													return false;
 												}
 												else { // 00 0000 0000 0000
 													decoded->function = instructions::NOP;
 													decoded->param1 = nullptr;
 													decoded->param2 = nullptr;
+													decoded->breakpoint = false;
 													return true;
 												}
 											}

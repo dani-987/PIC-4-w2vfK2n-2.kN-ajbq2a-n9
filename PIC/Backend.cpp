@@ -7,9 +7,12 @@
 #include <stdlib.h>
 #include <time.h>
 
-//TODO: iorwf C-Flag?!
-//SUB: C: Flag?!
-//ADD: DC-Flag?!
+//Komment following if not wanted....
+#define USE_RANDOM_VALUES
+//TODO:
+
+//timer: schreibe 1, lese 2
+//Interrupts
 
 #define NOT_IMPLEMENTED	"Nicht implementiert!"
 #define MEMORY_MISSING "Memory is missing."
@@ -79,7 +82,11 @@ void Backend::reset(byte resetType)
 	}
 	stackSize = 0;
 
-	//set ram
+	//reset wdt
+	wdt_int_accured = false;
+	reset_wdt();
+
+	//reset neccessary bytes in ram
 	byte tmp = ram[90];
 
 	ram[0x02] = 0x00;
@@ -186,18 +193,43 @@ bool Backend::letRun(int modus)
 
 bool Backend::do_interrupts(int& needTime)
 {
+	//if wdt_int
+	if (wdt_int_accured) {
+		if (sleep) {
+			wdt_int_accured = false;
+
+			goto DO_INTERRUPT;
+		}
+		reset(RESET_WDT_TIMEOUT);
+		needTime = 1;
+		return true;
+	}
+	//RBIF in INTCON
+	if (ram_rb_cpy & 0xF0 != ram[0x06] & 0xF0)ram[0x0B] |= 0x01;
+	//INTF if RB0/INT (check if on change or on set...)
+	if (ram_rb_cpy & 0x01 != ram[0x06] & 0x01)ram[0x0B] |= 0x02;
+	ram_rb_cpy = ram[0x06];
 	//if GIE or sleeping have to check interrupts....
 	if (ram[0x0B] & 0x80 || sleep) {
 		if (ram_rb_cpy != ram[0x06]) {
-			//RBIF in INTCON
-			if(ram_rb_cpy & 0xF0 != ram[0x06] & 0xF0)ram[0x0B] |= 0x01;
-			//todo: check RB0/INT
-			ram_rb_cpy = ram[0x06];
+
+			//T0IF & T0IE
+			if ((ram[0x0B] & 0x24) == 0x24) {
+				goto DO_INTERRUPT;
+			}
+			//INTF & INTE
+			if ((ram[0x0B] & 0x12) == 0x12) {
+				goto DO_INTERRUPT;
+			}
+			//RBIF & RBIE
+			if ((ram[0x0B] & 0x09) == 0x09) {
+				goto DO_INTERRUPT;
+			}
+			//EEIF & EEIE
+			if ((ram[0x0B] & 0x40) && (ram[90] & 0x10)) {
+				goto DO_INTERRUPT;
+			}
 		}
-	}
-	else if (ram_rb_cpy != ram[0x06]) {
-		ram[0x0B] |= 0x01;
-		ram_rb_cpy = ram[0x06];
 	}
 	return true;
 DO_INTERRUPT:
@@ -335,11 +367,44 @@ bool Backend::do_eeprom()
 	return true;
 }
 
+bool Backend::do_wdt()
+{
+	if (!wdt_active)return true;
+	//PSA is set -> Prescaller is assigned 2 wdt
+	if (ram[83] & 0x80) {
+		wdt_prescaler++;
+		//if wdt_prescaler >= settet prescaler
+		if (wdt_prescaler >= (1 << (ram[83] & 0x07))) {
+			wdt_prescaler = 0;
+			wdt_timer--;
+		}
+	}
+	else {
+		wdt_timer--;
+	}
+	if (wdt_timer <= 0) {
+		wdt_int_accured = true;
+		reset_wdt();
+	}
+	return true;
+}
+
+void Backend::reset_wdt()
+{
+	wdt_prescaler = 0;
+	wdt_timer = 17 + rand() % 3;	//wdt is _ABOUT_ 18ms
+}
+
 Backend::Backend(GUI* gui)
 {
 	lastError = "Kein Fehler";
 	lastErrorLen = MSGLEN();
+	srand(time(NULL));
+#ifdef USE_RANDOM_VALUES
+	regW = rand() & 0xFF;
+#else
 	regW = 0;
+#endif
 	code = nullptr;
 	aktCode = nullptr;
 	functionStack = nullptr;
@@ -348,16 +413,27 @@ Backend::Backend(GUI* gui)
 	terminated = true;
 	isRunningLocked = false;
 	ram = (byte*)malloc(UC_SIZE_RAM);
-	memset(ram,0,UC_SIZE_RAM);
+	for (int i = 0; i < UC_SIZE_RAM; i++) {
+#ifdef USE_RANDOM_VALUES
+		ram[i] = rand() & 0xFF;
+#else
+		ram[i] = 0;
+#endif
+	};
 	reset(RESET_POWER_UP);
 	eeprom = (char*)malloc(UC_SIZE_EEPROM);
-	memset(eeprom, 0, UC_SIZE_EEPROM);
+	for (int i = 0; i < UC_SIZE_EEPROM; i++) {
+#ifdef USE_RANDOM_VALUES
+		eeprom[i] = rand() & 0xFF;
+#else
+		eeprom[i] = 0;
+#endif
+	}
 	eeprom_wr = false;
 	eeprom_rd = false;
 	uC = nullptr;
 	sleeptime = UC_STANDARD_SPEED;
 }
-
 
 Backend::~Backend()
 {
@@ -407,6 +483,114 @@ bool Backend::Step()
 	return letRun(MOD_STEP);
 }
 
+bool Backend::IsRunning()
+{
+	bool ret; 
+	LOCK_MUTEX(m_isRunning);
+	ret = isRunning;
+	UNLOCK_MUTEX(m_isRunning);
+	return false;
+}
+
+void Backend::EnableWatchdog()
+{
+	LOCK_MUTEX(m_wdt);
+	wdt_active = true;
+	UNLOCK_MUTEX(m_wdt);
+}
+
+void Backend::DisableWatchdog()
+{
+	LOCK_MUTEX(m_wdt);
+	wdt_active = false;
+	UNLOCK_MUTEX(m_wdt);
+}
+
+bool Backend::isWatchdogEnabled()
+{
+
+	LOCK_MUTEX(m_wdt);
+	bool isEnabled = wdt_active;
+	UNLOCK_MUTEX(m_wdt);
+	return isEnabled;
+}
+
+long long Backend::ToggleBreakpoint(size_t textline)
+{
+	size_t foundLine = 0, aktLine = 0;
+	LOCK_MUTEX(m_run_code);
+	for (; aktLine < UC_SIZE_PROGRAM && foundLine < textline; aktLine++) {
+		if (code[aktLine].code != nullptr) {
+			foundLine = code[aktLine].code->guiText->lineNumber;
+		}
+	}
+	if (foundLine < textline) {
+		for (int i = 0; i < UC_SIZE_PROGRAM; i++) {
+			if (code[i].code != nullptr) {
+				if (!code[i].code->breakpoint) {
+					code[i].code->breakpoint = true;
+					UNLOCK_MUTEX(m_run_code);
+					return i;
+				}
+				else {
+					UNLOCK_MUTEX(m_run_code);
+					return -3;
+				}
+			}
+		}
+	}
+	else if (foundLine == textline) {
+		if (!code[aktLine].code->breakpoint) {
+			code[aktLine].code->breakpoint = true;
+			UNLOCK_MUTEX(m_run_code);
+			return aktLine;
+		}
+		else {
+			code[aktLine].code->breakpoint = false;
+			UNLOCK_MUTEX(m_run_code);
+			return -2;
+		}
+	}
+	else {
+		if (!code[aktLine].code->breakpoint) {
+			code[aktLine].code->breakpoint = true;
+			UNLOCK_MUTEX(m_run_code);
+			return aktLine;
+		}
+		else {
+			UNLOCK_MUTEX(m_run_code);
+			return -3;
+		}
+	}
+	UNLOCK_MUTEX(m_run_code);
+	return -1;
+}
+
+Breakpointlist * Backend::GetBreakpoints()
+{
+	Breakpointlist* list = nullptr, *tmp = breakpoints;
+	LOCK_MUTEX(m_run_code);
+	while (tmp != nullptr) {
+		Breakpointlist* tmpList = new Breakpointlist();
+		tmpList->line = tmp->line;
+		tmpList->next = list;
+		list = tmpList;
+	}
+	UNLOCK_MUTEX(m_run_code);
+	return list;
+}
+
+void Backend::freeBreakpoints(Breakpointlist*& list)
+{
+	Breakpointlist* tmp = list;
+	while (tmp != nullptr) {
+		tmp = list->next;
+		delete(list);
+		list = tmp;
+	}
+	list = nullptr;
+}
+
 void Backend::setCommandSpeed(size_t speed)
 {
 	LOCK_MUTEX(m_ram);
@@ -416,11 +600,21 @@ void Backend::setCommandSpeed(size_t speed)
 
 bool Backend::Reset()
 {
-	LOCK_MUTEX(m_lastError);
-	lastError = NOT_IMPLEMENTED;
-	MSGLEN();
-	UNLOCK_MUTEX(m_lastError);
-	return false;
+	Stop_And_Wait();
+
+	LOCK_MUTEX(m_run_code);
+	LOCK_MUTEX(m_ram);
+	LOCK_MUTEX(m_eeprom);
+	LOCK_MUTEX(m_wdt);
+
+	//changing ram is not necessary....
+	reset(RESET_POWER_UP);
+
+	UNLOCK_MUTEX(m_wdt);
+	UNLOCK_MUTEX(m_eeprom);
+	UNLOCK_MUTEX(m_ram);
+	UNLOCK_MUTEX(m_run_code);
+	return true;
 }
 
 int Backend::GetByte(int reg, byte bank)
@@ -640,9 +834,9 @@ int Backend::ADDWF(void*f, void*d) {
 	byte &cell = getCell_unsafe((int)f);
 	byte tmpCell = cell;
 	int tmp = ((regW & 0xFF) + (cell & 0xFF));
-	if ((tmp ^ tmpCell) & 0x0100)ram[BYTE_C] |= BIT_C;
+	if (tmp & 0x0100)ram[BYTE_C] |= BIT_C;
 	else ram[BYTE_C] &= ~BIT_C;
-	if ((tmp ^ tmpCell) & 0x0010)ram[BYTE_DC] |= BIT_DC;
+	if ((regW & 0x0F) + (cell & 0x0F))ram[BYTE_DC] |= BIT_DC;
 	else ram[BYTE_DC] &= ~BIT_DC;
 	tmp &= 0xFF;
 	if (tmp)ram[BYTE_Z] &= ~BIT_Z;
@@ -764,13 +958,13 @@ int Backend::INCFSZ(void*f, void*d) {
 int Backend::IORWF(void*f, void*d) {
 	if (d == nullptr) {
 		regW |= getCell_unsafe((int)f);
-		if (regW != 0)ram[BYTE_Z] |= BIT_Z;
+		if (regW)ram[BYTE_Z] |= BIT_Z;
 		else ram[BYTE_Z] &= ~BIT_Z;
 	}
 	else {
 		byte& cell = getCell_unsafe((int)f);
 		cell |= regW;
-		if (cell != 0)ram[BYTE_Z] |= BIT_Z;
+		if (cell)ram[BYTE_Z] |= BIT_Z;
 		else ram[BYTE_Z] &= ~BIT_Z;
 	}
 	aktCode++;
@@ -835,11 +1029,12 @@ int Backend::RRF(void*f, void*d) {
 int Backend::SUBWF(void*f, void*d) {
 	byte &cell = getCell_unsafe((int)f);
 	byte tmpCell = cell;
-	byte tmp = ((cell & 0xFF) - (regW & 0xFF));
-	if ((tmp & 0x80) == 0)ram[BYTE_C] |= BIT_C;
+	int tmp = ((cell & 0xFF) - (regW & 0xFF));
+	if (tmp >= 0)ram[BYTE_C] |= BIT_C;
 	else ram[BYTE_C] &= ~BIT_C;
-	if ((tmp ^ tmpCell) & 0x0010)ram[BYTE_DC] |= BIT_DC;
+	if (((tmpCell & 0x0F) - (regW & 0x0F)) >= 0)ram[BYTE_DC] |= BIT_DC;
 	else ram[BYTE_DC] &= ~BIT_DC;
+	tmp &= 0xFF;
 	if (tmp)ram[BYTE_Z] &= ~BIT_Z;
 	else ram[BYTE_Z] |= BIT_Z;
 	if (!d)regW = tmp;
@@ -931,9 +1126,9 @@ int Backend::CALL(void*k, void*ign) {
 	return 2;
 }
 int Backend::CLRWDT(void*ign1, void*ign2) {
-	//TODO: wo sind die entsprechenden regs? wo ist der WDT?
+	//TO & PD
 	ram[0x03] |= 0x18;
-	ram[83] &= 0xF0;
+	reset_wdt();
 	aktCode++;
 	return 1;
 }
@@ -943,7 +1138,7 @@ int Backend::GOTO(void*k, void*ign) {
 }
 int Backend::IORLW(void*k, void*ign) { 
 	regW = ((regW & 0xFF) | ((char)k & 0xFF));
-	if (regW == 0)ram[BYTE_Z] &= ~BIT_Z;
+	if (regW)ram[BYTE_Z] &= ~BIT_Z;
 	else ram[BYTE_Z] |= BIT_Z;
 	aktCode++;
 	return 1;
@@ -996,20 +1191,20 @@ int Backend::RETURN(void*ign1, void*ign2) {
 }
 int Backend::SLEEP(void*ign1, void*ign2) { 
 	sleep = true;
-	//TODO: richtige regs? s.o.
+	//TO & PD
 	ram[0x03] |= 0x10;
 	ram[0x03] &= 0xF7;
-	ram[83] &= 0xF0;
+	reset_wdt();
 	aktCode++;
 	return 1;
 }
 int Backend::SUBLW(void*k, void*ign) { 
-	byte tmpW = (((char)k & 0xFF) - (regW & 0xFF));
-	if ((tmpW & 0x80) == 0)ram[BYTE_C] |= BIT_C;
+	int tmpW = (((char)k & 0xFF) - (regW & 0xFF));
+	if (tmpW >= 0)ram[BYTE_C] |= BIT_C;
 	else ram[BYTE_C] &= ~BIT_C;
-	if ((regW ^ tmpW) & 0x0010)ram[BYTE_DC] |= BIT_DC;
+	if ((((char)k & 0x0F) - (regW & 0x0F)) >= 0)ram[BYTE_DC] |= BIT_DC;
 	else ram[BYTE_DC] &= ~BIT_DC;
-	regW = tmpW;
+	regW = tmpW & 0xFF;
 	if (tmpW)ram[BYTE_Z] &= ~BIT_Z;
 	else ram[BYTE_Z] |= BIT_Z;
 	aktCode++;
@@ -1034,12 +1229,11 @@ void Backend::run_in_other_thread(byte modus)
 	errorInThreadHappend = false;
 	UNLOCK_MUTEX(m_lastError);
 
-	srand(time(NULL));
-
 	if (modus != MOD_STEP) {
 		LOCK_MUTEX(m_isRunning);
 		isRunning = true;
 		UNLOCK_MUTEX(m_isRunning);
+
 		switch (modus){
 		case MOD_STEP_OVER:
 			stopAtStackZero = 0;
@@ -1068,6 +1262,7 @@ void Backend::run_in_other_thread(byte modus)
 	do {
 		UNLOCK_MUTEX(m_isRunning);
 
+
 		auto start_time = std::chrono::high_resolution_clock::now();
 		//locks in correct order
 		LOCK_MUTEX(m_lastError);
@@ -1077,6 +1272,7 @@ void Backend::run_in_other_thread(byte modus)
 		LOCK_MUTEX(m_ram);
 		LOCK_MUTEX(m_eeprom);
 		LOCK_MUTEX(m_runtime);
+		LOCK_MUTEX(m_wdt);
 
 		//Programmcounter -> Pointer
 		int PC = ((ram[PCH] & 0x1F) << 8) | (ram[PCL]);
@@ -1090,6 +1286,21 @@ void Backend::run_in_other_thread(byte modus)
 		}
 		aktCode = &(code->code[PC]);
 
+		if(aktCode->breakpoint){
+			UNLOCK_MUTEX(m_wdt);
+			UNLOCK_MUTEX(m_runtime);
+			UNLOCK_MUTEX(m_eeprom);
+			UNLOCK_MUTEX(m_ram);
+			UNLOCK_MUTEX(m_isRunning);
+			UNLOCK_MUTEX(m_run_code);
+			UNLOCK_MUTEX(m_regW);
+
+			LOCK_MUTEX(m_isRunning);
+			isRunning = false;
+			UNLOCK_MUTEX(m_isRunning);
+			break;
+		}
+
 		DOIF(DEBUG_LVL >= DEBUG_ALL)PRINTF4("EXEC_ASM(%s %02x,%02x)\n\tsleeping: %d\n", Compiler::functionPointerToName(aktCode->function), aktCode->param1, aktCode->param2, sleep);
 		//asm-execution
 		if (!sleep) {
@@ -1101,8 +1312,8 @@ void Backend::run_in_other_thread(byte modus)
 		//interupts, timer, eeprom etc...
 		//for-loop for imitating more cycle-operations (e.g. the timer has to count more than one time...)
 		for (int tmp = 0; tmp < needTime; tmp++) {
-			if(!sleep) if(!do_timer()) errorInThreadHappend = true;
-			if (!errorInThreadHappend && do_eeprom() && do_interrupts(needTime));
+			if (!sleep) if (!do_timer()) errorInThreadHappend = true;
+			if (!errorInThreadHappend && do_eeprom() && do_interrupts(needTime) && do_wdt());
 			else errorInThreadHappend = true;
 		}
 
@@ -1129,7 +1340,7 @@ void Backend::run_in_other_thread(byte modus)
 			printf("\n\t00  01  02  03  04  05  06  07\n");
 			for (int i = 0; i << 3 < UC_SIZE_RAM; i++) {
 				int tmp = i << 3;
-				if(tmp + 8 < UC_SIZE_RAM)printf("%02x\t%02x  %02x  %02x  %02x  %02x  %02x  %02x  %02x\n", i,
+				if (tmp + 8 < UC_SIZE_RAM)printf("%02x\t%02x  %02x  %02x  %02x  %02x  %02x  %02x  %02x\n", i,
 					ram[tmp], ram[tmp + 1], ram[tmp + 2], ram[tmp + 3], ram[tmp + 4], ram[tmp + 5], ram[tmp + 6], ram[tmp + 7]);
 				else printf("%02x\t%02x  %02x  %02x  %02x  %02x  %02x\n\tW:  %02x  #:  %02x  r:  %02x\n\tC   DC  Z\n\t%02x  %02x  %02x\n", i,
 					ram[tmp], ram[tmp + 1], ram[tmp + 2], ram[tmp + 3], ram[tmp + 4], ram[tmp + 5], regW, stopAtStackZero & 0xFF, isRunning,
@@ -1140,6 +1351,7 @@ void Backend::run_in_other_thread(byte modus)
 #endif
 
 		//unlocks in correct order
+		UNLOCK_MUTEX(m_wdt);
 		UNLOCK_MUTEX(m_runtime);
 		UNLOCK_MUTEX(m_eeprom);
 		UNLOCK_MUTEX(m_ram);
