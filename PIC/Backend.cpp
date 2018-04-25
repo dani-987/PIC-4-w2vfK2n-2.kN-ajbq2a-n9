@@ -23,8 +23,40 @@ HANDLE  hConsole;
 #define DAMAGE_GET_BITMAP_BIT(pos)	(1 << (pos & 0x07))
 
 //Komment following if not wanted....
-#define USE_RANDOM_VALUES
+//#define USE_RANDOM_VALUES
 //TODO:
+
+//DC und C bei Subtraktion (Prog3)
+//Prog7: Fehler: es wird ein 1:2 VT benutzt...., loop1 nur wenn mit 0 initalisiert, loop2 ergibt 30H
+/*
+//Testprogramm 7:
+	Backend* b = new Backend(new GUI());
+	b->set_DEBUG_ONLY_TESTING(0);
+	b->setCommandSpeed(10);
+	b->LoadProgramm("..\\Debug\\Testprogramme\\TPicSim7.LST");
+	printf("Set Breakpoint returns: %04d\n",b->ToggleBreakpoint(40)+1);
+	printf("Set Breakpoint returns: %04d\n",b->ToggleBreakpoint(55)+1);
+	system("pause");
+	b->get_ASM_ONLY_TESTING()->code[0x04].param1 = 0;
+	b->Start();
+	b->Wait_For_End();
+	system("pause");
+	b->Start();
+	b->Wait_For_End();
+	system("pause");
+	b->set_DEBUG_ONLY_TESTING(4);
+	while (1) {
+		b->SetBit(6,0,0,1);
+		b->Step();
+		b->Wait_For_End();
+		system("pause");
+		b->SetBit(6,0,0,0);
+		b->Step();
+		b->Wait_For_End();
+		system("pause");
+	}
+	return true;
+*/
 
 //Interrupts
 
@@ -46,6 +78,14 @@ HANDLE  hConsole;
 #define DEBUG_ALL	4
 
 VARDEF(int, DEBUG_LVL, DEBUG_ALL);
+
+#ifdef _DEBUG
+void Backend::set_DEBUG_ONLY_TESTING(int state)
+{
+	printf("Setting DBG_LVL 2 %d\n", state);
+	DEBUG_LVL = state;
+}
+#endif
 
 void call_backup_in_other_thread(void* _callInOtherThread) {
 	struct call_in_other_thread_s* callInOtherThread = (struct call_in_other_thread_s*)_callInOtherThread;
@@ -78,7 +118,7 @@ byte & Backend::getCell_unsafe(byte pos, bool dmg)
 			tmp = 0;
 			return tmp;
 		}
-		else if (ram[0x03] & 0x40) {
+		else if (ram[0x03] & 0x20) {
 			if(dmg)damageByte(82 + pos);
 			return ram[82 + pos];
 		}
@@ -118,6 +158,7 @@ void Backend::reset(byte resetType)
 	ram[90] = 0x00;
 
 	ram_rb_cpy = ram[0x06];
+	lastInput = ram[0x06] & 0x01;
 
 	sleep = false;
 	prescaler_timer = 0;
@@ -268,7 +309,7 @@ DO_INTERRUPT:
 		aktCode = &(code->code[0x04]);
 		if (stopAtStackZero >= 0)stopAtStackZero++;
 		//delay
-		needTime = 3;
+		needTime = 4;
 	}
 	return true;
 }
@@ -276,12 +317,12 @@ DO_INTERRUPT:
 bool Backend::do_timer()
 {
 	//internal or external clock?
-	if(ram[83] & 0x10){
+	if(ram[83] & 0x10){//0x53
 		//input changed
 		if (lastInput != ram[0x06] & 0x01) {
 			lastInput ^= 0x01;
-			//test if correct change happend
-			if (lastInput << 6 == ram[83] & 0x40) {
+			//test if correct change happend (rising / falling edge [see INTEDG])
+			if ((lastInput << 6) == (ram[83] & 0x40)) {
 				//with prescaler?
 				if (ram[83] & 0x04) {
 					ram[0x01]++;
@@ -290,8 +331,8 @@ bool Backend::do_timer()
 				}
 				else {
 					prescaler_timer++;
-					int prescaler = (2 << (ram[83] & 0x07));
-					if (prescaler_timer > prescaler) {
+					int prescaler = (1 << (ram[83] & 0x07));
+					if (prescaler_timer >= prescaler) {
 						prescaler_timer = 0;
 						ram[0x01]++;
 						damageByte(0x01);
@@ -311,7 +352,7 @@ bool Backend::do_timer()
 		else {
 			prescaler_timer++;
 			int prescaler = (2 << (ram[83] & 0x07));
-			if (prescaler_timer > prescaler) {
+			if (prescaler_timer >= prescaler) {
 				prescaler_timer = 0;
 				ram[0x01]++;
 				damageByte(0x01);
@@ -615,42 +656,38 @@ long long Backend::ToggleBreakpoint(size_t textline)
 	size_t foundLine = 0, aktLine = 0;
 	LOCK_MUTEX(m_run_code);
 	for (; aktLine < UC_SIZE_PROGRAM && foundLine < textline; aktLine++) {
-		if (code[aktLine].code != nullptr) {
-			foundLine = code[aktLine].code->guiText->lineNumber;
+		if (code->code[aktLine].guiText != nullptr) {
+			foundLine = code->code[aktLine].guiText->lineNumber;
 		}
 	}
 	if (foundLine < textline) {
-		for (int i = 0; i < UC_SIZE_PROGRAM; i++) {
-			if (code[i].code != nullptr) {
-				if (!code[i].code->breakpoint) {
-					code[i].code->breakpoint = true;
-					UNLOCK_MUTEX(m_run_code);
-					return i;
-				}
-				else {
-					UNLOCK_MUTEX(m_run_code);
-					return -3;
-				}
-			}
+		if (code->code[0].guiText != nullptr) {
+			code->code[0].breakpoint = true;
+			UNLOCK_MUTEX(m_run_code);
+			return code->code[0].guiText->lineNumber;
+		}
+		else {
+			UNLOCK_MUTEX(m_run_code);
+			return -3;
 		}
 	}
 	else if (foundLine == textline) {
-		if (!code[aktLine].code->breakpoint) {
-			code[aktLine].code->breakpoint = true;
+		if (!code->code[aktLine].breakpoint) {
+			code->code[aktLine].breakpoint = true;
 			UNLOCK_MUTEX(m_run_code);
-			return aktLine;
+			return foundLine;
 		}
 		else {
-			code[aktLine].code->breakpoint = false;
+			code->code[aktLine].breakpoint = false;
 			UNLOCK_MUTEX(m_run_code);
 			return -2;
 		}
 	}
 	else {
-		if (!code[aktLine].code->breakpoint) {
-			code[aktLine].code->breakpoint = true;
+		if (!code->code[aktLine].breakpoint) {
+			code->code[aktLine].breakpoint = true;
 			UNLOCK_MUTEX(m_run_code);
-			return aktLine;
+			return foundLine;
 		}
 		else {
 			UNLOCK_MUTEX(m_run_code);
@@ -806,7 +843,7 @@ bool Backend::SetBit(int reg, byte bank, int pos, bool val)
 #endif
 	int tmp;
 	LOCK_MUTEX(m_ram);
-	if ((reg = 0x0F) == 0x03) { 
+	if ((reg & 0x0F) == 0x03) { 
 		if(val)ram[0x03] |= (1 << pos);
 		else ram[0x03] &= ~(1 << pos);
 		damageByte(0x03);
@@ -1341,6 +1378,9 @@ void Backend::run_in_other_thread(byte modus)
 	errorInThreadHappend = false;
 	UNLOCK_MUTEX(m_lastError);
 
+	//ignore first Breakpoint
+	ignoreBreakpoint = true;
+
 	if (modus != MOD_STEP) {
 		LOCK_MUTEX(m_isRunning);
 		isRunning = true;
@@ -1398,7 +1438,7 @@ void Backend::run_in_other_thread(byte modus)
 		}
 		aktCode = &(code->code[PC]);
 
-		if(aktCode->breakpoint){
+		if(aktCode->breakpoint & !ignoreBreakpoint){
 			UNLOCK_MUTEX(m_wdt);
 			UNLOCK_MUTEX(m_runtime);
 			UNLOCK_MUTEX(m_eeprom);
@@ -1406,12 +1446,16 @@ void Backend::run_in_other_thread(byte modus)
 			UNLOCK_MUTEX(m_isRunning);
 			UNLOCK_MUTEX(m_run_code);
 			UNLOCK_MUTEX(m_regW);
+			UNLOCK_MUTEX(m_lastError);
 
 			LOCK_MUTEX(m_isRunning);
 			isRunning = false;
 			UNLOCK_MUTEX(m_isRunning);
+
+			LOCK_MUTEX(m_isRunning);
 			break;
 		}
+		else ignoreBreakpoint = false;
 
 		DOIF(DEBUG_LVL >= DEBUG_ALL)PRINTF4("EXEC_ASM(%s %02x,%02x)\n\tsleeping: %d\n", Compiler::functionPointerToName(aktCode->function), aktCode->param1, aktCode->param2, sleep);
 		//asm-execution
@@ -1439,8 +1483,8 @@ void Backend::run_in_other_thread(byte modus)
 		//clear "read as '0'"-bits...
 		ram[0x05] &= 0x1F;
 		ram[0x0A] &= 0x1F;
-		ram[83] &= 0x1F;
-		ram[86] &= 0x1F;
+		ram[87] &= 0x1F;
+		ram[90] &= 0x1F;
 
 		//stop if error in execution
 		if (needTime < 1) {
@@ -1453,9 +1497,9 @@ void Backend::run_in_other_thread(byte modus)
 		if (DEBUG_LVL >= DEBUG_ALL) {
 			printf("\n");
 			SetConsoleTextAttribute(hConsole, COLOR_RAM_HEAD);
-			printf("    00  01  02  03  04  05  06  07  \n");
+			printf("    08  19  2A  3B  4C  5D  6E  7F  \n");
 			for (int i = 0; i << 3 < UC_SIZE_RAM; i++) {
-				printf("%02x  ", i);
+				printf("%02x  ", i<<3);
 				int tmp = i << 3;
 				for (int j = 0; j < 8 && tmp + j < UC_SIZE_RAM; j++) {
 					if (damage[i] & (1 << j)) {

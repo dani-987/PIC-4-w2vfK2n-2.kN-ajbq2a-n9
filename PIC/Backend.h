@@ -130,7 +130,7 @@ private:
 	byte ram_rb_cpy;
 	bitmap8_t damage[UC_DAMAGE_SIZE];
 	size_t countDamaged, posReadingDamage;
-	bool reloadCalled;
+	bool reloadCalled, ignoreBreakpoint;
 	size_t sleeptime;
 	bool sleep;
 	size_t prescaler_timer;
@@ -239,5 +239,11 @@ public:
 
 	//main loop of the uC!
 	void run_in_other_thread(byte modus);
+
+#ifdef _DEBUG
+	ASM* get_ASM_ONLY_TESTING(){return code;}
+
+	void set_DEBUG_ONLY_TESTING(int state);
+#endif
 };
 
