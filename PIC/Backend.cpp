@@ -7,6 +7,18 @@
 #include <stdlib.h>
 #include <time.h>
 
+#ifdef _DEBUG
+#include <Windows.h>	
+HANDLE  hConsole;
+
+#define COLOR_RAM_HEAD	0xF0
+#define COLOR_RAM_NORM	0x70
+#define COLOR_RAM_DMGD	0x7C
+#define COLOR_RAM_OTHER	0xB9
+
+#define COLOR_STANDARD	0x07
+#endif
+
 #define DAMAGE_GET_BITMAP_BYTE(pos)	(pos >> 3)
 #define DAMAGE_GET_BITMAP_BIT(pos)	(1 << (pos & 0x07))
 
@@ -175,7 +187,7 @@ bool Backend::letRun(int modus)
 		LOCK_MUTEX(m_isRunning);
 	}
 	if (uC != nullptr) {
-		uC->join();
+		if(uC->joinable())uC->join();
 		delete(uC);
 		uC = nullptr;
 	}
@@ -415,7 +427,7 @@ void Backend::damageByte(size_t pos)
 		reloadCalled = false; 
 		//TODO: Fl::awake(updateDamagedRam);
 	}
-	if (!damage[tmpPos] & tmpBitmap) {
+	if (!(damage[tmpPos] & tmpBitmap)) {
 		countDamaged++;
 		damage[tmpPos] |= tmpBitmap;
 	}
@@ -460,6 +472,9 @@ Backend::Backend(GUI* gui)
 	eeprom_rd = false;
 	uC = nullptr;
 	sleeptime = UC_STANDARD_SPEED;
+#ifdef _DEBUG
+	hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+#endif
 }
 
 Backend::~Backend()
@@ -882,13 +897,7 @@ char * Backend::getErrorMSG()
 
 void Backend::Wait_For_End()
 {
-	LOCK_MUTEX(m_terminated);
-	while (!terminated) {
-		UNLOCK_MUTEX(m_terminated);
-		std::this_thread::sleep_for(std::chrono::nanoseconds(1));
-		LOCK_MUTEX(m_terminated);
-	}
-	UNLOCK_MUTEX(m_terminated);
+	if (uC != nullptr && uC->joinable()) { uC->join(); delete(uC); uC = nullptr; }
 }
 
 
@@ -1442,15 +1451,36 @@ void Backend::run_in_other_thread(byte modus)
 
 #ifdef _DEBUG
 		if (DEBUG_LVL >= DEBUG_ALL) {
-			printf("\n\t00  01  02  03  04  05  06  07\n");
+			printf("\n");
+			SetConsoleTextAttribute(hConsole, COLOR_RAM_HEAD);
+			printf("    00  01  02  03  04  05  06  07  \n");
 			for (int i = 0; i << 3 < UC_SIZE_RAM; i++) {
+				printf("%02x  ", i);
 				int tmp = i << 3;
-				if (tmp + 8 < UC_SIZE_RAM)printf("%02x\t%02x  %02x  %02x  %02x  %02x  %02x  %02x  %02x\n", i,
-					ram[tmp], ram[tmp + 1], ram[tmp + 2], ram[tmp + 3], ram[tmp + 4], ram[tmp + 5], ram[tmp + 6], ram[tmp + 7]);
-				else printf("%02x\t%02x  %02x  %02x  %02x  %02x  %02x\n\tW:  %02x  #:  %02x  r:  %02x\n\tC   DC  Z\n\t%02x  %02x  %02x\n", i,
-					ram[tmp], ram[tmp + 1], ram[tmp + 2], ram[tmp + 3], ram[tmp + 4], ram[tmp + 5], regW, stopAtStackZero & 0xFF, isRunning,
-					ram[0x03] & 0x01, ram[0x03] & 0x02, ram[0x03] & 0x04);
+				for (int j = 0; j < 8 && tmp + j < UC_SIZE_RAM; j++) {
+					if (damage[i] & (1 << j)) {
+						damage[i] &= ~(1 << j);
+						SetConsoleTextAttribute(hConsole, COLOR_RAM_DMGD);
+					}
+					else SetConsoleTextAttribute(hConsole, COLOR_RAM_NORM);
+					printf("%02x  ", ram[tmp + j]);
+				}
+				if (tmp + 8 > UC_SIZE_RAM){ SetConsoleTextAttribute(hConsole, COLOR_RAM_NORM); printf("        ");}
+				SetConsoleTextAttribute(hConsole, COLOR_STANDARD);
+				printf("\n");
+				SetConsoleTextAttribute(hConsole, COLOR_RAM_HEAD);
 			}
+			SetConsoleTextAttribute(hConsole, COLOR_RAM_OTHER);
+			printf("    W:  %02x  #:  %02x  r:  %02x          ", regW, stopAtStackZero & 0xFF, isRunning);
+			SetConsoleTextAttribute(hConsole, COLOR_STANDARD);
+			printf("\n");
+			SetConsoleTextAttribute(hConsole, COLOR_RAM_OTHER);
+			printf("    C   DC  Z                       ");
+			SetConsoleTextAttribute(hConsole, COLOR_STANDARD);
+			printf("\n");
+			SetConsoleTextAttribute(hConsole, COLOR_RAM_OTHER); 
+			printf("    %02x  %02x  %02x                      ", ram[0x03] & 0x01, ram[0x03] & 0x02, ram[0x03] & 0x04);
+			SetConsoleTextAttribute(hConsole, COLOR_STANDARD);
 			printf("\n\n");
 		}
 #endif
