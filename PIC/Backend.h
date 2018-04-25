@@ -1,19 +1,12 @@
 #pragma once
 
+//HINWEISE FÜR DIE GUI:
+
+//4 GUI: in GUI->run() call updateAll();
+//GUI-funktion updateRam(): {StartedUpdating(); updateRegW(); while(getNextChangedCell(reg, bank))updateRamCell(reg, bank);}
+
+
 class Backend;
-
-#include "DEBUG.H"
-#include "ASM.h"
-#include "GUI.h"
-
-#ifdef USE_MY_MUTEX
-#include "MUTEX.H"
-#else // USE_MY_MUTEX
-#include <mutex>
-typedef std::mutex MUTEX;
-#endif // !USE_MY_MUTEX
-
-#include <thread>
 
 #define UC_SIZE_RAM		94
 #define UC_SIZE_PROGRAM	1024
@@ -29,9 +22,33 @@ typedef std::mutex MUTEX;
 
 #define UC_STANDARD_SPEED	1000		//in us
 
+#if UC_SIZE_RAM % 8 == 0
+#define UC_DAMAGE_SIZE		(UC_SIZE_RAM / 8)
+#define UC_DAMAGE_LAST_SIZE 8
+#else
+#define UC_DAMAGE_SIZE		((UC_SIZE_RAM / 8)+1)
+#define UC_DAMAGE_LAST_SIZE ((UC_SIZE_RAM % 8)+1)
+#endif
+
+#include "DEBUG.H"
+#include "ASM.h"
+#include "GUI.h"
+
+#ifdef USE_MY_MUTEX
+#include "MUTEX.H"
+#else // USE_MY_MUTEX
+#include <mutex>
+typedef std::mutex MUTEX;
+#endif // !USE_MY_MUTEX
+
+
+#include <thread>
+
 #ifndef byte
 typedef unsigned char byte;
 #endif
+
+typedef byte bitmap8_t;
 
 struct call_in_other_thread_s {
 	Backend* backend;
@@ -111,6 +128,9 @@ private:
 
 	byte* ram;
 	byte ram_rb_cpy;
+	bitmap8_t damage[UC_DAMAGE_SIZE];
+	size_t countDamaged, posReadingDamage;
+	bool reloadCalled;
 	size_t sleeptime;
 	bool sleep;
 	size_t prescaler_timer;
@@ -137,7 +157,7 @@ private:
 	bool wdt_active, wdt_int_accured;
 	MUTEX m_wdt;
 
-	byte & getCell_unsafe(byte pos);
+	byte & getCell_unsafe(byte pos, bool damage = true);
 	void reset(byte resetType);
 	void Stop_And_Wait();
 	bool letRun(int modus);
@@ -146,12 +166,14 @@ private:
 	bool do_eeprom();
 	bool do_wdt();
 	void reset_wdt();
+	void damageByte(size_t pos);
 public:
 	Backend(GUI* gui);
 	~Backend();
 
 	//thread-save functions for external usage in GUI:
 	bool getNextChangedCell(int &reg, byte &bank);
+	void StartedUpdating();							//always call before updating, else it is possible, that the update-function will not be called
 	bool LoadProgramm(char* c);
 	bool Start();
 	bool Stop();
@@ -167,9 +189,9 @@ public:
 	bool Reset();
 	int  GetByte(int reg, byte bank);				//bank: 0 or 1
 	bool SetByte(int reg, byte bank, byte val);		//bank: 0 or 1
-	int  GetBit(int b, byte bank, int pos);			//bool
+	int  GetBit(int b, byte bank, int pos);			//bool (= 0 or != 0 [e.g. 2 or 128])
 	bool SetBit(int b, byte bank, int pos, bool val);
-	int getRegW();									//byte
+	int getRegW();									//byte //always update Register W at updating ram!
 	bool setRegW(byte val);
 	char* getErrorMSG();							//nullptr possible! Remember: malloc! -> free
 	void Wait_For_End();							//joins all runnig threads. do not forget to call 'Stop' before!

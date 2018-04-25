@@ -7,11 +7,13 @@
 #include <stdlib.h>
 #include <time.h>
 
+#define DAMAGE_GET_BITMAP_BYTE(pos)	(pos >> 3)
+#define DAMAGE_GET_BITMAP_BIT(pos)	(1 << (pos & 0x07))
+
 //Komment following if not wanted....
 #define USE_RANDOM_VALUES
 //TODO:
 
-//GUI-Funkionen, damage
 //Interrupts
 
 #define NOT_IMPLEMENTED	"Nicht implementiert!"
@@ -41,7 +43,7 @@ void call_backup_in_other_thread(void* _callInOtherThread) {
 	delete(_callInOtherThread);
 }
 
-byte & Backend::getCell_unsafe(byte pos)
+byte & Backend::getCell_unsafe(byte pos, bool dmg)
 {
 	if (pos == 0x00) {	//indirect addressing
 		pos = ram[0x04];
@@ -52,6 +54,7 @@ byte & Backend::getCell_unsafe(byte pos)
 		return tmp;
 	}
 	else if (pos >= 0x0A || (pos >= 0x02 && pos <= 0x04)) { 
+		if(dmg)damageByte(pos);
 		return ram[pos]; 
 	}
 	else {
@@ -64,9 +67,11 @@ byte & Backend::getCell_unsafe(byte pos)
 			return tmp;
 		}
 		else if (ram[0x03] & 0x40) {
+			if(dmg)damageByte(82 + pos);
 			return ram[82 + pos];
 		}
 		else {
+			if(dmg)damageByte(pos);
 			return ram[pos];
 		}
 	}
@@ -126,6 +131,7 @@ void Backend::reset(byte resetType)
 		ram[89] |= 0x10;
 		break;
 	}
+	//TODO: updateAll();
 }
 
 void Backend::Stop_And_Wait()
@@ -205,30 +211,27 @@ bool Backend::do_interrupts(int& needTime)
 		return true;
 	}
 	//RBIF in INTCON
-	if (ram_rb_cpy & 0xF0 != ram[0x06] & 0xF0)ram[0x0B] |= 0x01;
+	if (ram_rb_cpy & 0xF0 != ram[0x06] & 0xF0) { ram[0x0B] |= 0x01; damageByte(0x0B); }
 	//INTF if RB0/INT (check if on change or on set...)
-	if (ram_rb_cpy & 0x01 != ram[0x06] & 0x01)ram[0x0B] |= 0x02;
+	if (ram_rb_cpy & 0x01 != ram[0x06] & 0x01) { ram[0x0B] |= 0x02;  damageByte(0x0B);}
 	ram_rb_cpy = ram[0x06];
 	//if GIE or sleeping have to check interrupts....
 	if (ram[0x0B] & 0x80 || sleep) {
-		if (ram_rb_cpy != ram[0x06]) {
-
-			//T0IF & T0IE
-			if ((ram[0x0B] & 0x24) == 0x24) {
-				goto DO_INTERRUPT;
-			}
-			//INTF & INTE
-			if ((ram[0x0B] & 0x12) == 0x12) {
-				goto DO_INTERRUPT;
-			}
-			//RBIF & RBIE
-			if ((ram[0x0B] & 0x09) == 0x09) {
-				goto DO_INTERRUPT;
-			}
-			//EEIF & EEIE
-			if ((ram[0x0B] & 0x40) && (ram[90] & 0x10)) {
-				goto DO_INTERRUPT;
-			}
+		//T0IF & T0IE
+		if ((ram[0x0B] & 0x24) == 0x24) {
+			goto DO_INTERRUPT;
+		}
+		//INTF & INTE
+		if ((ram[0x0B] & 0x12) == 0x12) {
+			goto DO_INTERRUPT;
+		}
+		//RBIF & RBIE
+		if ((ram[0x0B] & 0x09) == 0x09) {
+			goto DO_INTERRUPT;
+		}
+		//EEIF & EEIE
+		if ((ram[0x0B] & 0x40) && (ram[90] & 0x10)) {
+			goto DO_INTERRUPT;
 		}
 	}
 	return true;
@@ -239,6 +242,7 @@ DO_INTERRUPT:
 	if (ram[0x0B] & 0x80) {
 		//unset GIE
 		ram[0x0B] &= ~0x80;
+		damageByte(0x0B);
 		//returnAddr -> Stack
 		STACK* newAdress = (STACK*)malloc(sizeof(STACK));
 		if (newAdress == nullptr) {
@@ -269,7 +273,8 @@ bool Backend::do_timer()
 				//with prescaler?
 				if (ram[83] & 0x04) {
 					ram[0x01]++;
-					if (ram[0x01] == 0)ram[0x08] |= 0x20;	//do interrupt
+					damageByte(0x01);
+					if (ram[0x01] == 0) { ram[0x08] |= 0x20;  damageByte(0x08);}	//set interrupt
 				}
 				else {
 					prescaler_timer++;
@@ -277,7 +282,8 @@ bool Backend::do_timer()
 					if (prescaler_timer > prescaler) {
 						prescaler_timer = 0;
 						ram[0x01]++;
-						if (ram[0x01] == 0)ram[0x08] |= 0x20;	//do interrupt
+						damageByte(0x01);
+						if (ram[0x01] == 0) { ram[0x08] |= 0x20;  damageByte(0x08);}	//set interrupt
 					}
 				}
 			}
@@ -286,8 +292,9 @@ bool Backend::do_timer()
 	else {
 		//with prescaler?
 		if (ram[83] & 0x04) {
-			ram[0x01]++;
-			if (ram[0x01] == 0)ram[0x08] |= 0x20;	//do interrupt
+			ram[0x01]++; 
+			damageByte(0x01);
+			if (ram[0x01] == 0) { ram[0x08] |= 0x20;  damageByte(0x08); }	//set interrupt
 		}
 		else {
 			prescaler_timer++;
@@ -295,7 +302,8 @@ bool Backend::do_timer()
 			if (prescaler_timer > prescaler) {
 				prescaler_timer = 0;
 				ram[0x01]++;
-				if (ram[0x01] == 0)ram[0x08] |= 0x20;	//do interrupt
+				damageByte(0x01);
+				if (ram[0x01] == 0) { ram[0x08] |= 0x20;  damageByte(0x08); }	//set interrupt
 			}
 		}
 	}
@@ -326,6 +334,7 @@ bool Backend::do_eeprom()
 				ram[90] &= ~0x20;
 				eeprom_wr = false;
 				ram[90] |= 0x10;
+				damageByte(90);
 				if (eeprom_write_time < 5) {	//cause a biterror at eeprom write because the eeprom is used much
 					byte tmp = eeprom[eeprom_wr_addr];
 					eeprom[eeprom_wr_addr] &= rand() & 0xFF;
@@ -358,9 +367,11 @@ bool Backend::do_eeprom()
 	}
 	else if (ram[90] & 0x01) {
 		ram[90] &= ~0x01;
+		damageByte(90);
 
 		//do eeprom read
 		ram[0x08] = eeprom[ram[0x09]];
+		damageByte(0x08);
 	}
 
 
@@ -395,6 +406,21 @@ void Backend::reset_wdt()
 	wdt_timer = 17 + rand() % 3;	//wdt is _ABOUT_ 18ms
 }
 
+void Backend::damageByte(size_t pos)
+{
+	DOIF(pos > UC_SIZE_RAM)PRINTF2("damageByte(size_t pos = %d), pos is too big (UC_SIZE_RAM = %d)\n", pos, UC_SIZE_RAM);
+	bitmap8_t tmpBitmap = DAMAGE_GET_BITMAP_BIT(pos);
+	size_t tmpPos = DAMAGE_GET_BITMAP_BYTE(pos);
+	if (reloadCalled) { 
+		reloadCalled = false; 
+		//TODO: Fl::awake(updateDamagedRam);
+	}
+	if (!damage[tmpPos] & tmpBitmap) {
+		countDamaged++;
+		damage[tmpPos] |= tmpBitmap;
+	}
+}
+
 Backend::Backend(GUI* gui)
 {
 	lastError = "Kein Fehler";
@@ -420,6 +446,7 @@ Backend::Backend(GUI* gui)
 		ram[i] = 0;
 #endif
 	};
+	reloadCalled = false;
 	reset(RESET_POWER_UP);
 	eeprom = (char*)malloc(UC_SIZE_EEPROM);
 	for (int i = 0; i < UC_SIZE_EEPROM; i++) {
@@ -445,9 +472,53 @@ Backend::~Backend()
 	Compiler::freeASM(code); 
 }
 
+bool Backend::getNextChangedCell(int & reg, byte & bank)
+{
+	bitmap8_t tmpBitmap;
+	size_t tmpPos;
+	LOCK_MUTEX(m_ram);
+	while (posReadingDamage >= UC_SIZE_RAM) {
+		tmpBitmap = DAMAGE_GET_BITMAP_BIT(posReadingDamage);
+		tmpPos = DAMAGE_GET_BITMAP_BYTE(posReadingDamage);
+		if (damage[tmpPos] & tmpBitmap) {
+			damage[tmpPos] &= ~tmpBitmap;
+			if (posReadingDamage >= 82) {
+				reg = posReadingDamage - 82;
+				bank = 1;
+				countDamaged--;
+				posReadingDamage++;
+				UNLOCK_MUTEX(m_ram);
+				return true;
+			}
+			else {
+				reg = posReadingDamage;
+				bank = 0;
+				countDamaged--;
+				posReadingDamage++;
+				UNLOCK_MUTEX(m_ram);
+				return true;
+			}
+		}
+		posReadingDamage++;
+	}
+	posReadingDamage = 0;
+	UNLOCK_MUTEX(m_ram);
+	return false;
+}
+
+void Backend::StartedUpdating()
+{
+	LOCK_MUTEX(m_ram);
+	reloadCalled = true;
+	UNLOCK_MUTEX(m_ram);
+}
+
 bool Backend::LoadProgramm(char * c)
 {
 	bool ret = false;
+	LOCK_MUTEX(m_isRunningLocked);
+	isRunningLocked = true;
+	UNLOCK_MUTEX(m_isRunningLocked);
 	Stop_And_Wait();
 	Compiler comp;
 	ASM* prog = comp.compileFile(c, UC_SIZE_PROGRAM);
@@ -457,6 +528,7 @@ bool Backend::LoadProgramm(char * c)
 		this->aktCode = prog->code;
 		ret = true;
 	}
+	LOCK_MUTEX(m_ram);
 	for (int i = 0; i < UC_SIZE_RAM; i++) {
 #ifdef USE_RANDOM_VALUES
 		ram[i] = rand() & 0xFF;
@@ -464,6 +536,8 @@ bool Backend::LoadProgramm(char * c)
 		ram[i] = 0;
 #endif
 	};
+	reloadCalled = false;
+	UNLOCK_MUTEX(m_ram);
 	reset(RESET_POWER_UP);
 	LOCK_MUTEX(m_isRunningLocked);
 	isRunningLocked = false;
@@ -649,7 +723,7 @@ int Backend::GetByte(int reg, byte bank)
 	if ((reg = 0x0F) == 0x03) { UNLOCK_MUTEX(m_ram); return tmp; }
 	if (bank == 0)ram[0x03] = ram[0x03] & (~0x20);
 	else ram[0x03] = ram[0x03] | 0x20;
-	ret = getCell_unsafe(reg);
+	ret = getCell_unsafe(reg, false);
 	ram[0x03] = tmp;
 	UNLOCK_MUTEX(m_ram);
 	return ret;
@@ -677,7 +751,7 @@ bool Backend::SetByte(int reg, byte bank, byte val)
 #endif
 	int tmp;
 	LOCK_MUTEX(m_ram);
-	if ((reg = 0x0F) == 0x03) { ram[0x03] = val; UNLOCK_MUTEX(m_ram); return true; }
+	if ((reg = 0x0F) == 0x03) { ram[0x03] = val; damageByte(0x03); UNLOCK_MUTEX(m_ram); return true; }
 	tmp = ram[0x03];
 	if (bank == 0)ram[0x03] = ram[0x03] & (~0x20);
 	else ram[0x03] = ram[0x03] | 0x20;
@@ -720,6 +794,7 @@ bool Backend::SetBit(int reg, byte bank, int pos, bool val)
 	if ((reg = 0x0F) == 0x03) { 
 		if(val)ram[0x03] |= (1 << pos);
 		else ram[0x03] &= ~(1 << pos);
+		damageByte(0x03);
 		UNLOCK_MUTEX(m_ram); 
 		return true; 
 	}
@@ -772,7 +847,7 @@ int Backend::GetBit(int reg, byte bank, int pos)
 	tmp = ram[0x03];
 	if (bank == 0)ram[0x03] = ram[0x03] & (~0x20);
 	else ram[0x03] = ram[0x03] | 0x20;
-	val = (getCell_unsafe(reg) & (1 << pos));
+	val = (getCell_unsafe(reg, false) & (1 << pos));
 	ram[0x03] = tmp;
 	UNLOCK_MUTEX(m_ram);
 	return true;
@@ -837,7 +912,7 @@ void Backend::Wait_For_End()
 #define PCH			0x0A
 
 int Backend::ADDWF(void*f, void*d) {
-	byte &cell = getCell_unsafe((int)f);
+	byte &cell = getCell_unsafe((int)f, d);
 	byte tmpCell = cell;
 	int tmp = ((regW & 0xFF) + (cell & 0xFF));
 	if (tmp & 0x0100)ram[BYTE_C] |= BIT_C;
@@ -847,51 +922,57 @@ int Backend::ADDWF(void*f, void*d) {
 	tmp &= 0xFF;
 	if (tmp)ram[BYTE_Z] &= ~BIT_Z;
 	else ram[BYTE_Z] |= BIT_Z;
-	if (!d)regW = tmp & 0xFF;
+	if (!d) regW = tmp & 0xFF;
 	else cell = tmp & 0xFF;
+	damageByte(BYTE_Z);
 	aktCode++;
 	return 1;
 }
 int Backend::ANDWF(void*f, void*d) {
-	byte &cell = getCell_unsafe((int)f);
+	byte &cell = getCell_unsafe((int)f, d);
 	int tmp = (regW & cell) & 0xFF;
 	if (tmp)ram[BYTE_Z] &= ~BIT_Z;
 	else ram[BYTE_Z] |= BIT_Z;
-	if (!d)regW = tmp;
+	if (!d) regW = tmp;
 	else cell = tmp;
+	damageByte(BYTE_Z);
 	aktCode++;
 	return 1;
 }
 int Backend::CLRF(void*f, void*ign) { 
 	ram[BYTE_Z] |= BIT_Z;
+	damageByte(BYTE_Z);
 	getCell_unsafe((byte)f) = 0;
 	aktCode++;
 	return 1;
 }
 int Backend::CLRW(void*ign1, void*ign2) {
 	ram[BYTE_Z] |= BIT_Z;
-	regW = 0;
+	damageByte(BYTE_Z);
+	regW = 0; 
 	aktCode++;
 	return 1;
 }
 int Backend::COMF(void*f, void*d) { 
 	if (d == nullptr) {
-		regW = ~(getCell_unsafe((int)f));
+		regW = ~(getCell_unsafe((int)f), false);
 		if (regW == 0)ram[BYTE_Z] |= BIT_Z;
 		else ram[BYTE_Z] &= ~BIT_Z;
+		damageByte(BYTE_Z);
 	}
 	else {
 		byte& cell = getCell_unsafe((int)f);
 		cell = ~cell;
 		if (cell == 0)ram[BYTE_Z] |= BIT_Z;
 		else ram[BYTE_Z] &= ~BIT_Z;
+		damageByte(BYTE_Z);
 	}
 	aktCode++;
 	return 1;	
 }
 int Backend::DECF(void*f, void*d) {
 	if (d == nullptr) {
-		regW = getCell_unsafe((int)f) - 1;
+		regW = getCell_unsafe((int)f, false) - 1;
 		if (regW == 0)ram[BYTE_Z] |= BIT_Z;
 		else ram[BYTE_Z] &= ~BIT_Z;
 	}
@@ -901,12 +982,13 @@ int Backend::DECF(void*f, void*d) {
 		if (cell == 0)ram[BYTE_Z] |= BIT_Z;
 		else ram[BYTE_Z] &= ~BIT_Z;
 	}
+	damageByte(BYTE_Z);
 	aktCode++;
 	return 1;
 }
 int Backend::DECFSZ(void*f, void*d) { 
 	if (d == nullptr) { 
-		regW = getCell_unsafe((int)f) - 1; 
+		regW = getCell_unsafe((int)f, false) - 1; 
 		if (regW == 0) {
 			aktCode += 2;
 			return 2;
@@ -927,7 +1009,7 @@ int Backend::DECFSZ(void*f, void*d) {
 }
 int Backend::INCF(void*f, void*d) {
 	if (d == nullptr) {
-		regW = getCell_unsafe((int)f) + 1;
+		regW = getCell_unsafe((int)f, false) + 1;
 		if (regW == 0)ram[BYTE_Z] |= BIT_Z;
 		else ram[BYTE_Z] &= ~BIT_Z;
 	}
@@ -937,12 +1019,13 @@ int Backend::INCF(void*f, void*d) {
 		if (cell == 0)ram[BYTE_Z] |= BIT_Z;
 		else ram[BYTE_Z] &= ~BIT_Z;
 	}
+	damageByte(BYTE_Z);
 	aktCode++;
 	return 1;
 }
 int Backend::INCFSZ(void*f, void*d) {
 	if (d == nullptr) {
-		regW = getCell_unsafe((int)f) + 1;
+		regW = getCell_unsafe((int)f, false) + 1;
 		if (regW == 0) {
 			aktCode += 2;
 			return 2;
@@ -964,7 +1047,7 @@ int Backend::INCFSZ(void*f, void*d) {
 int Backend::IORWF(void*f, void*d) {
 
 	if (d == nullptr) {
-		regW |= getCell_unsafe((int)f);
+		regW |= getCell_unsafe((int)f, false);
 		if (!regW)ram[BYTE_Z] |= BIT_Z;
 		else ram[BYTE_Z] &= ~BIT_Z;
 	}
@@ -974,17 +1057,19 @@ int Backend::IORWF(void*f, void*d) {
 		if (!cell)ram[BYTE_Z] |= BIT_Z;
 		else ram[BYTE_Z] &= ~BIT_Z;
 	}
+	damageByte(BYTE_Z);
 	aktCode++;
 	return 1;
 }
 int Backend::MOVF(void*f, void*d) { 
 	if (d == nullptr) {
-		regW = getCell_unsafe((int)f);
+		regW = getCell_unsafe((int)f, false);
 		if (regW == 0)ram[BYTE_Z] |= BIT_Z;
 		else ram[BYTE_Z] &= ~BIT_Z;
 	}
 	else if (getCell_unsafe((int)f) == 0)ram[BYTE_Z] |= BIT_Z;
 	else ram[BYTE_Z] &= ~BIT_Z;
+	damageByte(BYTE_Z);
 	aktCode++;
 	return 1;
 }
@@ -998,10 +1083,11 @@ int Backend::NOP(void*ign1, void*ign2) {
 	return 1;
 }
 int Backend::RLF(void*f, void*d) { 
-	byte& cell = getCell_unsafe((int)f);
+	byte& cell = getCell_unsafe((int)f, d);
 	int tmp = ram[BYTE_C] & BIT_C;
 	if (cell & 0x80) ram[BYTE_C] |= BIT_C;
 	else ram[BYTE_C] &= ~BIT_C;
+	damageByte(BYTE_C);
 	if (d == nullptr) {
 		regW = cell << 1;
 		if (tmp) regW |= 0x01;
@@ -1020,6 +1106,7 @@ int Backend::RRF(void*f, void*d) {
 	int tmp = ram[BYTE_C] & BIT_C;
 	if (cell & 0x01) ram[BYTE_C] |= BIT_C;
 	else ram[BYTE_C] &= ~BIT_C;
+	damageByte(BYTE_C);
 	if (d == nullptr) {
 		regW = cell >> 1;
 		if (tmp) regW |= 0x80;
@@ -1034,23 +1121,24 @@ int Backend::RRF(void*f, void*d) {
 	return 1;
 }
 int Backend::SUBWF(void*f, void*d) {
-	byte &cell = getCell_unsafe((int)f);
+	byte &cell = getCell_unsafe((int)f, d);
 	byte tmpCell = cell;
 	int tmp = (((int)(cell & 0xFF)) - ((int)(regW & 0xFF)));
 	if (tmp >= 0)ram[BYTE_C] |= BIT_C;
 	else ram[BYTE_C] &= ~BIT_C;
-	if ((((char)(tmpCell & 0x0F)) - ((char)(regW & 0x0F))) >= 0)ram[BYTE_DC] |= BIT_DC;
+	if ((((char)(tmpCell & 0x0F)) - ((char)(regW & 0x0F))) < 0)ram[BYTE_DC] |= BIT_DC;
 	else ram[BYTE_DC] &= ~BIT_DC;
 	tmp &= 0xFF;
 	if (tmp)ram[BYTE_Z] &= ~BIT_Z;
 	else ram[BYTE_Z] |= BIT_Z;
 	if (!d)regW = tmp;
 	else cell = tmp;
+	damageByte(BYTE_Z);
 	aktCode++;
 	return 1;
 }
 int Backend::SWAPF(void*f, void*d) { 
-	byte& cell = getCell_unsafe((int)f);
+	byte& cell = getCell_unsafe((int)f,d);
 	byte tmp = ((cell & 0xF0) >> 4) | ((cell & 0x0F) << 4);
 	if (!d)regW = tmp;
 	else cell = tmp;
@@ -1058,12 +1146,13 @@ int Backend::SWAPF(void*f, void*d) {
 	return 1;
 }
 int Backend::XORWF(void*f, void*d) {
-	byte &cell = getCell_unsafe((int)f);
+	byte &cell = getCell_unsafe((int)f, d);
 	int tmp = (regW ^ cell) & 0xFF;
 	if (tmp)ram[BYTE_Z] &= ~BIT_Z;
 	else ram[BYTE_Z] |= BIT_Z;
 	if (!d)regW = tmp;
 	else cell = tmp;
+	damageByte(BYTE_Z);
 	aktCode++;
 	return 1;
 }
@@ -1079,7 +1168,7 @@ int Backend::BSF(void*f, void*b) {
 	return 1;
 }
 int Backend::BTFSC(void*f, void*b) {
-	if (getCell_unsafe((char)f) & (1 << (char)b)) {	//set -> no skip
+	if (getCell_unsafe((char)f, false) & (1 << (char)b)) {	//set -> no skip
 		aktCode++;
 		return 1;
 	}
@@ -1089,7 +1178,7 @@ int Backend::BTFSC(void*f, void*b) {
 	}
 }
 int Backend::BTFSS(void*f, void*b) {
-	if (getCell_unsafe((char)f) & (1 << (char)b)) {	//set -> skip
+	if (getCell_unsafe((char)f, false) & (1 << (char)b)) {	//set -> skip
 		aktCode += 2;
 		return 2;
 	}
@@ -1108,6 +1197,7 @@ int Backend::ADDLW(void*k, void*ign) {
 	regW = tmpW & 0xFF;
 	if (regW)ram[BYTE_Z] &= ~BIT_Z;
 	else ram[BYTE_Z] |= BIT_Z;
+	damageByte(BYTE_Z);
 	aktCode++;
 	return 1;
 }
@@ -1115,6 +1205,7 @@ int Backend::ANDLW(void*k, void*ign) {
 	regW = (regW & (char)k) & 0xFF;
 	if (regW)ram[BYTE_Z] &= ~BIT_Z;
 	else ram[BYTE_Z] |= BIT_Z;
+	damageByte(BYTE_Z);
 	aktCode++;
 	return 1;
 }
@@ -1134,6 +1225,7 @@ int Backend::CALL(void*k, void*ign) {
 int Backend::CLRWDT(void*ign1, void*ign2) {
 	//TO & PD
 	ram[0x03] |= 0x18;
+	damageByte(0x03);
 	reset_wdt();
 	aktCode++;
 	return 1;
@@ -1146,6 +1238,7 @@ int Backend::IORLW(void*k, void*ign) {
 	regW = ((regW & 0xFF) | ((char)k & 0xFF));
 	if (!regW)ram[BYTE_Z] &= ~BIT_Z;
 	else ram[BYTE_Z] |= BIT_Z;
+	damageByte(BYTE_Z);
 	aktCode++;
 	return 1;
 }
@@ -1166,6 +1259,7 @@ int Backend::RETFIE(void*ign1, void*ign2) {
 	free(oldStack);
 	if (stopAtStackZero > 0)stopAtStackZero--;
 	ram[0x0B] |= 0x80;
+	damageByte(0x0B);
 	return 2;
 }
 int Backend::RETLW(void*k, void*ign) {
@@ -1200,6 +1294,7 @@ int Backend::SLEEP(void*ign1, void*ign2) {
 	//TO & PD
 	ram[0x03] |= 0x10;
 	ram[0x03] &= 0xF7;
+	damageByte(0x03);
 	reset_wdt();
 	aktCode++;
 	return 1;
@@ -1208,11 +1303,12 @@ int Backend::SUBLW(void*k, void*ign) {
 	int tmpW = (((char)k & 0xFF) - (regW & 0xFF));
 	if (tmpW >= 0)ram[BYTE_C] |= BIT_C;
 	else ram[BYTE_C] &= ~BIT_C;
-	if ((((char)((char)k & 0x0F)) - ((char)(regW & 0x0F))) >= 0)ram[BYTE_DC] |= BIT_DC;
+	if ((((char)((char)k & 0x0F)) - ((char)(regW & 0x0F))) < 0)ram[BYTE_DC] |= BIT_DC;
 	else ram[BYTE_DC] &= ~BIT_DC;
 	regW = tmpW & 0xFF;
 	if (tmpW)ram[BYTE_Z] &= ~BIT_Z;
 	else ram[BYTE_Z] |= BIT_Z;
+	damageByte(BYTE_Z);
 	aktCode++;
 	return 1;
 }
@@ -1220,6 +1316,7 @@ int Backend::XORLW(void*k, void*ign) {
 	regW = ((regW & 0xFF) ^ ((char)k & 0xFF));
 	if (regW)ram[BYTE_Z] &= ~BIT_Z;
 	else ram[BYTE_Z] |= BIT_Z;
+	damageByte(BYTE_Z);
 	aktCode++;
 	return 1;
 }
@@ -1327,6 +1424,8 @@ void Backend::run_in_other_thread(byte modus)
 		PC = (aktCode - &(code->code[0])) % UC_SIZE_PROGRAM;
 		ram[PCH] = (PC >> 8) & 0x1F;
 		ram[PCL] = PC & 0xFF;
+		damageByte(PCH);
+		damageByte(PCL);
 
 		//clear "read as '0'"-bits...
 		ram[0x05] &= 0x1F;
