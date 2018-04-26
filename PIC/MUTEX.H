@@ -10,6 +10,7 @@ typedef unsigned char byte;
 class MUTEX {
 private:
 	byte mtx;
+	unsigned long threadid;
 public:
 	MUTEX();
 	void lock();

@@ -55,8 +55,6 @@ struct call_in_other_thread_s {
 	int modus;
 };
 
-//Die Datei "TPicSim1.LST" sollte lauffähig sein...
-
 class Backend
 {
 	/*
@@ -154,6 +152,8 @@ private:
 	MUTEX m_runtime;
 
 	size_t wdt_timer, wdt_prescaler, wdt_end;
+	byte timer_sync;
+	bool timer_written, timer_sync_written;
 	bool wdt_active, wdt_int_accured;
 	MUTEX m_wdt;
 

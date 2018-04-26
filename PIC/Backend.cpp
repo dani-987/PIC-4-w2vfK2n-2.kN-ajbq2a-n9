@@ -27,37 +27,6 @@ HANDLE  hConsole;
 //TODO:
 
 //DC und C bei Subtraktion (Prog3)
-//Prog7: Fehler: es wird ein 1:2 VT benutzt...., loop1 nur wenn mit 0 initalisiert, loop2 ergibt 30H
-/*
-//Testprogramm 7:
-	Backend* b = new Backend(new GUI());
-	b->set_DEBUG_ONLY_TESTING(0);
-	b->setCommandSpeed(10);
-	b->LoadProgramm("..\\Debug\\Testprogramme\\TPicSim7.LST");
-	printf("Set Breakpoint returns: %04d\n",b->ToggleBreakpoint(40)+1);
-	printf("Set Breakpoint returns: %04d\n",b->ToggleBreakpoint(55)+1);
-	system("pause");
-	b->get_ASM_ONLY_TESTING()->code[0x04].param1 = 0;
-	b->Start();
-	b->Wait_For_End();
-	system("pause");
-	b->Start();
-	b->Wait_For_End();
-	system("pause");
-	b->set_DEBUG_ONLY_TESTING(4);
-	while (1) {
-		b->SetBit(6,0,0,1);
-		b->Step();
-		b->Wait_For_End();
-		system("pause");
-		b->SetBit(6,0,0,0);
-		b->Step();
-		b->Wait_For_End();
-		system("pause");
-	}
-	return true;
-*/
-
 //Interrupts
 
 #define NOT_IMPLEMENTED	"Nicht implementiert!"
@@ -75,7 +44,8 @@ HANDLE  hConsole;
 #define DEBUG_LESS	1
 #define DEBUG_NORM	2
 #define DEBUG_MORE	3
-#define DEBUG_ALL	4
+#define DEBUG_RAM	4
+#define DEBUG_ALL	5
 
 VARDEF(int, DEBUG_LVL, DEBUG_ALL);
 
@@ -225,6 +195,7 @@ bool Backend::letRun(int modus)
 			return false;
 		}
 		UNLOCK_MUTEX(m_terminated);
+		LOCK_MUTEX(m_run_code);
 		LOCK_MUTEX(m_isRunning);
 	}
 	if (uC != nullptr) {
@@ -271,6 +242,7 @@ bool Backend::do_interrupts(int& needTime)
 	//if GIE or sleeping have to check interrupts....
 	if (ram[0x0B] & 0x80 || sleep) {
 		//T0IF & T0IE
+		byte tam0x0B = ram[0x0B];
 		if ((ram[0x0B] & 0x24) == 0x24) {
 			goto DO_INTERRUPT;
 		}
@@ -316,50 +288,69 @@ DO_INTERRUPT:
 
 bool Backend::do_timer()
 {
-	//internal or external clock?
-	if(ram[83] & 0x10){//0x53
-		//input changed
-		if (lastInput != ram[0x06] & 0x01) {
-			lastInput ^= 0x01;
-			//test if correct change happend (rising / falling edge [see INTEDG])
-			if ((lastInput << 6) == (ram[83] & 0x40)) {
-				//with prescaler?
-				if (ram[83] & 0x04) {
-					ram[0x01]++;
-					damageByte(0x01);
-					if (ram[0x01] == 0) { ram[0x08] |= 0x20;  damageByte(0x08);}	//set interrupt
-				}
-				else {
-					prescaler_timer++;
-					int prescaler = (1 << (ram[83] & 0x07));
-					if (prescaler_timer >= prescaler) {
-						prescaler_timer = 0;
+	//sync at 2nd cycle, internal or external clock?
+	if(timer_sync_written){
+		byte last_timer_sync = 0;
+		//sync
+		if(timer_written){
+			last_timer_sync = ram[0x01];
+			timer_sync_written = true;
+		}
+		else timer_sync_written = false;
+		ram[0x01] = timer_sync;
+		timer_sync = last_timer_sync;
+	}
+	else {	
+		//sync
+		if(timer_written){
+			timer_sync = ram[0x01];
+			timer_sync_written = true;
+		}
+		else if(ram[83] & 0x10){//0x53
+			//input changed
+			if (lastInput != ram[0x06] & 0x01) {
+				lastInput ^= 0x01;
+				//test if correct change happend (rising / falling edge [see INTEDG])
+				if ((lastInput << 6) == (ram[83] & 0x40)) {
+					//with prescaler?
+					if (ram[83] & 0x04) {
 						ram[0x01]++;
 						damageByte(0x01);
-						if (ram[0x01] == 0) { ram[0x08] |= 0x20;  damageByte(0x08);}	//set interrupt
+						if (ram[0x01] == 0) { ram[0x0B] |= 0x04;  damageByte(0x0B);}	//set interrupt
+					}
+					else {
+						prescaler_timer++;
+						int prescaler = (1 << (ram[83] & 0x07));
+						if (prescaler_timer >= prescaler) {
+							prescaler_timer = 0;
+							ram[0x01]++;
+							damageByte(0x01);
+							if (ram[0x01] == 0) { ram[0x0B] |= 0x04;  damageByte(0x0B);}	//set interrupt
+						}
 					}
 				}
 			}
 		}
-	}
-	else {
-		//with prescaler?
-		if (ram[83] & 0x04) {
-			ram[0x01]++; 
-			damageByte(0x01);
-			if (ram[0x01] == 0) { ram[0x08] |= 0x20;  damageByte(0x08); }	//set interrupt
-		}
 		else {
-			prescaler_timer++;
-			int prescaler = (2 << (ram[83] & 0x07));
-			if (prescaler_timer >= prescaler) {
-				prescaler_timer = 0;
-				ram[0x01]++;
+			//with prescaler?
+			if (ram[83] & 0x04) {
+				ram[0x01]++; 
 				damageByte(0x01);
-				if (ram[0x01] == 0) { ram[0x08] |= 0x20;  damageByte(0x08); }	//set interrupt
+				if (ram[0x01] == 0) { ram[0x0B] |= 0x04;  damageByte(0x0B); }	//set interrupt
+			}
+			else {
+				prescaler_timer++;
+				int prescaler = (2 << (ram[83] & 0x07));
+				if (prescaler_timer >= prescaler) {
+					prescaler_timer = 0;
+					ram[0x01]++;
+					damageByte(0x01);
+					if (ram[0x01] == 0) { ram[0x0B] |= 0x04; damageByte(0x0B); }	//set interrupt
+				}
 			}
 		}
 	}
+	timer_written = false;
 	return true;
 }
 
@@ -462,6 +453,7 @@ void Backend::reset_wdt()
 void Backend::damageByte(size_t pos)
 {
 	DOIF(pos > UC_SIZE_RAM)PRINTF2("damageByte(size_t pos = %d), pos is too big (UC_SIZE_RAM = %d)\n", pos, UC_SIZE_RAM);
+	if(pos == 0x01)timer_written = true;
 	bitmap8_t tmpBitmap = DAMAGE_GET_BITMAP_BIT(pos);
 	size_t tmpPos = DAMAGE_GET_BITMAP_BYTE(pos);
 	if (reloadCalled) { 
@@ -655,6 +647,16 @@ long long Backend::ToggleBreakpoint(size_t textline)
 {
 	size_t foundLine = 0, aktLine = 0;
 	LOCK_MUTEX(m_run_code);
+	if(code == nullptr){
+		UNLOCK_MUTEX(m_run_code);
+
+		LOCK_MUTEX(m_lastError);
+		lastError = "Code not loaded!";
+		MSGLEN();
+		PRINTF("Code was not loaded (code == nullptr)\n");
+		UNLOCK_MUTEX(m_lastError);
+		return -1;
+	}
 	for (; aktLine < UC_SIZE_PROGRAM && foundLine < textline; aktLine++) {
 		if (code->code[aktLine].guiText != nullptr) {
 			foundLine = code->code[aktLine].guiText->lineNumber;
@@ -1417,14 +1419,23 @@ void Backend::run_in_other_thread(byte modus)
 
 		auto start_time = std::chrono::high_resolution_clock::now();
 		//locks in correct order
+		DOIF(DEBUG_LVL >= DEBUG_ALL)PRINTF1("LOCKING MUTEXES in LINE %d\n", __LINE__);
 		LOCK_MUTEX(m_lastError);
+		DOIF(DEBUG_LVL >= DEBUG_ALL)PRINTF1("LOCKED MUTEX lastError in LINE %d\n", __LINE__);
 		LOCK_MUTEX(m_regW);
+		DOIF(DEBUG_LVL >= DEBUG_ALL)PRINTF1("LOCKED MUTEX regW in LINE %d\n", __LINE__);
 		LOCK_MUTEX(m_run_code);
+		DOIF(DEBUG_LVL >= DEBUG_ALL)PRINTF1("LOCKED MUTEX run_code in LINE %d\n", __LINE__);
 		LOCK_MUTEX(m_isRunning);
+		DOIF(DEBUG_LVL >= DEBUG_ALL)PRINTF1("LOCKED MUTEX isRunning in LINE %d\n", __LINE__);
 		LOCK_MUTEX(m_ram);
+		DOIF(DEBUG_LVL >= DEBUG_ALL)PRINTF1("LOCKED MUTEX ram in LINE %d\n", __LINE__);
 		LOCK_MUTEX(m_eeprom);
+		DOIF(DEBUG_LVL >= DEBUG_ALL)PRINTF1("LOCKED MUTEX eeprom in LINE %d\n", __LINE__);
 		LOCK_MUTEX(m_runtime);
+		DOIF(DEBUG_LVL >= DEBUG_ALL)PRINTF1("LOCKED MUTEX runtime in LINE %d\n", __LINE__);
 		LOCK_MUTEX(m_wdt);
+		DOIF(DEBUG_LVL >= DEBUG_ALL)PRINTF1("LOCKED MUTEXES in LINE %d\n", __LINE__);
 
 		//Programmcounter -> Pointer
 		int PC = ((ram[PCH] & 0x1F) << 8) | (ram[PCL]);
@@ -1439,6 +1450,7 @@ void Backend::run_in_other_thread(byte modus)
 		aktCode = &(code->code[PC]);
 
 		if(aktCode->breakpoint & !ignoreBreakpoint){
+			DOIF(DEBUG_LVL >= DEBUG_ALL)PRINTF1("UNLOCKING MUTEXES in LINE %d\n", __LINE__);
 			UNLOCK_MUTEX(m_wdt);
 			UNLOCK_MUTEX(m_runtime);
 			UNLOCK_MUTEX(m_eeprom);
@@ -1447,6 +1459,7 @@ void Backend::run_in_other_thread(byte modus)
 			UNLOCK_MUTEX(m_run_code);
 			UNLOCK_MUTEX(m_regW);
 			UNLOCK_MUTEX(m_lastError);
+			DOIF(DEBUG_LVL >= DEBUG_ALL)PRINTF1("UNLOCKED MUTEXES in LINE %d\n", __LINE__);
 
 			LOCK_MUTEX(m_isRunning);
 			isRunning = false;
@@ -1457,13 +1470,13 @@ void Backend::run_in_other_thread(byte modus)
 		}
 		else ignoreBreakpoint = false;
 
-		DOIF(DEBUG_LVL >= DEBUG_ALL)PRINTF4("EXEC_ASM(%s %02x,%02x)\n\tsleeping: %d\n", Compiler::functionPointerToName(aktCode->function), aktCode->param1, aktCode->param2, sleep);
+		DOIF(DEBUG_LVL >= DEBUG_RAM)PRINTF4("EXEC_ASM(%s %02x,%02x)\n\tsleeping: %d\n", Compiler::functionPointerToName(aktCode->function), aktCode->param1, aktCode->param2, sleep);
 		//asm-execution
 		if (!sleep) {
 			needTime = aktCode->function(aktCode->param1, aktCode->param2, this);
 		}
 		else needTime = 1;
-		DOIF(DEBUG_LVL >= DEBUG_ALL)PRINTF1("\tneeded cycles : %d\n", needTime);
+		DOIF(DEBUG_LVL >= DEBUG_RAM)PRINTF1("\tneeded cycles : %d\n", needTime);
 
 		//interupts, timer, eeprom etc...
 		//for-loop for imitating more cycle-operations (e.g. the timer has to count more than one time...)
@@ -1494,7 +1507,7 @@ void Backend::run_in_other_thread(byte modus)
 		}
 
 #ifdef _DEBUG
-		if (DEBUG_LVL >= DEBUG_ALL) {
+		if (DEBUG_LVL >= DEBUG_RAM) {
 			printf("\n");
 			SetConsoleTextAttribute(hConsole, COLOR_RAM_HEAD);
 			printf("    08  19  2A  3B  4C  5D  6E  7F  \n");
@@ -1530,6 +1543,7 @@ void Backend::run_in_other_thread(byte modus)
 #endif
 
 		//unlocks in correct order
+		DOIF(DEBUG_LVL >= DEBUG_ALL)PRINTF1("UNLOCKING MUTEXES in LINE %d\n", __LINE__);
 		UNLOCK_MUTEX(m_wdt);
 		UNLOCK_MUTEX(m_runtime);
 		UNLOCK_MUTEX(m_eeprom);
@@ -1537,6 +1551,7 @@ void Backend::run_in_other_thread(byte modus)
 		UNLOCK_MUTEX(m_isRunning);
 		UNLOCK_MUTEX(m_run_code);
 		UNLOCK_MUTEX(m_regW);
+		DOIF(DEBUG_LVL >= DEBUG_ALL)PRINTF1("UNLOCKED MUTEXES in LINE %d\n", __LINE__);
 
 		//wait for 1000us if asm could be executed
 		if (!errorInThreadHappend && needTime >= 1) {

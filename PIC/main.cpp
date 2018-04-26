@@ -7,26 +7,16 @@ int main(int argc, char *argv[]) {
 	//*
 	Backend* b = new Backend(new GUI());
 	b->set_DEBUG_ONLY_TESTING(0);
-	b->setCommandSpeed(10);
-	b->LoadProgramm("..\\Debug\\Testprogramme\\TPicSim7.LST");
-	printf("Set Breakpoint returns: %04d\n",b->ToggleBreakpoint(40)+1);
-	printf("Set Breakpoint returns: %04d\n",b->ToggleBreakpoint(55)+1);
+	b->setCommandSpeed(1000);
+	b->LoadProgramm("..\\Debug\\Testprogramme\\TPicSim8.LST");
+	//prog 7
+	//printf("Set Breakpoint returns: %04d, %04d\n",b->ToggleBreakpoint(40)+1,b->ToggleBreakpoint(55)+1);
+	//prog8
+	printf("Set Breakpoint returns: %04d, %04d, %04d, %04d, %04d\n",b->ToggleBreakpoint(72)+1,b->ToggleBreakpoint(31)+1,b->ToggleBreakpoint(39)+1,b->ToggleBreakpoint(47)+1,b->ToggleBreakpoint(53)+1);
 	system("pause");
-	b->get_ASM_ONLY_TESTING()->code[0x04].param1 = 0;
-	b->Start();
-	b->Wait_For_End();
-	system("pause");
-	b->Start();
-	b->Wait_For_End();
-	system("pause");
-	b->set_DEBUG_ONLY_TESTING(4);
+	b->set_DEBUG_ONLY_TESTING(5);
 	while (1) {
-		b->SetBit(6,0,0,1);
-		b->Step();
-		b->Wait_For_End();
-		system("pause");
-		b->SetBit(6,0,0,0);
-		b->Step();
+		b->Start();
 		b->Wait_For_End();
 		system("pause");
 	}

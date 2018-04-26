@@ -343,7 +343,7 @@ bool Compiler::decodeLine(ASM_CODE** code, int* len, ASM_TEXT** text, int* pos, 
 			}
 			break;
 		case STATUS_READING_LABEL:
-			if (sign == ' ' || sign == '\t') {
+			if (sign == ' ' || sign == '\t' || sign == ':') {
 				newText->label = scannerString2PChar(string, stringLen);
 				string = nullptr;
 				if (newText->label == nullptr) {goto ERROR_END;}
