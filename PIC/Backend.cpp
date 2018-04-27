@@ -530,11 +530,11 @@ void cpyStr(char*& dst, char* src){
 	else dst = nullptr;
 }
 
-ASM_TEXT * Backend::GetProgrammText()
+ASM_TEXT * Backend::GetProgrammText(size_t& anzahl)
 {
 	LOCK_MUTEX(m_text_code);
 	ASM_TEXT *tmp = code->text, *ret = nullptr, *_tmp, *start = nullptr;
-	size_t _strlen;
+	anzahl = 0;
 	while(tmp != nullptr){
 		_tmp = (ASM_TEXT*)malloc(sizeof(ASM_TEXT));
 		if(ret != nullptr)ret->next = _tmp;
@@ -548,6 +548,7 @@ ASM_TEXT * Backend::GetProgrammText()
 		ret->lineNumber = tmp->lineNumber;
 		ret->next = nullptr;
 		tmp = tmp->next;
+		anzahl++;
 	}
 	UNLOCK_MUTEX(m_text_code);
 	return start;
