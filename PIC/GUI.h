@@ -61,6 +61,7 @@ public:
 
 	//		All interfaces to backend
 	void int_updateAll();
+	void int_update(){/*TODO: def in .cpp*/}
 
 	//		All Overrides of the GUI
 	void resize(int x, int y, int w, int h);
@@ -72,6 +73,10 @@ public:
 	//void callback_xy();
 };
 
+//TODO: def in .cpp
+//		All interfaces to backend
+void gui_int_update(void* gui) {((GUI*)gui)->int_update();}
+void gui_int_updateAll(void* gui) {((GUI*)gui)->int_updateAll();}
 
 /*
 void gui_callback_xy(void* gui) {
