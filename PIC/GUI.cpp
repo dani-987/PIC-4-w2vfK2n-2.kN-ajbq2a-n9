@@ -21,6 +21,12 @@ int __get_font_size_table_() {return __font_size_table_;}
 #define W_MEM_TAB		W_IO_TAB
 #define H_MEM_TAB		(Y_IO_TAB-(Y_MEM_TAB+20))
 
+//Position and size of the CODE-Table
+#define W_CODE_TAB		(w / 3)
+#define H_CODE_TAB		(h - 50)
+#define X_CODE_TAB		(w - (W_CODE_TAB + 10))
+#define Y_CODE_TAB		40
+
 namespace gui_callbacks {
 	void loadFile(Fl_Widget *, void *);
 }
@@ -106,6 +112,26 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 	IO_table->cols(CCIO);
 	IO_table->col_resize(0);
 	IO_table->col_width_all(CW);
+
+	//Table for the Code
+	CODE_table = new MyTable(X_CODE_TAB, Y_CODE_TAB, W_CODE_TAB, H_CODE_TAB, "CODE");
+	CODE_table->getstyle() = setstyle_Code(1);
+	//CODE_table->selection_color(FL_YELLOW);
+	CODE_table->when(FL_WHEN_RELEASE | FL_WHEN_CHANGED);
+	CODE_table->table_box(FL_NO_BOX);
+
+
+	// Configure table rows
+	CODE_table->rows(1);
+	CODE_table->row_resize(0);
+	CODE_table->row_height_all(CH);
+
+	// Configure table collums
+	CODE_table->cols(CCCODE);
+	CODE_table->col_header(1);
+	CODE_table->col_header_height(CH*1.2);
+	CODE_table->col_resize(0);
+	CODE_table->col_width_all(w/15);
 }
 
 
@@ -146,6 +172,7 @@ void GUI::resize(int x, int y, int w, int h){
 	menubar->resize(X_MENUBAR, Y_MENUBAR, W_MENUBAR, H_MENUBAR);
 	Mem_table->resize(X_MEM_TAB, Y_MEM_TAB, W_MEM_TAB, H_MEM_TAB);
 	IO_table->resize(X_IO_TAB, Y_IO_TAB, W_IO_TAB, H_IO_TAB);
+	CODE_table->resize(X_CODE_TAB, Y_CODE_TAB, W_CODE_TAB, H_CODE_TAB);
 	flush();
 }
 
@@ -161,10 +188,13 @@ void gui_callbacks::loadFile(Fl_Widget *w, void *gui){
 
 void GUI::callback_load_file(){
 	if (chooser->show() != 0)return;
-	PRINTF1("Choosed File: '%s'", chooser->filename());
+	PRINTF1("Chosen File: '%s'", chooser->filename());
 	if(!backend->LoadProgramm((char*)chooser->filename()))
 		fl_alert(backend->getErrorMSG());
 	else {
-		//updateAll();
+		free(CODE_table->getstyle);
+		int lines = 1;			//TODO: insert call to get number of lines in the opened file
+		CODE_table->getstyle() = setstyle_Code(lines);
+		//TODO: Set correct labels of the CODE
 	}
 }
