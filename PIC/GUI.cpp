@@ -115,14 +115,14 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 
 	//Table for the Code
 	CODE_table = new MyTable(X_CODE_TAB, Y_CODE_TAB, W_CODE_TAB, H_CODE_TAB, "CODE");
-	CODE_table->getstyle() = setstyle_Code(1);
+	CODE_table->getstyle() = setstyle_Code(RCCODE, nullptr);
 	//CODE_table->selection_color(FL_YELLOW);
 	CODE_table->when(FL_WHEN_RELEASE | FL_WHEN_CHANGED);
 	CODE_table->table_box(FL_NO_BOX);
 
 
 	// Configure table rows
-	CODE_table->rows(1);
+	CODE_table->rows(RCCODE);
 	CODE_table->row_resize(0);
 	CODE_table->row_height_all(CH);
 
@@ -192,9 +192,11 @@ void GUI::callback_load_file(){
 	if(!backend->LoadProgramm((char*)chooser->filename()))
 		fl_alert(backend->getErrorMSG());
 	else {
-		free(CODE_table->getstyle);
-		int lines = 1;			//TODO: insert call to get number of lines in the opened file
-		CODE_table->getstyle() = setstyle_Code(lines);
-		//TODO: Set correct labels of the CODE
+		free(CODE_table->getstyle());
+		size_t lines = 1;
+		ASM_TEXT* code = backend->GetProgrammText(lines);
+		CODE_table->getstyle() = setstyle_Code(lines, code);
+		backend->freeProgrammText(code);
+		CODE_table->rows(lines);
 	}
 }

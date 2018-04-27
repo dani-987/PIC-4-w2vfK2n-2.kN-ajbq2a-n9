@@ -33,7 +33,7 @@ int __get_font_size_table_();
 #define CellsIO 54										//Total number of Cells of the IO-Table (including headers)
 
 #define CCCODE	5										//Number of Colums in the Code Table
-//#define CellsCODE (CCCODE * lines)					//Number of Cells in the Code Table (depends on the .lst file)
+#define RCCODE 30										//Default number of rows in the Code table, will be overwritten by load file
 
 #define WINDOW_BASE_X_OFFSET	10
 #define WINDOW_BASE_Y_OFFSET	5

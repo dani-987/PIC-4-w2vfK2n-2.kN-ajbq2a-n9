@@ -91,33 +91,68 @@ tablestyle * setstyle_IO()
 tablestyle CODE_Colheaders = { nullptr, FL_HELVETICA, FONT_SIZE_TABLE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_DARK_YELLOW, FL_ALIGN_CENTER },
 CODE_TEXT = { nullptr, FL_HELVETICA, FONT_SIZE_TABLE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_BLUE, FL_ALIGN_LEFT };
 
-tablestyle * setstyle_Code(int lines){
+void filltxt(char*& txt, char* tofill) {
+	txt = (char*)malloc(strlen(tofill) + 1);
+	sprintf(txt, tofill);
+}
+
+tablestyle * setstyle_Code(int lines, ASM_TEXT* code){
 	int CellsCode = (lines + 1) * CCCODE;
 	tablestyle* s = (tablestyle*)malloc(sizeof(tablestyle) * CellsCode);
-	for (int i = 0; i < CellsCode; i++) {
-		if (i < CCCODE) {
-			s[i] = CODE_Colheaders;
-			char *txt = (char*)malloc(15);
-			switch (i) {
-			case 0: sprintf(txt, "Bytecode"); break;
-			case 1: sprintf(txt, "Zeilen"); break;
-			case 2: sprintf(txt, "Labels"); break;
-			case 3: sprintf(txt, "Befehle"); break;
-			case 4: sprintf(txt, "Kommentare"); break;
+	if (code != nullptr) {
+		for (int i = 0; i < CellsCode; i++) {
+			if (i < CCCODE) {
+				s[i] = CODE_Colheaders;
+				char *txt = (char*)malloc(15);
+				switch (i) {
+				case 0: sprintf(txt, "Bytecode"); break;
+				case 1: sprintf(txt, "Zeilen"); break;
+				case 2: sprintf(txt, "Labels"); break;
+				case 3: sprintf(txt, "Befehle"); break;
+				case 4: sprintf(txt, "Kommentare"); break;
+				}
+				s[i].label = txt;
 			}
-			s[i].label = txt;
+			else {
+				char* txt;
+				s[i] = CODE_TEXT;
+				switch (i % CCCODE) {
+				case 0: if (code->bytecode != nullptr) { filltxt(txt, code->bytecode); } else { filltxt(txt, ""); } break;
+				case 1: if (code->lineOfCode != nullptr) { filltxt(txt, code->lineOfCode); } else { filltxt(txt, ""); }  break;
+				case 2: if (code->label != nullptr) { filltxt(txt, code->label); } else { filltxt(txt, ""); }  break;
+				case 3: if (code->asmCode != nullptr) { filltxt(txt, code->asmCode); } else { filltxt(txt, ""); }  break;
+				case 4: if (code->comment != nullptr) { filltxt(txt, code->comment); } else { filltxt(txt, ""); } code = code->next; break;
+				//case 0: txt = (char*)malloc(strlen(code->bytecode) + 1); sprintf(txt, code->bytecode); break;
+				//case 1: txt = (char*)malloc(strlen(code->lineOfCode) + 1); sprintf(txt, code->lineOfCode); break;
+				//case 2: txt = (char*)malloc(strlen(code->label) + 1); sprintf(txt, code->label); break;
+				//case 3: txt = (char*)malloc(strlen(code->asmCode) + 1); sprintf(txt, code->asmCode); break;
+				//case 4: txt = (char*)malloc(strlen(code->comment) + 1); sprintf(txt, code->comment); code = code->next; break;
+				default: txt = (char*)malloc(1); sprintf(txt, ""); break;//default path will never be used, but compiler wants it anyway because of the initialization of txt
+				}
+				s[i].label = txt;
+			}
 		}
-		else {
-			s[i] = CODE_TEXT;
-			char *txt = (char*)malloc(15);
-			switch (i % CCCODE) {
-			case 0: sprintf(txt, "a"); break;
-			case 1: sprintf(txt, "b"); break;
-			case 2: sprintf(txt, "c"); break;
-			case 3: sprintf(txt, "d"); break;
-			case 4: sprintf(txt, "e"); break;
+	}
+	else {
+		for (int i = 0; i < CellsCode; i++) {
+			if (i < CCCODE) {
+				s[i] = CODE_Colheaders;
+				char *txt = (char*)malloc(15);
+				switch (i) {
+				case 0: sprintf(txt, "Bytecode"); break;
+				case 1: sprintf(txt, "Zeilen"); break;
+				case 2: sprintf(txt, "Labels"); break;
+				case 3: sprintf(txt, "Befehle"); break;
+				case 4: sprintf(txt, "Kommentare"); break;
+				}
+				s[i].label = txt;
 			}
-			s[i].label = txt;
+			else {
+				char* txt=(char*)malloc(1);
+				s[i] = CODE_TEXT;
+				sprintf(txt, "");
+				s[i].label = txt;
+			}
 		}
 	}
 	return s;
