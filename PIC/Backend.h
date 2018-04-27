@@ -5,6 +5,11 @@
 //4 GUI: in GUI->run() call updateAll();
 //GUI-funktion updateRam(): {StartedUpdating(); updateRegW(); while(getNextChangedCell(reg, bank))updateRamCell(reg, bank);}
 
+//Du kannst nicht einfach in der Funktion GUI::callback_load_file() "free(CODE_table->getstyle());" aufrufen, vorher musst du jeglichen Speicher in der
+//		Datenstruktur befreien.... also eine for-schleife über alle elemente und dort dann alle Strings befreien.... (Die Funktion free ist nicht rukursiv!)
+//		Siehe als Beispiel in Backend.cpp Backend::FreeProgrammText(ASM_TEXT* &txt), Backend::freeBreakpoints(Breakpointlist*& list) oder im Compiler.cpp 
+//		Compiler::freeASM(ASM* toFree). Dort werden die Datenstrukturen stück für Stück gefreit
+
 
 class Backend;
 
@@ -159,7 +164,7 @@ private:
 
 	byte & getCell_unsafe(byte pos, bool damage = true);
 	void reset(byte resetType);
-	void Stop_And_Wait();
+	void stopAndWait();
 	bool letRun(int modus);
 	bool do_interrupts(int& needTime);
 	bool do_timer();
@@ -171,11 +176,13 @@ public:
 	Backend(GUI* gui);
 	~Backend();
 
+	//calling SetByte, SetBit, setRegW will call Fl::awake(gui_int_update)! Do not change after updating -> values will be always displayed correct...
+
 	//thread-save functions for external usage in GUI:
-	ASM_TEXT* GetProgrammText(size_t& anzahl);					//remember malloc! -> freeProgrammText();
-	void freeProgrammText(ASM_TEXT*& prog);
-	bool getNextChangedCell(int &reg, byte &bank);
-	void StartedUpdating();							//always call before updating, else it is possible, that the update-function will not be called
+	ASM_TEXT* GetProgrammText(size_t& anzahl);		//remember malloc! -> freeProgrammText();
+	void FreeProgrammText(ASM_TEXT*& prog);
+	bool GetNextChangedCell(int &reg, byte &bank);	//get a posible changed cell to update in gui_int_update()
+	void StartedUpdating();							//always call before updating, else it is possible, that the update-function will not be called when necessary
 	bool LoadProgramm(char* c);
 	bool Start();
 	bool Stop();
@@ -183,20 +190,20 @@ public:
 	bool IsRunning();
 	void EnableWatchdog();
 	void DisableWatchdog();
-	bool isWatchdogEnabled();
+	bool IsWatchdogEnabled();
 	long long ToggleBreakpoint(size_t textline);	//returns -1 on error, -2 if breakpoint was unsettet, -3 if breakpoints were unchanged, else the line, where the breakpoint was set
 	Breakpointlist* GetBreakpoints();				//returns nullptr on empty list (NOT ERROR!), new! -> freeBreakpoints()
-	void freeBreakpoints(Breakpointlist*& list);	//frees the datastructure returned by GetBreakpionts()
-	void setCommandSpeed(size_t speed);				//standard speed: 'UC_STANDARD_SPEED' (in ns)
+	void FreeBreakpoints(Breakpointlist*& list);	//frees the datastructure returned by GetBreakpionts()
+	void SetCommandSpeed(size_t speed);				//standard speed: 'UC_STANDARD_SPEED' (in ns)
 	bool Reset();
 	int  GetByte(int reg, byte bank);				//bank: 0 or 1
 	bool SetByte(int reg, byte bank, byte val);		//bank: 0 or 1
 	int  GetBit(int b, byte bank, int pos);			//bool (= 0 or != 0 [e.g. 2 or 128])
 	bool SetBit(int b, byte bank, int pos, bool val);
-	int getRegW();									//byte //always update Register W at updating ram!
-	bool setRegW(byte val);
-	char* getErrorMSG();							//nullptr possible! Remember: malloc! -> free
-	void Wait_For_End();							//joins all runnig threads. do not forget to call 'Stop' before!
+	int GetRegW();									//byte //always update Register W at updating ram!
+	bool SetRegW(byte val);
+	char* GetErrorMSG();							//nullptr possible! Remember: malloc! -> free
+	void Wait_For_End();							//joins all runnig threads and returns after all threads terminated. Do not forget to call 'Stop' before, else this function will not return!
 
 
 	//following ist for internal use only and not thread-save!
@@ -239,7 +246,7 @@ public:
 	int SUBLW(void*k, void*ign);
 	int XORLW(void*k, void*ign);
 
-	//main loop of the uC!
+	//main loop of the uC! (only for internal use)
 	void run_in_other_thread(byte modus);
 
 #ifdef _DEBUG

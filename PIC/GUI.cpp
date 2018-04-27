@@ -3,6 +3,10 @@
 int __font_size_table_ = 14;
 int __get_font_size_table_() {return __font_size_table_;}
 
+void gui_int_update(void * gui){((GUI*)gui)->int_update();}
+
+void gui_int_updateAll(void * gui){((GUI*)gui)->int_updateAll();}
+
 //Position and size of the menu-bar
 #define X_MENUBAR		0
 #define Y_MENUBAR		0
@@ -156,6 +160,17 @@ void GUI::int_updateAll()
 {
 }
 
+void GUI::int_update(){
+	backend->StartedUpdating();	//call at begining is necessary!
+	//TODO...
+	PRINTF("int_update() called!\n");
+	int pos;
+	byte bank;
+	while(backend->GetNextChangedCell(pos, bank))
+		printf("Byte %02x in Bank %d changed!");	//TODO update ramtable
+	//TODO update regW
+}
+
 //#######################################################################################
 //#######################################################################################
 //######################	O	V	E	R	R	I	D	E	S	#########################
@@ -190,13 +205,16 @@ void GUI::callback_load_file(){
 	if (chooser->show() != 0)return;
 	PRINTF1("Chosen File: '%s'", chooser->filename());
 	if(!backend->LoadProgramm((char*)chooser->filename()))
-		fl_alert(backend->getErrorMSG());
+		fl_alert(backend->GetErrorMSG());
 	else {
+		////////////	W	I	C	H	T	I	G	:	///////////////
+		//du muss die ganze Datenstruktur intern vorher befreien (free arbeitet nicht rekursiv!)... siehe mal meine Funktionen, die mit free beginnen...
+		//prüfe, ob du nicht an anderenstellen das selbe machst...
 		free(CODE_table->getstyle());
 		size_t lines = 1;
 		ASM_TEXT* code = backend->GetProgrammText(lines);
-		CODE_table->getstyle() = setstyle_Code(lines, code);
-		backend->freeProgrammText(code);
+		CODE_table->getstyle() = setstyle_Code(lines, code);	//TODO: entsprechende Funktion:freesytle_Code(tablestyle*& toFree); wird benötigt und muss durch free(CODE_table->getstyle()); ersetzt werden...
+		backend->FreeProgrammText(code);
 		CODE_table->rows(lines);
 	}
 }

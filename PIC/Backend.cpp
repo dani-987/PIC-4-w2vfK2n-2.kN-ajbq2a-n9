@@ -157,7 +157,7 @@ void Backend::reset(byte resetType)
 	//TODO: updateAll();
 }
 
-void Backend::Stop_And_Wait()
+void Backend::stopAndWait()
 {
 	LOCK_MUTEX(m_isRunningLocked);
 	isRunningLocked = true;
@@ -459,7 +459,7 @@ void Backend::damageByte(size_t pos)
 	size_t tmpPos = DAMAGE_GET_BITMAP_BYTE(pos);
 	if (reloadCalled) { 
 		reloadCalled = false; 
-		//TODO: Fl::awake(updateDamagedRam);
+		Fl::awake(gui_int_update, gui);
 	}
 	if (!(damage[tmpPos] & tmpBitmap)) {
 		countDamaged++;
@@ -513,7 +513,7 @@ Backend::Backend(GUI* gui)
 
 Backend::~Backend()
 {
-	Stop_And_Wait();
+	stopAndWait();
 	free(eeprom);
 	free(ram);
 	if (functionStack != nullptr)free(functionStack);//todo
@@ -554,7 +554,7 @@ ASM_TEXT * Backend::GetProgrammText(size_t& anzahl)
 	return start;
 }
 
-void Backend::freeProgrammText(ASM_TEXT *& prog)
+void Backend::FreeProgrammText(ASM_TEXT *& prog)
 {
 	ASM_TEXT* tmp;
 	while(prog != nullptr){
@@ -569,7 +569,7 @@ void Backend::freeProgrammText(ASM_TEXT *& prog)
 	}
 }
 
-bool Backend::getNextChangedCell(int & reg, byte & bank)
+bool Backend::GetNextChangedCell(int & reg, byte & bank)
 {
 	bitmap8_t tmpBitmap;
 	size_t tmpPos;
@@ -616,7 +616,7 @@ bool Backend::LoadProgramm(char * c)
 	LOCK_MUTEX(m_isRunningLocked);
 	isRunningLocked = true;
 	UNLOCK_MUTEX(m_isRunningLocked);
-	Stop_And_Wait();
+	stopAndWait();
 	Compiler comp;
 	ASM* prog = comp.compileFile(c, UC_SIZE_PROGRAM);
 	if (prog != nullptr) {
@@ -683,7 +683,7 @@ void Backend::DisableWatchdog()
 	UNLOCK_MUTEX(m_wdt);
 }
 
-bool Backend::isWatchdogEnabled()
+bool Backend::IsWatchdogEnabled()
 {
 
 	LOCK_MUTEX(m_wdt);
@@ -763,7 +763,7 @@ Breakpointlist * Backend::GetBreakpoints()
 	return list;
 }
 
-void Backend::freeBreakpoints(Breakpointlist*& list)
+void Backend::FreeBreakpoints(Breakpointlist*& list)
 {
 	Breakpointlist* tmp = list;
 	while (tmp != nullptr) {
@@ -774,7 +774,7 @@ void Backend::freeBreakpoints(Breakpointlist*& list)
 	list = nullptr;
 }
 
-void Backend::setCommandSpeed(size_t speed)
+void Backend::SetCommandSpeed(size_t speed)
 {
 	LOCK_MUTEX(m_ram);
 	sleeptime = speed;
@@ -783,7 +783,7 @@ void Backend::setCommandSpeed(size_t speed)
 
 bool Backend::Reset()
 {
-	Stop_And_Wait();
+	stopAndWait();
 
 	LOCK_MUTEX(m_run_code);
 	LOCK_MUTEX(m_ram);
@@ -956,7 +956,7 @@ int Backend::GetBit(int reg, byte bank, int pos)
 	return true;
 }
 
-int Backend::getRegW()
+int Backend::GetRegW()
 {
 	int w;
 	LOCK_MUTEX(m_regW);
@@ -965,15 +965,21 @@ int Backend::getRegW()
 	return w;
 }
 
-bool Backend::setRegW(byte val)
+bool Backend::SetRegW(byte val)
 {
 	LOCK_MUTEX(m_regW);
 	regW = val;
 	UNLOCK_MUTEX(m_regW);
+	LOCK_MUTEX(m_ram);
+	if (reloadCalled) { 
+		reloadCalled = false; 
+		Fl::awake(gui_int_update, gui);
+	}
+	UNLOCK_MUTEX(m_ram);
 	return true;
 }
 
-char * Backend::getErrorMSG()
+char * Backend::GetErrorMSG()
 {
 	LOCK_MUTEX(m_lastError);
 	if (lastError == nullptr)return nullptr;
