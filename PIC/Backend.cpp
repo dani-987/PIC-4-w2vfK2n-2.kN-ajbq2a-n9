@@ -533,22 +533,24 @@ void cpyStr(char*& dst, char* src){
 ASM_TEXT * Backend::GetProgrammText()
 {
 	LOCK_MUTEX(m_text_code);
-	ASM_TEXT *tmp = code->text, *ret = nullptr, *_tmp;
+	ASM_TEXT *tmp = code->text, *ret = nullptr, *_tmp, *start = nullptr;
 	size_t _strlen;
 	while(tmp != nullptr){
 		_tmp = (ASM_TEXT*)malloc(sizeof(ASM_TEXT));
 		if(ret != nullptr)ret->next = _tmp;
+		if(start == nullptr) start = ret;
 		ret = _tmp;
 		cpyStr(ret->asmCode, tmp->asmCode);
 		cpyStr(ret->bytecode, tmp->bytecode);
 		cpyStr(ret->comment, tmp->comment);
 		cpyStr(ret->label, tmp->label);
 		cpyStr(ret->lineOfCode, tmp->lineOfCode);
+		ret->lineNumber = tmp->lineNumber;
 		ret->next = nullptr;
 		tmp = tmp->next;
 	}
 	UNLOCK_MUTEX(m_text_code);
-	return ret;
+	return start;
 }
 
 void Backend::freeProgrammText(ASM_TEXT *& prog)
@@ -556,13 +558,13 @@ void Backend::freeProgrammText(ASM_TEXT *& prog)
 	ASM_TEXT* tmp;
 	while(prog != nullptr){
 		tmp = prog;
+		prog = prog->next;
 		if(tmp->asmCode != nullptr)free(tmp->asmCode);
 		if(tmp->comment != nullptr)free(tmp->comment);
 		if(tmp->label != nullptr)free(tmp->label);
 		if(tmp->bytecode != nullptr)free(tmp->bytecode);
 		if(tmp->lineOfCode != nullptr)free(tmp->lineOfCode);
 		free(tmp);
-		prog = prog->next;
 	}
 }
 
