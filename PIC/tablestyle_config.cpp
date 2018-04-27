@@ -87,3 +87,38 @@ tablestyle * setstyle_IO()
 	}
 	return s;
 }
+
+tablestyle CODE_Colheaders = { nullptr, FL_HELVETICA, FONT_SIZE_TABLE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_DARK_YELLOW, FL_ALIGN_CENTER },
+CODE_TEXT = { nullptr, FL_HELVETICA, FONT_SIZE_TABLE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_BLUE, FL_ALIGN_LEFT };
+
+tablestyle * setstyle_Code(int lines){
+	int CellsCode = (lines + 1) * CCCODE;
+	tablestyle* s = (tablestyle*)malloc(sizeof(tablestyle) * CellsCode);
+	for (int i = 0; i < CellsCode; i++) {
+		if (i < CCCODE) {
+			s[i] = CODE_Colheaders;
+			char *txt = (char*)malloc(15);
+			switch (i) {
+			case 0: sprintf(txt, "Bytecode"); break;
+			case 1: sprintf(txt, "Zeilen"); break;
+			case 2: sprintf(txt, "Labels"); break;
+			case 3: sprintf(txt, "Befehle"); break;
+			case 4: sprintf(txt, "Kommentare"); break;
+			}
+			s[i].label = txt;
+		}
+		else {
+			s[i] = CODE_TEXT;
+			char *txt = (char*)malloc(15);
+			switch (i % CCCODE) {
+			case 0: sprintf(txt, "a"); break;
+			case 1: sprintf(txt, "b"); break;
+			case 2: sprintf(txt, "c"); break;
+			case 3: sprintf(txt, "d"); break;
+			case 4: sprintf(txt, "e"); break;
+			}
+			s[i].label = txt;
+		}
+	}
+	return s;
+}

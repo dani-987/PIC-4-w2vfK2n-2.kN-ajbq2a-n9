@@ -27,10 +27,13 @@ int __get_font_size_table_();
 #define RCMEM 16										//Number of Rows of the Memory Table
 #define CCMEM 8											//Number of Colums of the Memory Table
 #define CellsMEM 153									//Total number of Cells of the Memory Table (including headers)
+
 #define RCIO 6											//Number of Rows of the IO-Table
 #define CCIO 8											//Number of Colums of the IO-Table
 #define CellsIO 54										//Total number of Cells of the IO-Table (including headers)
 
+#define CCCODE	5										//Number of Colums in the Code Table
+//#define CellsCODE (CCCODE * lines)					//Number of Cells in the Code Table (depends on the .lst file)
 
 #define WINDOW_BASE_X_OFFSET	10
 #define WINDOW_BASE_Y_OFFSET	5
@@ -49,6 +52,7 @@ private:
 
 	MyTable *Mem_table;
 	MyTable *IO_table;
+	MyTable *CODE_table;
 public:
 	GUI(int x = WINDOW_BASE_X_OFFSET, int y = WINDOW_BASE_Y_OFFSET, int w = GUI_STANDARD_W, int h = GUI_STANDARD_H);
 	~GUI();

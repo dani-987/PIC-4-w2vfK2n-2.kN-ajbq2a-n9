@@ -27,4 +27,4 @@ struct tablestyle {
 //Methodes that generte the style-Arrays for each table
 tablestyle* setstyle_MEM();
 tablestyle* setstyle_IO();
-
+tablestyle* setstyle_Code(int lines);

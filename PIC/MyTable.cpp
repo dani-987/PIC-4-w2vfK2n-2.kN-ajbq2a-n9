@@ -5,12 +5,12 @@
 #define DEBUG_LVL_NORMAL	1
 #define DEBUG_LVL_MUCH	2
 #define DEBUG_LVL_ALL	3
-VARDEF(int, DEBUG___LVL, DEBUG_LVL_MUCH);
+VARDEF(int, DEBUG___LVL, DEBUG_LVL_ALL);
 
 
-#define COLHEADERPOS(C) (C+1)
+#define COLHEADERPOS(C) (C+((row_header())?(1):(0)))
 #define ROWHEADERPOS(R) ((R+((col_header())?(1):(0)))*(cols()+1))
-#define CELLPOS(R,C)	((R+((col_header())?(1):(0)))*(cols()+1)+C+1)
+#define CELLPOS(R,C)	((R+((col_header())?(1):(0)))*(cols()+((row_header())?(1):(0)))+C+((row_header())?(1):(0)))
 
 
 MyTable::MyTable(int x, int y, int w, int h,  const char *l) : Fl_Table_Row(x, y, w, h, l) {
@@ -41,7 +41,7 @@ void MyTable::draw_cell(TableContext context, int R, int C, int X, int Y, int W,
 
 	case CONTEXT_COL_HEADER:
 		position = COLHEADERPOS(C);
-		DOIF(DEBUG___LVL >= DEBUG_LVL_MUCH)PRINTF3("Called Col_Header Context with: R=%d, C=%d, label=%s\n",R,C,mystyle[position].label);
+		DOIF(DEBUG___LVL >= DEBUG_LVL_MUCH)PRINTF4("Called Col_Header Context with: R=%d, C=%d, position=%d, label=%s\n",R,C, position, mystyle[position].label);
 
 		fl_push_clip(X, Y, W, H);
 		{
@@ -86,6 +86,9 @@ void MyTable::draw_cell(TableContext context, int R, int C, int X, int Y, int W,
 		fl_push_clip(X, Y, W, H);
 		{
 			position = CELLPOS(R, C);
+			DOIF(DEBUG___LVL >= DEBUG_LVL_MUCH)PRINTF4("Called Cell Context with: R=%d, C=%d, position=%d, label=%s\n", R, C, position, mystyle[position].label);
+			DOIF(DEBUG___LVL >= DEBUG_LVL_ALL)PRINTF2("Headers enabled: rows: %d, columns: %d\n", row_header(), col_header());
+
 			// BG COLOR
 			fl_color(is_selected(R, C) ? selection_color() : mystyle[position].backgroundcolor);
 			fl_rectf(X, Y, W, H);

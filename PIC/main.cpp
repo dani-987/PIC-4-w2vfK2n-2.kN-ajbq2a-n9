@@ -4,7 +4,7 @@
 
 int main(int argc, char *argv[]) {
 	// use '//*' in folowing line for testing the backend, use '/*' for running programm with GUI
-	//*
+	/*
 	Backend* b = new Backend(new GUI());
 	b->set_DEBUG_ONLY_TESTING(0);
 	b->setCommandSpeed(1000);
