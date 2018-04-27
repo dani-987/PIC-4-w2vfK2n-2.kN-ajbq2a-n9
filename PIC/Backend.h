@@ -172,6 +172,8 @@ public:
 	~Backend();
 
 	//thread-save functions for external usage in GUI:
+	ASM_TEXT* GetProgrammText();					//remember malloc! -> freeProgrammText();
+	void freeProgrammText(ASM_TEXT*& prog);
 	bool getNextChangedCell(int &reg, byte &bank);
 	void StartedUpdating();							//always call before updating, else it is possible, that the update-function will not be called
 	bool LoadProgramm(char* c);

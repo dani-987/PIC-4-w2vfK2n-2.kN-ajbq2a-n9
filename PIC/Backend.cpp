@@ -47,7 +47,7 @@ HANDLE  hConsole;
 #define DEBUG_RAM	4
 #define DEBUG_ALL	5
 
-VARDEF(int, DEBUG_LVL, DEBUG_ALL);
+VARDEF(int, DEBUG_LVL, DEBUG_RAM);
 
 #ifdef _DEBUG
 void Backend::set_DEBUG_ONLY_TESTING(int state)
@@ -261,6 +261,7 @@ bool Backend::do_interrupts(int& needTime)
 	}
 	return true;
 DO_INTERRUPT:
+	DOIF(DEBUG_LVL >= DEBUG_RAM)PRINTF("Interrupting! GOING to Addr. 0x04\n");
 	//wake-up if sleeping
 	sleep = false;
 	//if sleeping, GIE decises, if goto into interrupt routine or not and continue code; if not sleeping, GIE is enabled here
@@ -518,6 +519,51 @@ Backend::~Backend()
 	if (functionStack != nullptr)free(functionStack);//todo
 	if (code != nullptr) 
 	Compiler::freeASM(code); 
+}
+
+void cpyStr(char*& dst, char* src){
+	if(src != nullptr){
+		size_t _strlen = strlen(src) + 1;
+		dst = (char*)malloc(_strlen);
+		memcpy(dst, src, _strlen);
+	}
+	else dst = nullptr;
+}
+
+ASM_TEXT * Backend::GetProgrammText()
+{
+	LOCK_MUTEX(m_text_code);
+	ASM_TEXT *tmp = code->text, *ret = nullptr, *_tmp;
+	size_t _strlen;
+	while(tmp != nullptr){
+		_tmp = (ASM_TEXT*)malloc(sizeof(ASM_TEXT));
+		if(ret != nullptr)ret->next = _tmp;
+		ret = _tmp;
+		cpyStr(ret->asmCode, tmp->asmCode);
+		cpyStr(ret->bytecode, tmp->bytecode);
+		cpyStr(ret->comment, tmp->comment);
+		cpyStr(ret->label, tmp->label);
+		cpyStr(ret->lineOfCode, tmp->lineOfCode);
+		ret->next = nullptr;
+		tmp = tmp->next;
+	}
+	UNLOCK_MUTEX(m_text_code);
+	return ret;
+}
+
+void Backend::freeProgrammText(ASM_TEXT *& prog)
+{
+	ASM_TEXT* tmp;
+	while(prog != nullptr){
+		tmp = prog;
+		if(tmp->asmCode != nullptr)free(tmp->asmCode);
+		if(tmp->comment != nullptr)free(tmp->comment);
+		if(tmp->label != nullptr)free(tmp->label);
+		if(tmp->bytecode != nullptr)free(tmp->bytecode);
+		if(tmp->lineOfCode != nullptr)free(tmp->lineOfCode);
+		free(tmp);
+		prog = prog->next;
+	}
 }
 
 bool Backend::getNextChangedCell(int & reg, byte & bank)
