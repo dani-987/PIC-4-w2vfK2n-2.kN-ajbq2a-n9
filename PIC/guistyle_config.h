@@ -10,6 +10,7 @@ typedef struct tablestyle tablestyle;
 
 #include "GUI.h"
 #include <FL\Enumerations.H>
+#include <FL\Fl_Box.H>
 
 
 //Contains all necessary style information to draw a cell
@@ -28,3 +29,4 @@ struct tablestyle {
 tablestyle* setstyle_MEM();
 tablestyle* setstyle_IO();
 tablestyle* setstyle_Code(int lines, ASM_TEXT* code);
+void setregbox(Fl_Box*& regs, int line, int value);

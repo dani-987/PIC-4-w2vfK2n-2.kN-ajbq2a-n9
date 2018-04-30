@@ -27,7 +27,7 @@
     <ClInclude Include="MUTEX.H" />
     <ClInclude Include="MyTable.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="tablestyle_config.h" />
+    <ClInclude Include="guistyle_config.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ASM.cpp" />
@@ -37,7 +37,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MUTEX.cpp" />
     <ClCompile Include="MyTable.cpp" />
-    <ClCompile Include="tablestyle_config.cpp" />
+    <ClCompile Include="guistyle_config.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="PIC.rc" />

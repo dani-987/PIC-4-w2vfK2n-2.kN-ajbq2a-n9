@@ -5,18 +5,18 @@ class GUI;
 #include "DEBUG.H"
 #include "Backend.h"
 #include "MyTable.h"
-#include "tablestyle_config.h"
+#include "guistyle_config.h"
 
 #include <FL\Fl.H>
 #include <FL\Fl_Double_Window.H>
 #include <FL\Fl_Menu_Bar.H>
 #include <FL\Fl_Native_File_Chooser.H>
-#include <FL/Fl_Input.H>
-#include <FL/Fl_Check_Button.H>
-#include <FL/Fl_Choice.H>
-#include <FL/fl_ask.H>
-#include <FL/Fl_Box.H>
-#include <FL/Enumerations.H>
+#include <FL\Fl_Input.H>
+#include <FL\Fl_Check_Button.H>
+#include <FL\Fl_Choice.H>
+#include <FL\fl_ask.H>
+#include <FL\Fl_Box.H>
+#include <FL\Enumerations.H>
 
 int __get_font_size_table_();
 
@@ -53,9 +53,16 @@ private:
 	MyTable *Mem_table;
 	MyTable *IO_table;
 	MyTable *CODE_table;
+
+	//Contains some FL_Boxes that are used to depict the special registers in detail
+	//they are seperated, because their frequency of updating is extremly different (W and PC vs. 
+	Fl_Box** registers;
+
 public:
 	GUI(int x = WINDOW_BASE_X_OFFSET, int y = WINDOW_BASE_Y_OFFSET, int w = GUI_STANDARD_W, int h = GUI_STANDARD_H);
 	~GUI();
+
+	Backend*& getbackend();
 
 	int run();
 
@@ -69,6 +76,7 @@ public:
 	//		All Callbacks 
 	//Callback for opneing file
 	void callback_load_file();
+	static void window_cb(Fl_Widget*, void*);
 
 	//void callback_xy();
 };

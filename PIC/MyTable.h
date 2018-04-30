@@ -4,7 +4,7 @@ class MyTable;
 
 #include "DEBUG.H"
 #include "GUI.h"
-#include "tablestyle_config.h"
+#include "guistyle_config.h"
 
 #include <math.h> 
 #include <FL/fl_draw.H>

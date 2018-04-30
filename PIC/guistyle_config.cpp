@@ -1,4 +1,4 @@
-#include "tablestyle_config.h"
+#include "guistyle_config.h"
 
 //Tablestyles for the Memory Table
 tablestyle MEM_Startpage = {nullptr, FL_HELVETICA, FONT_SIZE_TABLE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_LIGHT2, FL_ALIGN_CENTER},
@@ -56,6 +56,7 @@ tablestyle IO_Rowheaders = { nullptr, FL_HELVETICA, FONT_SIZE_TABLE, FL_NO_BOX, 
 	IO_TrisValues = { nullptr, FL_HELVETICA, FONT_SIZE_TABLE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_WHITE, FL_ALIGN_CENTER },
 	IO_Values = { nullptr, FL_HELVETICA, FONT_SIZE_TABLE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_WHITE, FL_ALIGN_CENTER };
 
+//TODO, aber nicht notwendig: alles auf filltxt umstellen
 tablestyle * setstyle_IO()
 {
 	tablestyle* s = (tablestyle*)malloc(sizeof(tablestyle) * CellsIO);
@@ -100,6 +101,7 @@ tablestyle * setstyle_Code(int lines, ASM_TEXT* code){
 	int CellsCode = (lines + 1) * CCCODE;
 	tablestyle* s = (tablestyle*)malloc(sizeof(tablestyle) * CellsCode);
 	if (code != nullptr) {
+		//This loop imports all the strings from the loaded file into the tablestyle-array
 		for (int i = 0; i < CellsCode; i++) {
 			if (i < CCCODE) {
 				s[i] = CODE_Colheaders;
@@ -134,6 +136,7 @@ tablestyle * setstyle_Code(int lines, ASM_TEXT* code){
 		}
 	}
 	else {
+		//This loop is for the intial table when no file is loaded, so all labeks except the col headers are empty
 		for (int i = 0; i < CellsCode; i++) {
 			if (i < CCCODE) {
 				s[i] = CODE_Colheaders;
@@ -156,4 +159,56 @@ tablestyle * setstyle_Code(int lines, ASM_TEXT* code){
 		}
 	}
 	return s;
+}
+
+
+void setregbox(Fl_Box*& regs, int line, int value) {
+	char* txt=(char*)malloc(50);
+	
+	switch (line) {
+	case 0: {
+		sprintf(txt, "W-Reg:\t\t%02X", value);
+		break;
+	}
+	case 1: {
+		sprintf(txt, "Status:\t\t%02X", value);
+		break;
+	}
+	case 2: {
+		int i = value;
+		sprintf(txt, "IRP\tRP1\tRP0\tTO\tPD\tZ\tDC\tC\n%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t", i&0x128 ? 1 : 0, i & 0x64 ? 1 : 0, i & 0x32 ? 1 : 0, i & 0x16 ? 1 : 0, i & 0x8 ? 1 : 0, i & 0x4 ? 1 : 0, i & 0x2 ? 1 : 0, i & 0x1 ? 1 : 0);
+		break;
+	}
+	case 3: {
+		sprintf(txt, "PCL:\t\t%02X", value);
+		break;
+	}
+	case 4: {
+		sprintf(txt, "PCLATH:\t%02X", value);
+		break;
+	}
+	case 5: {
+		sprintf(txt, "PC:\t\t%04X", value);
+		break;
+	}
+	case 6: {
+		sprintf(txt, "Option:\t%02X", value);
+		break;
+	}
+	case 7: {
+		int i = value;
+		sprintf(txt, "RBPU\tINTEDG\tT0CS\tT0SE\tPSA\tPS2\tPS1\tPS0\n%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t", i & 0x128 ? 1 : 0, i & 0x64 ? 1 : 0, i & 0x32 ? 1 : 0, i & 0x16 ? 1 : 0, i & 0x8 ? 1 : 0, i & 0x4 ? 1 : 0, i & 0x2 ? 1 : 0, i & 0x1 ? 1 : 0);
+		break;
+	}
+	case 8: {
+		sprintf(txt, "INTCON:\t%02X", value);
+		break;
+	}
+	case 9: {
+		int i = value;
+		sprintf(txt, "GIE\tEEIE\tT0IE\tINTE\tRBIE\tT0IF\tINTF\tRBIF\n%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t", i & 0x128 ? 1 : 0, i & 0x64 ? 1 : 0, i & 0x32 ? 1 : 0, i & 0x16 ? 1 : 0, i & 0x8 ? 1 : 0, i & 0x4 ? 1 : 0, i & 0x2 ? 1 : 0, i & 0x1 ? 1 : 0);
+		break;
+	}
+			regs->label(txt);
+	}
 }

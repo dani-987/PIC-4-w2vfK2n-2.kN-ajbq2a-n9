@@ -181,8 +181,8 @@ public:
 	//thread-save functions for external usage in GUI:
 	ASM_TEXT* GetProgrammText(size_t& anzahl);		//remember malloc! -> freeProgrammText();
 	void FreeProgrammText(ASM_TEXT*& prog);
-	bool GetNextChangedCell(int &reg, byte &bank);	//get a posible changed cell to update in gui_int_update()
-	void StartedUpdating();							//always call before updating, else it is possible, that the update-function will not be called when necessary
+	bool GetNextChangedCell(int &reg, byte &bank);	//get a possibly changed cell to update in gui_int_update()
+	void StartedUpdating();							//always call before updating, otherwise it is possible that the update-function will not be called when necessary
 	bool LoadProgramm(char* c);
 	bool Start();
 	bool Stop();

@@ -36,7 +36,10 @@
     <ClInclude Include="resource.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="tablestyle_config.h">
+    <ClInclude Include="MUTEX.H">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="guistyle_config.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>
@@ -59,7 +62,10 @@
     <ClCompile Include="MyTable.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="tablestyle_config.cpp">
+    <ClCompile Include="MUTEX.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="guistyle_config.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>

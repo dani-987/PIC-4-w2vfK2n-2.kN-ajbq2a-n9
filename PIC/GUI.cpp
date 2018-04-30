@@ -31,6 +31,10 @@ void gui_int_updateAll(void * gui){((GUI*)gui)->int_updateAll();}
 #define X_CODE_TAB		(w - (W_CODE_TAB + 10))
 #define Y_CODE_TAB		40
 
+//Position and size of the Spezial Registers Box
+
+
+
 namespace gui_callbacks {
 	void loadFile(Fl_Widget *, void *);
 }
@@ -41,7 +45,7 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 	//Create Backend
 	backend = new Backend(this);
 
-	/*//TODO: fontsize ändern
+	/*//TODO: fontsize ändern <- sollte in resize gemacht werden?
 	if (w < 750)__font_size_table_ = 12;
 	else if (w < 1000)__font_size_table_ = 14;
 	else __font_size_table_ = 16;
@@ -56,6 +60,7 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 	//inital size
 	size_range(620, 440);
 	color(FL_WHITE);
+	callback(window_cb);
 
 	//Generate initial Path for open file dialog
 	char* myPath = (char*)malloc(256);
@@ -136,11 +141,24 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 	CODE_table->col_header_height(CH*1.2);
 	CODE_table->col_resize(0);
 	CODE_table->col_width_all(w/15);
+
+	registers = (Fl_Box**)malloc(sizeof(Fl_Box*) * 10);
+
+	//The boxes are initialy setup with boxes of size 0. Their proper size is set in GUI::resize
+	for (int i = 0; i < 10; i++) {
+		registers[i] = new Fl_Box(FL_NO_BOX, w, h, 0, 0, "");
+		setregbox(registers[i], i, 0);
+	}
 }
 
 
 GUI::~GUI()
 {
+}
+
+Backend*& GUI::getbackend()
+{
+	return backend;
 }
 
 int GUI::run()
@@ -188,6 +206,12 @@ void GUI::resize(int x, int y, int w, int h){
 	Mem_table->resize(X_MEM_TAB, Y_MEM_TAB, W_MEM_TAB, H_MEM_TAB);
 	IO_table->resize(X_IO_TAB, Y_IO_TAB, W_IO_TAB, H_IO_TAB);
 	CODE_table->resize(X_CODE_TAB, Y_CODE_TAB, W_CODE_TAB, H_CODE_TAB);
+	int newy = 40;
+	for (int i = 0; i < 10; i++) {
+		registers[i]->resize(X_MEM_TAB + W_MEM_TAB + 40, newy, w / 5, 60);
+		newy += 30;
+		if (i == 2 || i == 7) newy += 30;
+	}
 	flush();
 }
 
@@ -209,7 +233,7 @@ void GUI::callback_load_file(){
 	else {
 		////////////	W	I	C	H	T	I	G	:	///////////////
 		//du muss die ganze Datenstruktur intern vorher befreien (free arbeitet nicht rekursiv!)... siehe mal meine Funktionen, die mit free beginnen...
-		//prüfe, ob du nicht an anderenstellen das selbe machst...
+		//prüfe, ob du nicht an anderen Stellen das selbe machst...
 		free(CODE_table->getstyle());
 		size_t lines = 1;
 		ASM_TEXT* code = backend->GetProgrammText(lines);
@@ -217,4 +241,10 @@ void GUI::callback_load_file(){
 		backend->FreeProgrammText(code);
 		CODE_table->rows(lines);
 	}
+}
+
+//callback that is called when the window is closed
+//used to perform actions before programm is shut down  
+void GUI::window_cb(Fl_Widget*, void*) {
+	exit(0);
 }

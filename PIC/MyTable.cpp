@@ -82,7 +82,6 @@ void MyTable::draw_cell(TableContext context, int R, int C, int X, int Y, int W,
 
 	case CONTEXT_CELL:
 	{
-		//sprintf_s(s, "%d%d", 0, 0);
 		fl_push_clip(X, Y, W, H);
 		{
 			position = CELLPOS(R, C);
