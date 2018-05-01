@@ -34,11 +34,14 @@ int __get_font_size_table_();
 
 #define CCCODE	5										//Number of Colums in the Code Table
 #define RCCODE 30										//Default number of rows in the Code table, will be overwritten by load file
+#define CellsCODE ((CODE_table->rows() + 1) * CODE_table->cols())	//Number of Cells in the current CODE-Table 
 
 #define WINDOW_BASE_X_OFFSET	10
 #define WINDOW_BASE_Y_OFFSET	5
 #define GUI_STANDARD_W	Fl::w()-20
 #define GUI_STANDARD_H	Fl::h()-35
+
+#define BOXES 10
 
 #define SCHEME			"none"
 

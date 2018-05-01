@@ -1,5 +1,17 @@
 #include "guistyle_config.h"
 
+
+void filltxt(char*& txt, char* tofill) {
+	if (tofill != nullptr) {
+		txt = (char*)malloc(strlen(tofill) + 1);
+		sprintf(txt, tofill);
+	}
+	else {
+		txt = (char*)malloc(1);
+		sprintf(txt, "");
+	}
+}
+
 //Tablestyles for the Memory Table
 tablestyle MEM_Startpage = {nullptr, FL_HELVETICA, FONT_SIZE_TABLE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_LIGHT2, FL_ALIGN_CENTER},
 	MEM_Rowheaders = { nullptr, FL_HELVETICA, FONT_SIZE_TABLE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_LIGHT2, FL_ALIGN_CENTER },
@@ -11,41 +23,40 @@ tablestyle MEM_Startpage = {nullptr, FL_HELVETICA, FONT_SIZE_TABLE, FL_NO_BOX, F
 
 tablestyle * setstyle_MEM()
 {
+	char* txt;
 	tablestyle* s = (tablestyle*)malloc(sizeof(tablestyle) * CellsMEM);
 	for (int i = 0; i < CellsMEM; i++) {
-		if (!i) { s[i] = MEM_Startpage;}
-		//the first few types have unchanging labels that are set here and never change
+		if (!i) { s[i] = MEM_Startpage; txt = nullptr; }
+		//the first few cases have unchanging labels that are set here and never change (headers and unimplemented cells)
 		else if (i < 9) { 
 			s[i] = MEM_Colheaders; 
-			char *txt = (char*)malloc(3);
-			sprintf(txt, "%02d", i - 1);
-			s[i].label = txt;
+			txt = (char*)malloc(3);
+			sprintf(txt, "%02d", i - 1);			
 		}
 		else if (!(i % 9)) {
 			s[i] = MEM_Rowheaders;
-			char *txt = (char*)malloc(3);
-
+			txt = (char*)malloc(3);
 			if (i < 45) sprintf(txt, "%d%d", (i<27)?0:8, (i % 2) ? 0 : 8);
 			else sprintf(txt, "%d%d", ((i-36)/9)/2, (i%2)?8:0);
-			s[i].label = txt;
 		}
-		else if (i == 17 || (i > 21 && i < 27) || i == 35 || (i > 39 && i < 49) || i > 99) {
+		else if (i == 17 || (i > 22 && i < 27) || i == 35 || (i > 40 && i < 49) || i > 99) {
 			s[i] = MEM_Uninstalled;
-			s[i].label = "00";
+			filltxt(txt, "00");
 		}
 		//Anything below here is initilaized with "00" and has it's label updated on change of the respective Memory Adress
-		else if (i < 22) {
+		else if (i < 23) {
 			s[i] = MEM_Reserved_B0;
-			s[i].label = "00";
+			filltxt(txt, "00");
 		}
-		else if (i < 40) {
+		else if (i < 41) {
 			s[i] = MEM_Reserved_B1;
-			s[i].label = "00";
+			filltxt(txt, "00");
 		}
 		else {
 			s[i] = MEM_Available;
-			s[i].label = "00";
+			filltxt(txt, "00");
 		}
+		s[i].label = txt;
 	}
 	return s;
 }
@@ -61,30 +72,30 @@ tablestyle * setstyle_IO()
 {
 	tablestyle* s = (tablestyle*)malloc(sizeof(tablestyle) * CellsIO);
 	for (int i = 0; i < CellsIO; i++) {
+		char* txt = "";			//Initializing here because compiler will otherwise cry about use of uninitilized variable 
 		if (!(i % 9)) {
 			s[i] = IO_Rowheaders;
-			char *txt = (char*)malloc(5);
 			switch (i / 9) {
-			case 0: sprintf(txt, "RA"); break;
-			case 1: case 4: sprintf(txt, "Tris"); break;
-			case 2: case 5: sprintf(txt, "Pin"); break;
-			case 3: sprintf(txt, "RB"); break;
+			case 0: filltxt(txt, "RA"); break;
+			case 1: case 4: filltxt(txt, "Tris"); break;
+			case 2: case 5: filltxt(txt, "Pin"); break;
+			case 3: filltxt(txt, "RB"); break;
 			}
-			s[i].label = txt;
 		}
 		else if ((i % 27) > 0 && (i % 27) < 9) {
 			s[i] = IO_DigitEnum;
-			char *txt = (char*)malloc(10);
+			txt = (char*)malloc(2);
 			sprintf(txt, "%d", 8 - (i % 9));
 		}
 		else if ((i % 27) > 9 && (i % 27) < 18) {
 			s[i] = IO_TrisValues;
-			s[i].label = "i";
+			filltxt(txt, "i");
 		}
 		else {
 			s[i] = IO_Values;
-			s[i].label = "0";
+			filltxt(txt, "i");
 		}
+		s[i].label = txt;
 	}
 	return s;
 }
@@ -92,73 +103,55 @@ tablestyle * setstyle_IO()
 tablestyle CODE_Colheaders = { nullptr, FL_HELVETICA, FONT_SIZE_TABLE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_DARK_YELLOW, FL_ALIGN_CENTER },
 CODE_TEXT = { nullptr, FL_HELVETICA, FONT_SIZE_TABLE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_BLUE, FL_ALIGN_LEFT };
 
-void filltxt(char*& txt, char* tofill) {
-	txt = (char*)malloc(strlen(tofill) + 1);
-	sprintf(txt, tofill);
-}
-
-tablestyle * setstyle_Code(int lines, ASM_TEXT* code){
+tablestyle * setstyle_Code(int lines, ASM_TEXT* code) {
 	int CellsCode = (lines + 1) * CCCODE;
 	tablestyle* s = (tablestyle*)malloc(sizeof(tablestyle) * CellsCode);
+	for (int i = 0; i < CCCODE; i++) {
+		s[i] = CODE_Colheaders;
+		char *txt = (char*)malloc(15);
+		switch (i) {
+		case 0: sprintf(txt, "Bytecode"); break;
+		case 1: sprintf(txt, "Zeilen"); break;
+		case 2: sprintf(txt, "Labels"); break;
+		case 3: sprintf(txt, "Befehle"); break;
+		case 4: sprintf(txt, "Kommentare"); break;
+		}
+		s[i].label = txt;
+	}
 	if (code != nullptr) {
 		//This loop imports all the strings from the loaded file into the tablestyle-array
-		for (int i = 0; i < CellsCode; i++) {
-			if (i < CCCODE) {
-				s[i] = CODE_Colheaders;
-				char *txt = (char*)malloc(15);
-				switch (i) {
-				case 0: sprintf(txt, "Bytecode"); break;
-				case 1: sprintf(txt, "Zeilen"); break;
-				case 2: sprintf(txt, "Labels"); break;
-				case 3: sprintf(txt, "Befehle"); break;
-				case 4: sprintf(txt, "Kommentare"); break;
-				}
-				s[i].label = txt;
+		for (int i = CCCODE; i < CellsCode; i++) {
+			char* txt;
+			s[i] = CODE_TEXT;
+			switch (i % CCCODE) {
+			case 0: filltxt(txt, code->bytecode); break;
+			case 1: filltxt(txt, code->lineOfCode); break;
+			case 2: filltxt(txt, code->label); break;
+			case 3: filltxt(txt, code->asmCode); break;
+			case 4: filltxt(txt, code->comment); code = code->next; break;
+			default: txt = (char*)malloc(1); sprintf(txt, ""); break;//default path will never be used, but compiler wants it anyway because of the initialization of txt
 			}
-			else {
-				char* txt;
-				s[i] = CODE_TEXT;
-				switch (i % CCCODE) {
-				case 0: if (code->bytecode != nullptr) { filltxt(txt, code->bytecode); } else { filltxt(txt, ""); } break;
-				case 1: if (code->lineOfCode != nullptr) { filltxt(txt, code->lineOfCode); } else { filltxt(txt, ""); }  break;
-				case 2: if (code->label != nullptr) { filltxt(txt, code->label); } else { filltxt(txt, ""); }  break;
-				case 3: if (code->asmCode != nullptr) { filltxt(txt, code->asmCode); } else { filltxt(txt, ""); }  break;
-				case 4: if (code->comment != nullptr) { filltxt(txt, code->comment); } else { filltxt(txt, ""); } code = code->next; break;
-				//case 0: txt = (char*)malloc(strlen(code->bytecode) + 1); sprintf(txt, code->bytecode); break;
-				//case 1: txt = (char*)malloc(strlen(code->lineOfCode) + 1); sprintf(txt, code->lineOfCode); break;
-				//case 2: txt = (char*)malloc(strlen(code->label) + 1); sprintf(txt, code->label); break;
-				//case 3: txt = (char*)malloc(strlen(code->asmCode) + 1); sprintf(txt, code->asmCode); break;
-				//case 4: txt = (char*)malloc(strlen(code->comment) + 1); sprintf(txt, code->comment); code = code->next; break;
-				default: txt = (char*)malloc(1); sprintf(txt, ""); break;//default path will never be used, but compiler wants it anyway because of the initialization of txt
-				}
-				s[i].label = txt;
-			}
+			s[i].label = txt;
 		}
 	}
 	else {
-		//This loop is for the intial table when no file is loaded, so all labeks except the col headers are empty
-		for (int i = 0; i < CellsCode; i++) {
-			if (i < CCCODE) {
-				s[i] = CODE_Colheaders;
-				char *txt = (char*)malloc(15);
-				switch (i) {
-				case 0: sprintf(txt, "Bytecode"); break;
-				case 1: sprintf(txt, "Zeilen"); break;
-				case 2: sprintf(txt, "Labels"); break;
-				case 3: sprintf(txt, "Befehle"); break;
-				case 4: sprintf(txt, "Kommentare"); break;
-				}
-				s[i].label = txt;
-			}
-			else {
-				char* txt=(char*)malloc(1);
-				s[i] = CODE_TEXT;
-				sprintf(txt, "");
-				s[i].label = txt;
-			}
+		//This loop is for the intial table when no file is loaded, so all labels are empty
+		for (int i = CCCODE; i < CellsCode; i++) {
+			char* txt = (char*)malloc(1);
+			s[i] = CODE_TEXT;
+			sprintf(txt, "");
+			s[i].label = txt;
 		}
 	}
 	return s;
+}
+	
+
+void freetablestyle(tablestyle*& tofree, int cells){
+	for (int i = 0; i < cells; i++) {
+		free(tofree[i].label);
+	}
+	free(tofree);
 }
 
 
@@ -210,5 +203,34 @@ void setregbox(Fl_Box*& regs, int line, int value) {
 		break;
 	}
 			regs->label(txt);
+	}
+}
+
+//Update a label of a single cell in the MEM-table
+void setMEMcell(tablestyle*& mystyle, int pos, int bank, int value) {
+	//Translate pos and bank into position in the tablestyle-array
+	if (bank) {			//For the non-mirrored special registers on bank 1:
+		pos = 28 + pos + (int)(pos / 8);
+	}
+	else if (pos < 12) {//For the special registers on bank 0
+		pos = 10 + pos + (int)(pos / 8);
+	}
+	else {				//For the normal registers
+		pos -= 8;
+		pos = 46 + pos + (int)(pos / 8);
+	}
+	free(mystyle[pos].label);
+	mystyle[pos].label = (char*)malloc(3);
+	sprintf(mystyle[pos].label, "%02X", value);
+}
+
+//Update one line in the IO-table, happens whenever RA, RB, TrisA or TrisB are changed
+void setIOcell(tablestyle*& mystyle, int line, int value) {
+	char high = (line % 3 == 1) ? 'i' : '1', low = (line % 3 == 1) ? 'o' : '0';
+	int pos = (CCIO + 1) * line + 1;
+	for (int i = 0; i < CCIO; i++) {
+		free(mystyle[pos + i].label);
+		mystyle[pos + i].label = (char*)malloc(2);
+		sprintf(mystyle[pos + i].label, "%c", value&(1<<i)?high:low);
 	}
 }

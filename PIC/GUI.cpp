@@ -142,10 +142,10 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 	CODE_table->col_resize(0);
 	CODE_table->col_width_all(w/15);
 
-	registers = (Fl_Box**)malloc(sizeof(Fl_Box*) * 10);
+	registers = (Fl_Box**)malloc(sizeof(Fl_Box*) * BOXES);
 
 	//The boxes are initialy setup with boxes of size 0. Their proper size is set in GUI::resize
-	for (int i = 0; i < 10; i++) {
+	for (int i = 0; i < BOXES; i++) {
 		registers[i] = new Fl_Box(FL_NO_BOX, w, h, 0, 0, "");
 		setregbox(registers[i], i, 0);
 	}
@@ -184,9 +184,66 @@ void GUI::int_update(){
 	PRINTF("int_update() called!\n");
 	int pos;
 	byte bank;
-	while(backend->GetNextChangedCell(pos, bank))
-		printf("Byte %02x in Bank %d changed!");	//TODO update ramtable
-	//TODO update regW
+	char queueIO = 0;		//Remember when a value in the IO-table is changed and a redraw is necessary 
+	int queueSPregs = 0;	//Remember whether one of the Spezial register boxes was changed and a redraw is necessary
+	while (backend->GetNextChangedCell(pos, bank)) {
+		printf("Byte %02x in Bank %d changed!", pos, bank);	
+		int value = getbackend()->GetByte(pos, bank);
+		switch (pos) {
+		case 0x01: if (bank) {
+				setregbox(registers[6], 6, value);
+				setregbox(registers[7], 7, value);
+				queueSPregs |= 64 + 32;
+			}
+			break;
+		case 0x02:
+			setregbox(registers[3], 3, value);
+			setregbox(registers[5], 5, value + ((getbackend()->GetByte(pos, bank) << 8)));
+			queueSPregs |= 16 + 4;
+			break;
+		case 0x03:
+			setregbox(registers[1], 1, value);
+			setregbox(registers[2], 2, value);
+			queueSPregs |= 2 + 1;
+			break;
+		case 0x05:if (bank) {
+				setIOcell(IO_table->getstyle(), 1, value);
+			}
+			else {
+				setIOcell(IO_table->getstyle(), 2, value);
+			}
+			queueIO = 1;
+			break;
+		case 0x06:if (bank) {
+				setIOcell(IO_table->getstyle(), 4, value);
+			}
+			else {
+				setIOcell(IO_table->getstyle(), 5, value);
+			}
+			queueIO = 1;
+			break;
+		case 0x0A:
+			setregbox(registers[4], 4, value);
+			setregbox(registers[5], 5, (getbackend()->GetByte(pos, bank) + (value << 8)));
+			queueSPregs |= 16 + 8;
+			break;
+		case 0x0B:
+			setregbox(registers[8], 8, value);
+			setregbox(registers[9], 9, value);
+			queueSPregs |= 128 + 256;
+			break;
+		}
+		setMEMcell(Mem_table->getstyle(), pos, bank, value);
+	}
+	if (queueIO) IO_table->redraw();
+	for (int i = 0; i < BOXES; i++) {
+		if (queueSPregs&(1 << i)) {
+			registers[i + 1]->redraw();
+		}
+	}
+	//redraw Register W
+	setregbox(registers[0], 0, getbackend()->GetRegW());
+	registers[0]->redraw();
 }
 
 //#######################################################################################
@@ -207,7 +264,7 @@ void GUI::resize(int x, int y, int w, int h){
 	IO_table->resize(X_IO_TAB, Y_IO_TAB, W_IO_TAB, H_IO_TAB);
 	CODE_table->resize(X_CODE_TAB, Y_CODE_TAB, W_CODE_TAB, H_CODE_TAB);
 	int newy = 40;
-	for (int i = 0; i < 10; i++) {
+	for (int i = 0; i < BOXES; i++) {
 		registers[i]->resize(X_MEM_TAB + W_MEM_TAB + 40, newy, w / 5, 60);
 		newy += 30;
 		if (i == 2 || i == 7) newy += 30;
@@ -231,10 +288,7 @@ void GUI::callback_load_file(){
 	if(!backend->LoadProgramm((char*)chooser->filename()))
 		fl_alert(backend->GetErrorMSG());
 	else {
-		////////////	W	I	C	H	T	I	G	:	///////////////
-		//du muss die ganze Datenstruktur intern vorher befreien (free arbeitet nicht rekursiv!)... siehe mal meine Funktionen, die mit free beginnen...
-		//prüfe, ob du nicht an anderen Stellen das selbe machst...
-		free(CODE_table->getstyle());
+		freetablestyle(CODE_table->getstyle(), CellsCODE);
 		size_t lines = 1;
 		ASM_TEXT* code = backend->GetProgrammText(lines);
 		CODE_table->getstyle() = setstyle_Code(lines, code);	//TODO: entsprechende Funktion:freesytle_Code(tablestyle*& toFree); wird benötigt und muss durch free(CODE_table->getstyle()); ersetzt werden...
