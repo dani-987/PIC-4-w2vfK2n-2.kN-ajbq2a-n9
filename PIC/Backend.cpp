@@ -23,7 +23,7 @@ HANDLE  hConsole;
 #define DAMAGE_GET_BITMAP_BIT(pos)	(1 << (pos & 0x07))
 
 //Komment following if not wanted....
-//#define USE_RANDOM_VALUES
+#define USE_RANDOM_VALUES
 //TODO:
 
 //DC und C bei Subtraktion (Prog3)
@@ -517,8 +517,7 @@ Backend::~Backend()
 	free(eeprom);
 	free(ram);
 	if (functionStack != nullptr)free(functionStack);//todo
-	if (code != nullptr) 
-	Compiler::freeASM(code); 
+	if (code != nullptr) Compiler::freeASM(code); 
 }
 
 void cpyStr(char*& dst, char* src){
@@ -625,6 +624,7 @@ bool Backend::LoadProgramm(char * c)
 		this->aktCode = prog->code;
 		ret = true;
 	}
+	//TODO else saveError
 	LOCK_MUTEX(m_ram);
 	for (int i = 0; i < UC_SIZE_RAM; i++) {
 #ifdef USE_RANDOM_VALUES
@@ -1229,7 +1229,7 @@ int Backend::SUBWF(void*f, void*d) {
 	int tmp = (((int)(cell & 0xFF)) - ((int)(regW & 0xFF)));
 	if (tmp >= 0)ram[BYTE_C] |= BIT_C;
 	else ram[BYTE_C] &= ~BIT_C;
-	if ((((char)(tmpCell & 0x0F)) - ((char)(regW & 0x0F))) < 0)ram[BYTE_DC] |= BIT_DC;
+	if ((((char)(tmpCell & 0x0F)) - ((char)(regW & 0x0F))) >= 0)ram[BYTE_DC] |= BIT_DC;
 	else ram[BYTE_DC] &= ~BIT_DC;
 	tmp &= 0xFF;
 	if (tmp)ram[BYTE_Z] &= ~BIT_Z;
@@ -1406,7 +1406,7 @@ int Backend::SUBLW(void*k, void*ign) {
 	int tmpW = (((char)k & 0xFF) - (regW & 0xFF));
 	if (tmpW >= 0)ram[BYTE_C] |= BIT_C;
 	else ram[BYTE_C] &= ~BIT_C;
-	if ((((char)((char)k & 0x0F)) - ((char)(regW & 0x0F))) < 0)ram[BYTE_DC] |= BIT_DC;
+	if ((((char)((char)k & 0x0F)) - ((char)(regW & 0x0F))) >= 0)ram[BYTE_DC] |= BIT_DC;
 	else ram[BYTE_DC] &= ~BIT_DC;
 	regW = tmpW & 0xFF;
 	if (tmpW)ram[BYTE_Z] &= ~BIT_Z;

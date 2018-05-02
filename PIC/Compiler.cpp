@@ -10,7 +10,7 @@
 #define DEBUGLVL_NORMAL	1
 #define DEBUGLVL_MUCH	2
 #define DEBUGLVL_ALL	3
-VARDEF(int, DEBUGLVL, DEBUGLVL_NORMAL);
+VARDEF(int, DEBUGLVL, DEBUGLVL_NONE);
 
 //states of scanner/parser (both are combinated into one because the .LST-file is a context-sensitive-language)
 #define STATUS_START					0
