@@ -573,6 +573,20 @@ bool Backend::GetNextChangedCell(int & reg, byte & bank)
 	bitmap8_t tmpBitmap;
 	size_t tmpPos;
 	LOCK_MUTEX(m_ram);
+	//damage of indirect register (is always 0)
+	if(posReadingDamage == 0){
+		damage[0] &= 0xFE;
+		posReadingDamage++;
+		byte tmp = getCell_unsafe(0, false);
+		tmpBitmap = DAMAGE_GET_BITMAP_BIT(tmp);
+		tmpPos = DAMAGE_GET_BITMAP_BYTE(tmp);
+		if(damage[0x00] & 0x10 || damage[tmpPos] & tmpBitmap){
+				reg = 0;
+				bank = 0;
+				UNLOCK_MUTEX(m_ram);
+				return true;
+		}
+	}
 	while (posReadingDamage >= UC_SIZE_RAM) {
 		tmpBitmap = DAMAGE_GET_BITMAP_BIT(posReadingDamage);
 		tmpPos = DAMAGE_GET_BITMAP_BYTE(posReadingDamage);
