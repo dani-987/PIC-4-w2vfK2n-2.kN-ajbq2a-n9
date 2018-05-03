@@ -176,11 +176,75 @@ int GUI::run()
 
 void GUI::int_updateAll()
 {
+	backend->StartedUpdating();
+	PRINTF("int_updateAll() called!\n");
+	int value;
+	//First update everything on bank on
+	//beginning with the spezial registers that, so of them having additional representations that need to be updated
+	for (int i = 1; i < 0x0C; i++) {
+		value = getbackend()->GetByte(i, 0); 
+		switch (i) {
+		case 0x02:
+			setregbox(registers[3], 3, value);
+			setregbox(registers[5], 5, value + ((getbackend()->GetByte(i, 0) << 8)));
+			break;
+		case 0x03:
+			setregbox(registers[1], 1, value);
+			setregbox(registers[2], 2, value);
+			break;
+		case 0x05:
+			setIOcell(IO_table->getstyle(), 2, value);
+			break;
+		case 0x06:
+			setIOcell(IO_table->getstyle(), 5, value);
+			break;
+		case 0x0A:
+			setregbox(registers[4], 4, value);
+			break;
+		case 0x0B:
+			setregbox(registers[8], 8, value);
+			setregbox(registers[9], 9, value);
+			break;
+		}
+		setMEMcell(Mem_table->getstyle(), i, 0, value);
+	}
+
+	//Update the rest of the normal Ram Cells
+	for (int i = 0x0C; i < 0x50; i++) {
+		setMEMcell(Mem_table->getstyle(), i, 0, getbackend()->GetByte(i, 0));
+	}
+	
+	//Update the special Cells on bank 1:
+	for (int i = 1; i < 0x0A; i++) {
+		value = getbackend()->GetByte(i, 0);
+		switch (i) {
+		case 0x01:
+			setregbox(registers[6], 6, value);
+			setregbox(registers[7], 7, value);
+			break;
+		case 0x05:
+			setIOcell(IO_table->getstyle(), 1, value);
+		case 0x06:
+			setIOcell(IO_table->getstyle(), 4, value);
+		case 0x08: case 0x09: break;	//No other areas need to be updated, this is only here to jump over the continue below
+		
+		default: continue;	//as this loop only updates non mapped registers, all other registers can be ignored
+		}
+		setMEMcell(Mem_table->getstyle(), i, 1, getbackend()->GetByte(i, 0));
+	}
+
+	//Finally, redraw everything, including Reg W
+	IO_table->redraw();
+	for (int i = 0; i < BOXES; i++) {	
+		registers[i + 1]->redraw();
+	}
+	Mem_table->redraw();
+	setregbox(registers[0], 0, getbackend()->GetRegW());
+	registers[0]->redraw();
 }
 
 void GUI::int_update(){
 	backend->StartedUpdating();	//call at begining is necessary!
-	//TODO...
 	PRINTF("int_update() called!\n");
 	int pos;
 	byte bank;
@@ -241,6 +305,7 @@ void GUI::int_update(){
 			registers[i + 1]->redraw();
 		}
 	}
+	Mem_table->redraw();
 	//redraw Register W
 	setregbox(registers[0], 0, getbackend()->GetRegW());
 	registers[0]->redraw();

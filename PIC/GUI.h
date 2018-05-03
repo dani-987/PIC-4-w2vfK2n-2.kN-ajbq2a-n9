@@ -61,6 +61,11 @@ private:
 	//they are seperated, because their frequency of updating is extremly different (W and PC vs. 
 	Fl_Box** registers;
 
+	//The buttons used to controll the program execution
+	Fl_Button* Start;
+	Fl_Button* Stop;
+	Fl_Button* Step;
+
 public:
 	GUI(int x = WINDOW_BASE_X_OFFSET, int y = WINDOW_BASE_Y_OFFSET, int w = GUI_STANDARD_W, int h = GUI_STANDARD_H);
 	~GUI();
