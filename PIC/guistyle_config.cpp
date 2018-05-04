@@ -39,7 +39,7 @@ tablestyle * setstyle_MEM()
 			if (i < 45) sprintf(txt, "%d%d", (i<27)?0:8, (i % 2) ? 0 : 8);
 			else sprintf(txt, "%d%d", ((i-36)/9)/2, (i%2)?8:0);
 		}
-		else if (i == 17 || (i > 22 && i < 27) || i == 35 || (i > 40 && i < 50) || i > 99) {
+		else if (i == 17 || (i > 22 && i < 27) || i == 35 || (i > 40 && i < 50) || i > 126) {
 			s[i] = MEM_Uninstalled;
 			filltxt(txt, "00");
 		}

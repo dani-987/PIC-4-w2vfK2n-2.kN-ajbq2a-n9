@@ -168,13 +168,13 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 	Start = new Fl_Button(X_CONT_BUTT, Y_CONT_BUTT, W_CONT_BUTT, H_CONT_BUTT, "Start");
 	Start->callback(gui_callbacks::Start, this);
 
-	Stop = new Fl_Button(X_CONT_BUTT, Y_CONT_BUTT + BUTT_OFFSET, W_CONT_BUTT, H_CONT_BUTT, "Stop");
+	Stop = new Fl_Button(X_CONT_BUTT + BUTT_OFFSET, Y_CONT_BUTT, W_CONT_BUTT, H_CONT_BUTT, "Stop");
 	Stop->callback(gui_callbacks::Stop, this);
 
-	Step = new Fl_Button(X_CONT_BUTT, Y_CONT_BUTT + (BUTT_OFFSET * 2), W_CONT_BUTT, H_CONT_BUTT, "Step");
+	Step = new Fl_Button(X_CONT_BUTT + (BUTT_OFFSET * 2), Y_CONT_BUTT + (BUTT_OFFSET * 2), W_CONT_BUTT, H_CONT_BUTT, "Step");
 	Step->callback(gui_callbacks::Step, this);
 
-	Reset = new Fl_Button(X_CONT_BUTT, Y_CONT_BUTT + (BUTT_OFFSET * 3), W_CONT_BUTT, H_CONT_BUTT, "Reset");
+	Reset = new Fl_Button(X_CONT_BUTT + (BUTT_OFFSET * 3), Y_CONT_BUTT + (BUTT_OFFSET * 3), W_CONT_BUTT, H_CONT_BUTT, "Reset");
 	Reset->callback(gui_callbacks::Reset, this);
 
 	int_updateAll();
@@ -270,6 +270,7 @@ void GUI::int_updateAll()
 	Mem_table->redraw();
 	setregbox(registers[0], 0, getbackend()->GetRegW());
 	registers[0]->redraw();
+	CODE_table->redraw();
 }
 
 void GUI::int_update(){
@@ -357,16 +358,16 @@ void GUI::resize(int x, int y, int w, int h){
 	Mem_table->resize(X_MEM_TAB, Y_MEM_TAB, W_MEM_TAB, H_MEM_TAB);
 	IO_table->resize(X_IO_TAB, Y_IO_TAB, W_IO_TAB, H_IO_TAB);
 	CODE_table->resize(X_CODE_TAB, Y_CODE_TAB, W_CODE_TAB, H_CODE_TAB);
-	int newy = 0;
+	int newx = 0;
 	for (int i = 0; i < BOXES; i++) {
-		registers[i]->resize(X_SPEC_REGS, Y_SPEC_REGS + newy, W_SPEC_REGS, H_SPEC_REGS);
-		newy += 30;
-		if (i == 2 || i == 7) newy += 30;
+		registers[i]->resize(X_SPEC_REGS + newx, Y_SPEC_REGS, W_SPEC_REGS, H_SPEC_REGS);
+		newx += 30;
+		if (i == 2 || i == 7) newx += 30;
 	}
 	Start->resize(X_CONT_BUTT, Y_CONT_BUTT, W_CONT_BUTT, H_CONT_BUTT);
-	Stop->resize(X_CONT_BUTT, Y_CONT_BUTT + BUTT_OFFSET, W_CONT_BUTT, H_CONT_BUTT);
-	Step->resize(X_CONT_BUTT, Y_CONT_BUTT + (BUTT_OFFSET * 2), W_CONT_BUTT, H_CONT_BUTT);
-	Reset->resize(X_CONT_BUTT, Y_CONT_BUTT + (BUTT_OFFSET * 3), W_CONT_BUTT, H_CONT_BUTT);
+	Stop->resize(X_CONT_BUTT + BUTT_OFFSET, Y_CONT_BUTT, W_CONT_BUTT, H_CONT_BUTT);
+	Step->resize(X_CONT_BUTT + (BUTT_OFFSET * 2), Y_CONT_BUTT, W_CONT_BUTT, H_CONT_BUTT);
+	Reset->resize(X_CONT_BUTT + (BUTT_OFFSET * 3), Y_CONT_BUTT, W_CONT_BUTT, H_CONT_BUTT);
 	flush();
 }
 
@@ -405,6 +406,7 @@ void GUI::callback_load_file(){
 		backend->FreeProgrammText(code);
 		CODE_table->rows(lines);
 	}
+	int_updateAll();
 }
 
 //callback that is called when the window is closed
