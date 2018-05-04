@@ -119,7 +119,7 @@ void Backend::reset(byte resetType)
 	ram[0x02] = 0x00;
 	ram[0x03] &= 0x1F;
 	ram[0x0A] = 0;
-	ram[0x0B] &= 0xFE;
+	ram[0x0B] &= 0x01 ;
 
 	ram[83] = 0xFF;
 	ram[84] = 0x00;
@@ -127,13 +127,12 @@ void Backend::reset(byte resetType)
 	ram[88] = 0xFF;
 	ram[90] = 0x00;
 
-	ram_rb_cpy = ram[0x06];
+	this->ram_rb_cpy = ram[0x06];
 	lastInput = ram[0x06] & 0x01;
 
 	sleep = false;
 	prescaler_timer = 0;
 	time_eeprom_error_write = 0;
-	lastInput = ram[0x06] & 0x01;
 
 	if ((tmp & 0x04) && eeprom_wr) {
 		ram[90] |= 0x80;
@@ -234,11 +233,14 @@ bool Backend::do_interrupts(int& needTime)
 		needTime = 1;
 		return true;
 	}
+	byte _tmpByte = ram[0x0B];
 	//RBIF in INTCON
-	if (ram_rb_cpy & 0xF0 != ram[0x06] & 0xF0) { ram[0x0B] |= 0x01; damageByte(0x0B); }
+	if ((this->ram_rb_cpy & 0xF0) != (ram[0x06] & 0xF0)) { ram[0x0B] |= 0x01; damageByte(0x0B); }
 	//INTF if RB0/INT (check if on change or on set...)
-	if (ram_rb_cpy & 0x01 != ram[0x06] & 0x01) { ram[0x0B] |= 0x02;  damageByte(0x0B);}
-	ram_rb_cpy = ram[0x06];
+	if ((this->ram_rb_cpy & 0x01) != (ram[0x06] & 0x01)) { 
+		ram[0x0B] |= 0x02;  damageByte(0x0B);}
+	this->ram_rb_cpy = ram[0x06];
+	_tmpByte = ram[0x0B];
 	//if GIE or sleeping have to check interrupts....
 	if (ram[0x0B] & 0x80 || sleep) {
 		//T0IF & T0IE
@@ -493,7 +495,6 @@ Backend::Backend(GUI* gui)
 #endif
 	};
 	reloadCalled = false;
-	reset(RESET_POWER_UP);
 	eeprom = (char*)malloc(UC_SIZE_EEPROM);
 	for (int i = 0; i < UC_SIZE_EEPROM; i++) {
 #ifdef USE_RANDOM_VALUES
@@ -506,6 +507,7 @@ Backend::Backend(GUI* gui)
 	eeprom_rd = false;
 	uC = nullptr;
 	sleeptime = UC_STANDARD_SPEED;
+	reset(RESET_POWER_UP);
 #ifdef _DEBUG
 	hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 #endif
@@ -642,7 +644,7 @@ bool Backend::LoadProgramm(char * c)
 	LOCK_MUTEX(m_ram);
 	for (int i = 0; i < UC_SIZE_RAM; i++) {
 #ifdef USE_RANDOM_VALUES
-		ram[i] = rand() & 0xFF;
+		ram[i] = (byte)(rand() & 0xFF);
 #else
 		ram[i] = 0;
 #endif
@@ -725,6 +727,7 @@ long long Backend::ToggleBreakpoint(size_t textline)
 			foundLine = code->code[aktLine].guiText->lineNumber;
 		}
 	}
+	aktLine--;
 	if (foundLine < textline) {
 		if (code->code[0].guiText != nullptr) {
 			code->code[0].breakpoint = true;
@@ -837,7 +840,7 @@ int Backend::GetByte(int reg, byte bank)
 	int ret, tmp;
 	LOCK_MUTEX(m_ram);
 	tmp = ram[0x03];
-	if ((reg = 0x0F) == 0x03) { UNLOCK_MUTEX(m_ram); return tmp; }
+	if ((reg & 0x0F) == 0x03) { UNLOCK_MUTEX(m_ram); return tmp; }
 	if (bank == 0)ram[0x03] = ram[0x03] & (~0x20);
 	else ram[0x03] = ram[0x03] | 0x20;
 	ret = getCell_unsafe(reg, false);
@@ -857,7 +860,7 @@ bool Backend::SetByte(int reg, byte bank, byte val)
 		UNLOCK_MUTEX(m_lastError);
 		return -1;
 	}
-	if (reg < 0 || reg > 0x0F) {
+	if (reg < 0 || reg > 0xFF) {
 		LOCK_MUTEX(m_lastError);
 		lastError = "'reg' muss zwischen (einschlieﬂlich) 0x00 und 0xFF sein!";
 		MSGLEN();
@@ -868,10 +871,10 @@ bool Backend::SetByte(int reg, byte bank, byte val)
 #endif
 	int tmp;
 	LOCK_MUTEX(m_ram);
-	if ((reg = 0x0F) == 0x03) { ram[0x03] = val; damageByte(0x03); UNLOCK_MUTEX(m_ram); return true; }
+	if ((reg & 0x0F) == 0x03) { ram[0x03] = val; damageByte(0x03); UNLOCK_MUTEX(m_ram); return true; }
 	tmp = ram[0x03];
-	if (bank == 0)ram[0x03] = ram[0x03] & (~0x20);
-	else ram[0x03] = ram[0x03] | 0x20;
+	if (bank == 0)ram[0x03] &= (~0x20);
+	else ram[0x03] |= 0x20;
 	getCell_unsafe(reg) = val;
 	ram[0x03] = tmp;
 	UNLOCK_MUTEX(m_ram);
@@ -1072,7 +1075,7 @@ int Backend::CLRW(void*ign1, void*ign2) {
 }
 int Backend::COMF(void*f, void*d) { 
 	if (d == nullptr) {
-		regW = ~(getCell_unsafe((int)f), false);
+		regW = ~(getCell_unsafe((int)f, false));
 		if (regW == 0)ram[BYTE_Z] |= BIT_Z;
 		else ram[BYTE_Z] &= ~BIT_Z;
 		damageByte(BYTE_Z);
@@ -1353,7 +1356,7 @@ int Backend::GOTO(void*k, void*ign) {
 }
 int Backend::IORLW(void*k, void*ign) { 
 	regW = ((regW & 0xFF) | ((char)k & 0xFF));
-	if (!regW)ram[BYTE_Z] &= ~BIT_Z;
+	if (regW)ram[BYTE_Z] &= ~BIT_Z;
 	else ram[BYTE_Z] |= BIT_Z;
 	damageByte(BYTE_Z);
 	aktCode++;
@@ -1551,7 +1554,7 @@ void Backend::run_in_other_thread(byte modus)
 		//for-loop for imitating more cycle-operations (e.g. the timer has to count more than one time...)
 		for (int tmp = 0; tmp < needTime; tmp++) {
 			if (!sleep) if (!do_timer()) errorInThreadHappend = true;
-			if (!errorInThreadHappend && do_eeprom() && do_interrupts(needTime) && do_wdt());
+			if (!errorInThreadHappend && do_eeprom() && do_wdt() && do_interrupts(needTime));
 			else errorInThreadHappend = true;
 		}
 

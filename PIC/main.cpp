@@ -27,6 +27,7 @@ int main(int argc, char *argv[]) {
 	size_t tmp;
 	HANDLE  hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 	Backend* b = new Backend(new GUI());
+	ASM_TEXT*u = nullptr;
 	do{
 		printf("\nSelect Program (int)... \n");
 		scanf("%d", &progNum);
@@ -49,8 +50,8 @@ int main(int argc, char *argv[]) {
 					printf("Set/Unset Breakpoint! Insert line (int):\n");
 					fseek(stdin,0,SEEK_END);
 					scanf("%d", &progNum);
-					progNum = b->ToggleBreakpoint(progNum);
-					printf("\nBreakpoint settet to : %d (>= 0:linenumber, -1:error, -2:breakpoint unsettet, -3 breakpoint unchanged)", (progNum >= 0)?progNum+1:progNum);
+					progNum = b->ToggleBreakpoint(progNum - 1);
+					printf("\nBreakpoint settet to : %d (>= 0:linenumber, -1:error, -2:breakpoint unsettet, -3 breakpoint unchanged)", (progNum < 0)?progNum:progNum+ 1);
 					break;
 				case 's' :case 'S':
 					printf("Starting program...");
@@ -62,8 +63,12 @@ int main(int argc, char *argv[]) {
 					}
 					b->Wait_For_End();
 					break;
-				case 'o' :case 'O':
-					printf("Doing Step in program...");
+				case 'o' :case 'O': case '\n':
+					printf("Doing Step in program...\n");
+					SetConsoleTextAttribute(hConsole, 0xF0);
+					u = b->get_ASM_ONLY_TESTING()->code[(b->GetByte(0x0A,0) << 8) | b->GetByte(0x02,0)].guiText;
+					printf("%s\t%s\t%s\t%s\n", u->lineOfCode, u->label, u->asmCode, u->comment);
+					SetConsoleTextAttribute(hConsole, 0x07);
 					if(!b->Step()){
 						printf("Cannot Step!\n");
 						b->Stop();
@@ -73,16 +78,16 @@ int main(int argc, char *argv[]) {
 					b->Wait_For_End();
 					break;
 				case 'r': case'R':
-					printf("Select Ram Position (int):\n");
+					printf("Select Ram Position (int [hex]):\n");
 					fseek(stdin,0,SEEK_END);
-					scanf("%d", &progNum);
+					scanf("%x", &progNum);
 					if(progNum < 0 || progNum > UC_SIZE_RAM){
 						printf("Position is not in ram!");
 						break;
 					}
-					printf("\nInsert Value:\n");
+					printf("\nInsert Value (Reg: 0x%02x, Bank: 0x%02x) (byte [hex]):\n", (progNum%82), (progNum/82));
 					fseek(stdin,0,SEEK_END);
-					scanf("%d", &val);
+					scanf("%x", &val);
 					printf("Setting...\n");
 					b->SetByte((progNum%82), (progNum/82), val&0xFF);
 					break;
