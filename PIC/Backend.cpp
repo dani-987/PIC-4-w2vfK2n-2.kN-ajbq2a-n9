@@ -593,7 +593,7 @@ bool Backend::GetNextChangedCell(int & reg, byte & bank)
 				return true;
 		}
 	}
-	while (posReadingDamage >= UC_SIZE_RAM) {
+	while (posReadingDamage <= UC_SIZE_RAM) {
 		tmpBitmap = DAMAGE_GET_BITMAP_BIT(posReadingDamage);
 		tmpPos = DAMAGE_GET_BITMAP_BYTE(posReadingDamage);
 		if (damage[tmpPos] & tmpBitmap) {
