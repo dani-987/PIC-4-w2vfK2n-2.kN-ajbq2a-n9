@@ -27,16 +27,31 @@ void gui_int_updateAll(void * gui){((GUI*)gui)->int_updateAll();}
 
 //Position and size of the CODE-Table
 #define W_CODE_TAB		(w / 3)
-#define H_CODE_TAB		(h - 50)
+#define H_CODE_TAB		(h - 150)
 #define X_CODE_TAB		(w - (W_CODE_TAB + 10))
 #define Y_CODE_TAB		40
 
 //Position and size of the Spezial Registers Box
+#define X_SPEC_REGS		(X_IO_TAB+W_IO_TAB+40)
+#define Y_SPEC_REGS		40
+#define W_SPEC_REGS		(w/5)
+#define H_SPEC_REGS		60
 
+//Position and size of the controll buttons
+
+#define H_CONT_BUTT		40
+#define W_CONT_BUTT		(w/15)
+#define Y_CONT_BUTT		(h-(10+H_CONT_BUTT))
+#define X_CONT_BUTT		(X_CODE_TAB + 20)
+#define BUTT_OFFSET		(W_CONT_BUTT + 20)
 
 
 namespace gui_callbacks {
 	void loadFile(Fl_Widget *, void *);
+	void Start(Fl_Widget *, void *);
+	void Stop(Fl_Widget *, void *);
+	void Step(Fl_Widget *, void *);
+	void Reset(Fl_Widget *, void *);
 }
 
 //Generates the GUI initial and creates the Backend
@@ -149,6 +164,20 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 		registers[i] = new Fl_Box(FL_NO_BOX, w, h, 0, 0, "");
 		setregbox(registers[i], i, 0);
 	}
+
+	Start = new Fl_Button(X_CONT_BUTT, Y_CONT_BUTT, W_CONT_BUTT, H_CONT_BUTT, "Start");
+	Start->callback(gui_callbacks::Start, this);
+
+	Stop = new Fl_Button(X_CONT_BUTT, Y_CONT_BUTT + BUTT_OFFSET, W_CONT_BUTT, H_CONT_BUTT, "Stop");
+	Stop->callback(gui_callbacks::Stop, this);
+
+	Step = new Fl_Button(X_CONT_BUTT, Y_CONT_BUTT + (BUTT_OFFSET * 2), W_CONT_BUTT, H_CONT_BUTT, "Step");
+	Step->callback(gui_callbacks::Step, this);
+
+	Reset = new Fl_Button(X_CONT_BUTT, Y_CONT_BUTT + (BUTT_OFFSET * 3), W_CONT_BUTT, H_CONT_BUTT, "Reset");
+	Reset->callback(gui_callbacks::Reset, this);
+
+	int_updateAll();
 }
 
 
@@ -236,7 +265,7 @@ void GUI::int_updateAll()
 	//Finally, redraw everything, including Reg W
 	IO_table->redraw();
 	for (int i = 0; i < BOXES; i++) {	
-		registers[i + 1]->redraw();
+		registers[i]->redraw();
 	}
 	Mem_table->redraw();
 	setregbox(registers[0], 0, getbackend()->GetRegW());
@@ -328,12 +357,16 @@ void GUI::resize(int x, int y, int w, int h){
 	Mem_table->resize(X_MEM_TAB, Y_MEM_TAB, W_MEM_TAB, H_MEM_TAB);
 	IO_table->resize(X_IO_TAB, Y_IO_TAB, W_IO_TAB, H_IO_TAB);
 	CODE_table->resize(X_CODE_TAB, Y_CODE_TAB, W_CODE_TAB, H_CODE_TAB);
-	int newy = 40;
+	int newy = 0;
 	for (int i = 0; i < BOXES; i++) {
-		registers[i]->resize(X_MEM_TAB + W_MEM_TAB + 40, newy, w / 5, 60);
+		registers[i]->resize(X_SPEC_REGS, Y_SPEC_REGS + newy, W_SPEC_REGS, H_SPEC_REGS);
 		newy += 30;
 		if (i == 2 || i == 7) newy += 30;
 	}
+	Start->resize(X_CONT_BUTT, Y_CONT_BUTT, W_CONT_BUTT, H_CONT_BUTT);
+	Stop->resize(X_CONT_BUTT, Y_CONT_BUTT + BUTT_OFFSET, W_CONT_BUTT, H_CONT_BUTT);
+	Step->resize(X_CONT_BUTT, Y_CONT_BUTT + (BUTT_OFFSET * 2), W_CONT_BUTT, H_CONT_BUTT);
+	Reset->resize(X_CONT_BUTT, Y_CONT_BUTT + (BUTT_OFFSET * 3), W_CONT_BUTT, H_CONT_BUTT);
 	flush();
 }
 
@@ -345,6 +378,18 @@ void GUI::resize(int x, int y, int w, int h){
 
 void gui_callbacks::loadFile(Fl_Widget *w, void *gui){
 	((GUI*)gui)->callback_load_file();
+}
+void gui_callbacks::Start(Fl_Widget *w, void *gui) {
+	((GUI*)gui)->callback_start();
+}
+void gui_callbacks::Stop(Fl_Widget *w, void *gui) {
+	((GUI*)gui)->callback_stop();
+}
+void gui_callbacks::Step(Fl_Widget *w, void *gui) {
+	((GUI*)gui)->callback_step();
+}
+void gui_callbacks::Reset(Fl_Widget *w, void *gui) {
+	((GUI*)gui)->callback_reset();
 }
 
 void GUI::callback_load_file(){
@@ -367,3 +412,20 @@ void GUI::callback_load_file(){
 void GUI::window_cb(Fl_Widget*, void*) {
 	exit(0);
 }
+
+void GUI::callback_start(){
+	getbackend()->Start();
+}
+
+void GUI::callback_stop() {
+	getbackend()->Stop();
+}
+
+void GUI::callback_step() {
+	getbackend()->Step();
+}
+
+void GUI::callback_reset() {
+	getbackend()->Reset();
+}
+

@@ -39,7 +39,7 @@ tablestyle * setstyle_MEM()
 			if (i < 45) sprintf(txt, "%d%d", (i<27)?0:8, (i % 2) ? 0 : 8);
 			else sprintf(txt, "%d%d", ((i-36)/9)/2, (i%2)?8:0);
 		}
-		else if (i == 17 || (i > 22 && i < 27) || i == 35 || (i > 40 && i < 49) || i > 99) {
+		else if (i == 17 || (i > 22 && i < 27) || i == 35 || (i > 40 && i < 50) || i > 99) {
 			s[i] = MEM_Uninstalled;
 			filltxt(txt, "00");
 		}
@@ -219,8 +219,6 @@ void setMEMcell(tablestyle*& mystyle, int pos, int bank, int value) {
 		pos -= 8;
 		pos = 46 + pos + (int)(pos / 8);
 	}
-	free(mystyle[pos].label);
-	mystyle[pos].label = (char*)malloc(3);
 	sprintf(mystyle[pos].label, "%02X", value);
 }
 
@@ -229,8 +227,7 @@ void setIOcell(tablestyle*& mystyle, int line, int value) {
 	char high = (line % 3 == 1) ? 'i' : '1', low = (line % 3 == 1) ? 'o' : '0';
 	int pos = (CCIO + 1) * line + 1;
 	for (int i = 0; i < CCIO; i++) {
-		free(mystyle[pos + i].label);
-		mystyle[pos + i].label = (char*)malloc(2);
+
 		sprintf(mystyle[pos + i].label, "%c", value&(1<<i)?high:low);
 	}
 }

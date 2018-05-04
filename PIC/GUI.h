@@ -17,6 +17,7 @@ class GUI;
 #include <FL\fl_ask.H>
 #include <FL\Fl_Box.H>
 #include <FL\Enumerations.H>
+#include <FL\Fl_Button.H>
 
 int __get_font_size_table_();
 
@@ -65,6 +66,7 @@ private:
 	Fl_Button* Start;
 	Fl_Button* Stop;
 	Fl_Button* Step;
+	Fl_Button* Reset;
 
 public:
 	GUI(int x = WINDOW_BASE_X_OFFSET, int y = WINDOW_BASE_Y_OFFSET, int w = GUI_STANDARD_W, int h = GUI_STANDARD_H);
@@ -82,11 +84,16 @@ public:
 	void resize(int x, int y, int w, int h);
 
 	//		All Callbacks 
-	//Callback for opneing file
+	//Callback for opening file
 	void callback_load_file();
+
 	static void window_cb(Fl_Widget*, void*);
 
-	//void callback_xy();
+	//Callbacks for controll buttons
+	void callback_start();
+	void callback_stop();
+	void callback_step();
+	void callback_reset();
 };
 
 //TODO: def in .cpp
