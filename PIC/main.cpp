@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
 	Backend* b = new Backend(new GUI());
 	while(1){
 		for(progNum = 1; progNum < 13; progNum++){
-			sprintf_s(path, 256, "..\\Debug\\Testprogramme\\TPicSim%d.LST", progNum);
+			sprintf_s(path, 256, "..\\Testprogramme\\TPicSim%d.LST", progNum);
 			b->LoadProgramm(path);
 		}
 	}
