@@ -22,6 +22,9 @@ HANDLE  hConsole;
 #define DAMAGE_GET_BITMAP_BYTE(pos)	(pos >> 3)
 #define DAMAGE_GET_BITMAP_BIT(pos)	(1 << (pos & 0x07))
 
+//TODO: komment this out....
+//#define USE_BACKEND_WITHOUT_GUI
+
 //Komment following if not wanted....
 #define USE_RANDOM_VALUES
 //TODO:
@@ -474,6 +477,7 @@ Backend::Backend(GUI* gui)
 	lastError = "Kein Fehler";
 	lastErrorLen = MSGLEN();
 	srand(time(NULL));
+	this->gui = gui;
 #ifdef USE_RANDOM_VALUES
 	regW = rand() & 0xFF;
 #else
@@ -1594,7 +1598,9 @@ void Backend::run_in_other_thread(byte modus)
 				int tmp = i << 3;
 				for (int j = 0; j < 8 && tmp + j < UC_SIZE_RAM; j++) {
 					if (damage[i] & (1 << j)) {
+#ifdef USE_BACKEND_WITHOUT_GUI
 						damage[i] &= ~(1 << j);
+#endif
 						SetConsoleTextAttribute(hConsole, COLOR_RAM_DMGD);
 					}
 					else SetConsoleTextAttribute(hConsole, COLOR_RAM_NORM);
