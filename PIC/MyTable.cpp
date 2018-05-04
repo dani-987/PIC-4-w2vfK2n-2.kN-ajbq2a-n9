@@ -5,7 +5,7 @@
 #define DEBUG_LVL_NORMAL	1
 #define DEBUG_LVL_MUCH	2
 #define DEBUG_LVL_ALL	3
-VARDEF(int, DEBUG___LVL, DEBUG_LVL_ALL);
+VARDEF(int, DEBUG___LVL, DEBUG_LVL_NORMAL);
 
 
 #define COLHEADERPOS(C) (C+((row_header())?(1):(0)))
@@ -127,7 +127,7 @@ void MyTable::event_callback2()
 	int R = callback_row(),
 		C = callback_col();
 	TableContext context = callback_context();
-	PRINTF1("'%s' callback: ", (label() ? label() : "?"));
-	PRINTF5("Row=%d Col=%d Context=%d Event=%d InteractiveResize? %d\n",
+	DOIF(DEBUG___LVL >= DEBUG_LVL_MUCH)PRINTF1("'%s' callback: ", (label() ? label() : "?"));
+	DOIF(DEBUG___LVL >= DEBUG_LVL_ALL)PRINTF5("Row=%d Col=%d Context=%d Event=%d InteractiveResize? %d\n",
 		R, C, (int)context, (int)Fl::event(), (int)is_interactive_resize());
 }
