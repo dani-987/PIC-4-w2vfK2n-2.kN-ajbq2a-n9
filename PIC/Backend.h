@@ -204,7 +204,7 @@ public:
 	bool SetRegW(byte val);
 	char* GetErrorMSG();							//nullptr possible! Remember: malloc! -> free
 	void Wait_For_End();							//joins all runnig threads and returns after all threads terminated. Do not forget to call 'Stop' before, else this function will not return!
-
+	int GetAktualCodePosition();
 
 	//following ist for internal use only and not thread-save!
 	//asm-commands:

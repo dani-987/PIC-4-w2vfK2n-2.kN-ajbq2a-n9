@@ -828,7 +828,7 @@ int Backend::GetByte(int reg, byte bank)
 		UNLOCK_MUTEX(m_lastError);
 		return -1;
 	}
-	if (reg < 0 || reg > 0x0F) {
+	if (reg < 0 || reg > 0xFF) {
 		LOCK_MUTEX(m_lastError);
 		lastError = "'reg' muss zwischen (einschlieﬂlich) 0x00 und 0xFF sein!";
 		MSGLEN();
@@ -900,7 +900,7 @@ bool Backend::SetBit(int reg, byte bank, int pos, bool val)
 		UNLOCK_MUTEX(m_lastError);
 		return -1;
 	}
-	if (reg < 0 || reg > 0x0F) {
+	if (reg < 0 || reg > 0xFF) {
 		LOCK_MUTEX(m_lastError);
 		lastError = "'reg' muss zwischen (einschlieﬂlich) 0x00 und 0xFF sein!";
 		MSGLEN();
@@ -947,7 +947,7 @@ int Backend::GetBit(int reg, byte bank, int pos)
 		UNLOCK_MUTEX(m_lastError);
 		return -1;
 	}
-	if (reg < 0 || reg > 0x0F) {
+	if (reg < 0 || reg > 0xFF) {
 		LOCK_MUTEX(m_lastError);
 		lastError = "'reg' muss zwischen (einschlieﬂlich) 0x00 und 0xFF sein!";
 		MSGLEN();
@@ -1009,6 +1009,12 @@ char * Backend::GetErrorMSG()
 void Backend::Wait_For_End()
 {
 	if (uC != nullptr && uC->joinable()) { uC->join(); delete(uC); uC = nullptr; }
+}
+
+int Backend::GetAktualCodePosition()
+{
+	if(code == nullptr || aktCode == nullptr || aktCode->guiText == nullptr) return 0;
+	return aktCode->guiText->lineNumber;
 }
 
 
