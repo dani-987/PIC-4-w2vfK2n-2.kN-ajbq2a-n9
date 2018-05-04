@@ -128,7 +128,7 @@ void Backend::reset(byte resetType)
 	ram[90] = 0x00;
 
 	this->ram_rb_cpy = ram[0x06];
-	lastInput = ram[0x06] & 0x01;
+	lastInput = ram[0x05] & 0x10;
 
 	sleep = false;
 	prescaler_timer = 0;
@@ -311,10 +311,10 @@ bool Backend::do_timer()
 		}
 		else if(ram[83] & 0x10){//0x53
 			//input changed
-			if (lastInput != ram[0x06] & 0x01) {
-				lastInput ^= 0x01;
-				//test if correct change happend (rising / falling edge [see INTEDG])
-				if ((lastInput << 6) == (ram[83] & 0x40)) {
+			if (lastInput != (ram[0x05] & 0x10)) {
+				lastInput ^= 0x10;
+				//test if correct change happend (rising / falling edge [see T0SE])
+				if (lastInput != (ram[83] & 0x10)) {
 					//with prescaler?
 					if (ram[83] & 0x04) {
 						ram[0x01]++;

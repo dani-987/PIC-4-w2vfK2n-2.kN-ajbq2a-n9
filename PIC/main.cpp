@@ -38,7 +38,7 @@ int main(int argc, char *argv[]) {
 			printProg(hConsole, b);
 			printf("\n\nopened!\n");
 			do{
-				printf("Input command (b:breakpoint,s:start,o:one-step,w:setW,r:setRam,e:exitAndLoadNewProgramm,p:printProgram):\n");
+				printf("Input command (b:breakpoint,s:start,o:one-step,w:setW,r:setRam,e:exitAndLoadNewProgramm,p:printProgram,t:toggleWDT):\n");
 				fseek(stdin,0,SEEK_END);
 				scanf("%c", &input);
 				switch(input){
@@ -46,12 +46,16 @@ int main(int argc, char *argv[]) {
 					printf("exiting actuel program!...\n");
 					input = 'e';
 					break;
+				case 't': case'T':
+					if(b->IsWatchdogEnabled())b->DisableWatchdog(),printf("Toggeling WDT... WDT is now inactive\n");
+					else b->EnableWatchdog(),printf("Toggeling WDT... WDT is now active\n");
+					break;
 				case 'b': case'B':
 					printf("Set/Unset Breakpoint! Insert line (int):\n");
 					fseek(stdin,0,SEEK_END);
 					scanf("%d", &progNum);
 					progNum = b->ToggleBreakpoint(progNum - 1);
-					printf("\nBreakpoint settet to : %d (>= 0:linenumber, -1:error, -2:breakpoint unsettet, -3 breakpoint unchanged)", (progNum < 0)?progNum:progNum+ 1);
+					printf("Breakpoint settet to : %d\n\t(>= 0:linenumber, -1:error, -2:breakpoint unsettet, -3 breakpoint unchanged)\n\n", (progNum < 0)?progNum:progNum+ 1);
 					break;
 				case 's' :case 'S':
 					printf("Starting program...");
