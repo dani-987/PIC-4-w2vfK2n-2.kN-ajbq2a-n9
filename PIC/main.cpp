@@ -19,6 +19,15 @@ void printProg(HANDLE &hConsole, Backend*& b){
 
 int main(int argc, char *argv[]) {
 	// use '//*' in folowing line for testing the backend, use '/*' for running programm with GUI
+	char path[257];
+	int progNum = 1;
+	Backend* b = new Backend(new GUI());
+	while(1){
+		for(progNum = 1; progNum < 13; progNum++){
+			sprintf_s(path, 256, "..\\Debug\\Testprogramme\\TPicSim%d.LST", progNum);
+			b->LoadProgramm(path);
+		}
+	}
 	/*
 	int progNum = 0;
 	char input = 0;
@@ -116,7 +125,7 @@ int main(int argc, char *argv[]) {
 			printf("Cannot open!\n%s", b->GetErrorMSG());
 		}
 	}while(1);
-	return true;/*/
+	return true;/* /
 	Fl::lock();
 
 	GUI* gui = new GUI();

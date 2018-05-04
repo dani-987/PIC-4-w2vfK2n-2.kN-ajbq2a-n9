@@ -10,7 +10,7 @@
 #define DEBUGLVL_NORMAL	1
 #define DEBUGLVL_MUCH	2
 #define DEBUGLVL_ALL	3
-VARDEF(int, DEBUGLVL, DEBUGLVL_NONE);
+VARDEF(int, DEBUGLVL, DEBUGLVL_NORMAL);
 
 //states of scanner/parser (both are combinated into one because the .LST-file is a context-sensitive-language)
 #define STATUS_START					0
@@ -971,18 +971,18 @@ char Compiler::getNextChar(FILE* file) {
 
 //after calling always set toFree to nullptr, if will be used later
 void Compiler::freeASM(ASM* toFree) {
-	free(toFree->code);
 	ASM_TEXT* txt = toFree->text, *tmp;
 	while (txt != nullptr) {
-		if (txt->bytecode != nullptr)free(txt->bytecode);
-		if (txt->lineOfCode != nullptr)free(txt->lineOfCode);
-		if (txt->label != nullptr)free(txt->label);
-		if (txt->asmCode != nullptr)free(txt->asmCode);
-		if (txt->comment != nullptr)free(txt->comment);
+		if (txt->bytecode != nullptr){DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF1("free(txt->bytecode = '%s')\n", txt->bytecode);free(txt->bytecode);}
+		if (txt->lineOfCode != nullptr){DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF1("free(txt->lineOfCode = '%s')\n", txt->lineOfCode);free(txt->lineOfCode);}
+		if (txt->label != nullptr){DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF1("free(txt->label = '%s')\n", txt->label);free(txt->label);}
+		if (txt->asmCode != nullptr){DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF1("free(txt->asmCode = '%s')\n", txt->asmCode);free(txt->asmCode);}
+		if (txt->comment != nullptr){DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF1("free(txt->comment = '%s')\n", txt->comment);free(txt->comment);}
 		tmp = txt->next;
 		free(txt);
 		txt = tmp;
 	}
+	free(toFree->code);
 	free(toFree);
 }
 
