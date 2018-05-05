@@ -10,7 +10,7 @@
 #define DEBUGLVL_NORMAL	1
 #define DEBUGLVL_MUCH	2
 #define DEBUGLVL_ALL	3
-VARDEF(int, DEBUGLVL, DEBUGLVL_NORMAL);
+VARDEF(int, DEBUGLVL, DEBUGLVL_NONE);
 
 //states of scanner/parser (both are combinated into one because the .LST-file is a context-sensitive-language)
 #define STATUS_START					0
@@ -26,6 +26,10 @@ VARDEF(int, DEBUGLVL, DEBUGLVL_NORMAL);
 #define STATUS_READING_ASM				10
 #define STATUS_READING_COMMENT			11
 
+#ifdef _DEBUG
+#include <Windows.h>
+int main(int argc, char *argv[]);
+#endif
 
 Compiler::Compiler()
 {
@@ -62,6 +66,10 @@ ASM * Compiler::compileFile(char * file, int memsize)
 	memset(asmcode, 0, sizeof(ASM_CODE)*memsize);
 	if (asmcode == nullptr) {
 		free(puffer);
+#ifdef _DEBUG
+		puffer = (char*) (0xFF00000 | __LINE__);
+#endif
+		puffer = nullptr;
 		this->lastError = MEMORY_MISSING;
 		fclose(f);
 		return nullptr;
@@ -72,6 +80,12 @@ ASM * Compiler::compileFile(char * file, int memsize)
 	if (retASM == nullptr) {
 		free(puffer);
 		free(asmcode);
+#ifdef _DEBUG
+		puffer = (char*) (0xFF00000 | __LINE__);
+		asmcode = (ASM_CODE*) (0xFF00000 | __LINE__);
+#endif
+		puffer = nullptr;
+		asmcode = nullptr;
 		this->lastError = MEMORY_MISSING;
 		fclose(f);
 		return nullptr;
@@ -97,13 +111,19 @@ ASM * Compiler::compileFile(char * file, int memsize)
 		}
 	}
 	free(puffer);
+#ifdef _DEBUG
+	puffer = (char*) (0xFF00000 | __LINE__);
+#endif
 	retASM->text = startLine;
 	//fill code with  nop to protect uC against nullptr-exceptions!
-	for (int i = 0; i < memsize; i++)if(asmcode[i].function == 0)asmcode[i] = { instructions::NOP, 0, 0, startLine, false };
+	//for (int i = 0; i < memsize; i++)if(asmcode[i].function == 0)asmcode[i] = { instructions::NOP, 0, 0, startLine, false };
 	fclose(f);
 	return retASM;
 ERROR_END:
 	free(puffer);
+#ifdef _DEBUG
+	puffer = (char*) (0xFF00000 | __LINE__);
+#endif
 	PRINTF1("ERROR_END in compiler; this->lastError: '%s'\n\n", this->lastError);
 	retASM->text = startLine;
 	freeASM(retASM);
@@ -916,6 +936,9 @@ bool Compiler::appendToString(scannerstring** string, scannerstring** aktPosInSt
 	if (*string == nullptr) { DOIF(DEBUGLVL >= DEBUGLVL_MUCH)PRINTF("NEW STRING\n"); *string = append; len = 1; }
 	else if (aktPosInString == nullptr) {
 		free(append);
+#ifdef _DEBUG
+		append = (scannerstring*) (0xFF00000 | __LINE__);
+#endif
 		this->lastError = "Error in Calling Function 'appendToString'.";
 		return false;
 	}
@@ -940,6 +963,9 @@ char* Compiler::scannerString2PChar(scannerstring* string, int len) {
 		tmpRet++;
 		tmpString = string->next;
 		free(string);
+#ifdef _DEBUG
+		string = (scannerstring*) (0xFF00000 | __LINE__);
+#endif
 		string = tmpString;
 	}
 	*tmpRet = 0;
@@ -951,6 +977,9 @@ void Compiler::freeScannerString(scannerstring* toFree) {
 	while (toFree != nullptr) {
 		tmp = toFree->next;
 		free(toFree);
+#ifdef _DEBUG
+		toFree = (scannerstring*) (0xFF00000 | __LINE__);
+#endif
 		toFree = tmp;
 	}
 }
@@ -973,17 +1002,24 @@ char Compiler::getNextChar(FILE* file) {
 void Compiler::freeASM(ASM* toFree) {
 	ASM_TEXT* txt = toFree->text, *tmp;
 	while (txt != nullptr) {
-		if (txt->bytecode != nullptr){DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF1("free(txt->bytecode = '%s')\n", txt->bytecode);free(txt->bytecode);}
-		if (txt->lineOfCode != nullptr){DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF1("free(txt->lineOfCode = '%s')\n", txt->lineOfCode);free(txt->lineOfCode);}
-		if (txt->label != nullptr){DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF1("free(txt->label = '%s')\n", txt->label);free(txt->label);}
-		if (txt->asmCode != nullptr){DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF1("free(txt->asmCode = '%s')\n", txt->asmCode);free(txt->asmCode);}
-		if (txt->comment != nullptr){DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF1("free(txt->comment = '%s')\n", txt->comment);free(txt->comment);}
+		if (txt->bytecode != nullptr){DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF1("free(txt->bytecode = '%s')\n", txt->bytecode);free(txt->bytecode);}else{DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF("not freeing (txt->bytecode (nullptr))\n");}
+		if (txt->lineOfCode != nullptr){DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF1("free(txt->lineOfCode = '%s')\n", txt->lineOfCode);free(txt->lineOfCode);}else{DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF("not freeing (txt->lineOfCode (nullptr))\n");}
+		if (txt->label != nullptr){DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF1("free(txt->label = '%s')\n", txt->label);free(txt->label);}else{DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF("not freeing (txt->label (nullptr))\n");}
+		if (txt->asmCode != nullptr){DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF1("free(txt->asmCode = '%s')\n", txt->asmCode);free(txt->asmCode);}else{DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF("not freeing (txt->asmCode (nullptr))\n");}
+		if (txt->comment != nullptr){DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF1("free(txt->comment = '%s')\n", txt->comment);free(txt->comment);}else{DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF("not freeing (txt->comment (nullptr))\n");}
 		tmp = txt->next;
 		free(txt);
+#ifdef _DEBUG
+	txt = (ASM_TEXT*) (0xFF00000 | __LINE__);
+#endif
 		txt = tmp;
 	}
 	free(toFree->code);
 	free(toFree);
+#ifdef _DEBUG
+	toFree->code = (ASM_CODE*) (0xFF00000 | __LINE__);
+	toFree = (ASM*) (0xFF00000 | __LINE__);
+#endif
 }
 
 char * Compiler::getCompilerError()

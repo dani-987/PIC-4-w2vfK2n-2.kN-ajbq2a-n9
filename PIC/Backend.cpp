@@ -109,6 +109,9 @@ void Backend::reset(byte resetType)
 		STACK* tmp = functionStack;
 		functionStack = functionStack->next;
 		free(tmp);
+#ifdef _DEBUG
+		tmp = (STACK*) (0xFF00000 | __LINE__);
+#endif
 	}
 	stackSize = 0;
 
@@ -522,7 +525,11 @@ Backend::~Backend()
 	stopAndWait();
 	free(eeprom);
 	free(ram);
-	if (functionStack != nullptr)free(functionStack);//todo
+#ifdef _DEBUG
+		eeprom = (char*) (0xFF00000 | __LINE__);
+		ram = (byte*) (0xFF00000 | __LINE__);
+#endif
+	//if (functionStack != nullptr)free(functionStack);//todo
 	if (code != nullptr) Compiler::freeASM(code); 
 }
 
@@ -571,6 +578,9 @@ void Backend::FreeProgrammText(ASM_TEXT *& prog)
 		if(tmp->bytecode != nullptr)free(tmp->bytecode);
 		if(tmp->lineOfCode != nullptr)free(tmp->lineOfCode);
 		free(tmp);
+#ifdef _DEBUG
+		tmp = (ASM_TEXT*) (0xFF00000 | __LINE__);
+#endif
 	}
 }
 
@@ -1387,6 +1397,9 @@ int Backend::RETFIE(void*ign1, void*ign2) {
 	aktCode = functionStack->jumpTo;
 	functionStack = functionStack->next;
 	free(oldStack);
+#ifdef _DEBUG
+		oldStack = (STACK*) (0xFF00000 | __LINE__);
+#endif
 	if (stopAtStackZero > 0)stopAtStackZero--;
 	ram[0x0B] |= 0x80;
 	damageByte(0x0B);
@@ -1402,6 +1415,9 @@ int Backend::RETLW(void*k, void*ign) {
 	aktCode = functionStack->jumpTo;
 	functionStack = functionStack->next;
 	free(oldStack);
+#ifdef _DEBUG
+		oldStack = (STACK*) (0xFF00000 | __LINE__);
+#endif
 	if (stopAtStackZero > 0)stopAtStackZero--;
 	regW = ((char)k);
 	return 2;
@@ -1416,6 +1432,9 @@ int Backend::RETURN(void*ign1, void*ign2) {
 	aktCode = functionStack->jumpTo;
 	functionStack = functionStack->next;
 	free(oldStack);
+#ifdef _DEBUG
+		oldStack = (STACK*) (0xFF00000 | __LINE__);
+#endif
 	if (stopAtStackZero > 0)stopAtStackZero--;
 	return 2; 
 }
