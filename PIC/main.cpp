@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
 		printf("\nSelect Program (int)... \n");
 		scanf("%d", &progNum);
 		fseek(stdin,0,SEEK_END);
-		sprintf_s(path, 256, "..\\Debug\\Testprogramme\\TPicSim%d.LST", progNum);
+		sprintf_s(path, 256, "..\\Testprogramme\\TPicSim%d.LST", progNum);
 		printf("\nOpening '%s'...\n", path);
 		if(b->LoadProgramm(path)){
 			printProg(hConsole, b);
