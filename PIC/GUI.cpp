@@ -52,6 +52,12 @@ namespace gui_callbacks {
 	void Stop(Fl_Widget *, void *);
 	void Step(Fl_Widget *, void *);
 	void Reset(Fl_Widget *, void *);
+	void setRate_s1(Fl_Widget *, void *);
+	void setRate_s2(Fl_Widget *, void *);
+	void setRate_s3(Fl_Widget *, void *);
+	void setRate_s4(Fl_Widget *, void *);
+	void setWatchdog(Fl_Widget *, void *);
+	void donothing(Fl_Widget *, void *);
 }
 
 //Generates the GUI initial and creates the Backend
@@ -67,7 +73,24 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 	*/
 
 	//create Menubar
+	//Structure of the Menu. Components of each item: label, shortcut, callback, value, Flag (Optinal)
+	//Fl_Menu_Item menutable[] = {
+	//	{ "&Datei", 0, gui_callbacks::donothing, 0, FL_SUBMENU },
+	//		{ "&Lade Datei", 0, gui_callbacks::loadFile, this },
+	//		{0},
+	//	{ "Optionen", 0, gui_callbacks::donothing, 0, FL_SUBMENU },
+	//		{ "Taktrate", 0, gui_callbacks::donothing, 0, FL_SUBMENU },
+	//			{ "Speed 1", 0, gui_callbacks::setRate_s1, this, FL_MENU_RADIO | FL_MENU_VALUE} , //Default Speed
+	//			{ "Speed 2", 0, gui_callbacks::setRate_s2, this, FL_MENU_RADIO },
+	//			{ "Speed 3", 0, gui_callbacks::setRate_s3, this, FL_MENU_RADIO },
+	//			{ "Speed 4", 0, gui_callbacks::setRate_s4, this, FL_MENU_RADIO },
+	//			{0},
+	//		{ "Watchdog", 0, gui_callbacks::setWatchdog, this, FL_MENU_TOGGLE },
+	//	{0}
+	//};
+
 	menubar = new Fl_Menu_Bar(X_MENUBAR, Y_MENUBAR, W_MENUBAR, H_MENUBAR);
+	//menubar->menu(menutable);
 	menubar->add("&Datei/&Lade Datei", nullptr, gui_callbacks::loadFile, this);
 
 	//Fl::scheme(SCHEME);
@@ -414,6 +437,28 @@ void gui_callbacks::Reset(Fl_Widget *w, void *gui) {
 	((GUI*)gui)->callback_reset();
 }
 
+void gui_callbacks::setRate_s1(Fl_Widget *w, void *gui) {
+	((GUI*)gui)->callback_settact(0);
+}
+
+void gui_callbacks::setRate_s2(Fl_Widget *w, void *gui) {
+	((GUI*)gui)->callback_settact(1);
+}
+
+void gui_callbacks::setRate_s3(Fl_Widget *w, void *gui) {
+	((GUI*)gui)->callback_settact(2);
+}
+
+void gui_callbacks::setRate_s4(Fl_Widget *w, void *gui) {
+	((GUI*)gui)->callback_settact(3);
+}
+
+void gui_callbacks::setWatchdog(Fl_Widget *w, void *gui) {
+	((GUI*)gui)->callback_watchdog();
+}
+
+void gui_callbacks::donothing(Fl_Widget *, void *){}
+
 void GUI::callback_load_file(){
 	if (chooser->show() != 0)return;
 	PRINTF1("Chosen File: '%s'", chooser->filename());
@@ -452,3 +497,9 @@ void GUI::callback_reset() {
 	getbackend()->Reset();
 }
 
+void GUI::callback_settact(int freq) {
+
+}
+void GUI::callback_watchdog() {
+
+}
