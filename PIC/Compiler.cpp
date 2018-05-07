@@ -973,11 +973,23 @@ char Compiler::getNextChar(FILE* file) {
 void Compiler::freeASM(ASM* toFree) {
 	ASM_TEXT* txt = toFree->text, *tmp;
 	while (txt != nullptr) {
-		if (txt->bytecode != nullptr){DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF1("free(txt->bytecode = '%s')\n", txt->bytecode);free(txt->bytecode);}
-		if (txt->lineOfCode != nullptr){DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF1("free(txt->lineOfCode = '%s')\n", txt->lineOfCode);free(txt->lineOfCode);}
-		if (txt->label != nullptr){DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF1("free(txt->label = '%s')\n", txt->label);free(txt->label);}
-		if (txt->asmCode != nullptr){DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF1("free(txt->asmCode = '%s')\n", txt->asmCode);free(txt->asmCode);}
-		if (txt->comment != nullptr){DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF1("free(txt->comment = '%s')\n", txt->comment);free(txt->comment);}
+		if (txt->bytecode != nullptr){
+			DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF1("free(txt->bytecode = '%s')\n", txt->bytecode);
+			free(txt->bytecode);
+		}
+		if (txt->lineOfCode != nullptr){
+			DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF1("free(txt->lineOfCode = '%s')\n", txt->lineOfCode);
+			free(txt->lineOfCode);
+		}
+		if (txt->label != nullptr){
+			DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF1("free(txt->label = '%s')\n", txt->label);
+			free(txt->label);}
+		if (txt->asmCode != nullptr){
+			DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF1("free(txt->asmCode = '%s')\n", txt->asmCode);
+			free(txt->asmCode);}
+		if (txt->comment != nullptr){
+			DOIF(DEBUGLVL >= DEBUGLVL_NORMAL)PRINTF1("free(txt->comment = '%s')\n", txt->comment);
+			free(txt->comment);}
 		tmp = txt->next;
 		free(txt);
 		txt = tmp;
