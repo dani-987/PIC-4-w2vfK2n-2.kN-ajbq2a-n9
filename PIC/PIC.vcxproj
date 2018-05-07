@@ -140,6 +140,7 @@
       <AdditionalDependencies>Shlwapi.lib;fltk.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
       <Command>

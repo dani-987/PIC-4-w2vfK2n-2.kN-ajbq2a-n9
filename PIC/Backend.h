@@ -25,7 +25,7 @@ class Backend;
 
 #define STACK_SIZE		8
 
-#define UC_STANDARD_SPEED	1000		//in us
+#define UC_STANDARD_SPEED	10		//in 100*ns (min 4)
 
 #if UC_SIZE_RAM % 8 == 0
 #define UC_DAMAGE_SIZE		(UC_SIZE_RAM / 8)
@@ -119,7 +119,7 @@ private:
 
 	STACK* functionStack;
 	size_t stackSize;
-	size_t stopAtStackZero;
+	int stopAtStackZero;
 
 	std::thread* uC;
 	bool isRunning;
@@ -131,13 +131,14 @@ private:
 
 	byte* ram;
 	byte ram_rb_cpy;
+	bool written_to_PCL;
 	bitmap8_t damage[UC_DAMAGE_SIZE];
 	size_t countDamaged, posReadingDamage;
 	bool reloadCalled, ignoreBreakpoint;
 	size_t sleeptime;
 	bool sleep;
 	size_t prescaler_timer;
-	size_t eeprom_write_time;
+	int eeprom_write_time;
 	byte eeprom_write_state;
 	unsigned long long time_eeprom_error_write;	//used for write errors at much write cycles
 	byte eeprom_wr_addr;						//needed for wirte errors
@@ -194,7 +195,7 @@ public:
 	long long ToggleBreakpoint(size_t textline);	//returns -1 on error, -2 if breakpoint was unsettet, -3 if breakpoints were unchanged, else the line, where the breakpoint was set
 	Breakpointlist* GetBreakpoints();				//returns nullptr on empty list (NOT ERROR!), new! -> freeBreakpoints()
 	void FreeBreakpoints(Breakpointlist*& list);	//frees the datastructure returned by GetBreakpionts()
-	void SetCommandSpeed(size_t speed);				//standard speed: 'UC_STANDARD_SPEED' (in ns)
+	void SetCommandSpeed(size_t speed);				//standard speed: 'UC_STANDARD_SPEED' (in 100*ns, min 4 * 100*ns)
 	bool Reset();
 	int  GetByte(int reg, byte bank);				//bank: 0 or 1
 	bool SetByte(int reg, byte bank, byte val);		//bank: 0 or 1
@@ -256,3 +257,4 @@ public:
 #endif
 };
 
+void printProgramRam(Backend* b);

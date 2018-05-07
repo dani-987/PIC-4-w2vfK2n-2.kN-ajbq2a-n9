@@ -11,6 +11,9 @@
 #include <Windows.h>	
 HANDLE  hConsole;
 
+//TODO: interrupts: werden die -F Flags gesetzt, auch wenn die -E nicht gesetzt sind?
+//im sleep müssen auch die -E Flags gestetzt werden, damit der uC aufwacht?! vgl. Prog 9, dort werden die nicht gesetzt, es soll aber durch IE aufwachen...
+
 #define COLOR_RAM_HEAD	0xF0
 #define COLOR_RAM_NORM	0x70
 #define COLOR_RAM_DMGD	0x7C
@@ -23,10 +26,11 @@ HANDLE  hConsole;
 #define DAMAGE_GET_BITMAP_BIT(pos)	(1 << (pos & 0x07))
 
 //TODO: komment this out....
-//#define USE_BACKEND_WITHOUT_GUI
+#define USE_BACKEND_WITHOUT_GUI
 
 //Komment following if not wanted....
 #define USE_RANDOM_VALUES
+//#define USE_EEPROM_WRITE_ERRORS
 //TODO:
 
 //DC und C bei Subtraktion (Prog3)
@@ -50,7 +54,10 @@ HANDLE  hConsole;
 #define DEBUG_RAM	4
 #define DEBUG_ALL	5
 
-VARDEF(int, DEBUG_LVL, DEBUG_RAM);
+//PC := 250 -> PC+=5, PCH: 0/1?
+//Wird PCH geändert?
+
+VARDEF(int, DEBUG_LVL, DEBUG_NONE);
 
 #ifdef _DEBUG
 void Backend::set_DEBUG_ONLY_TESTING(int state)
@@ -78,7 +85,15 @@ byte & Backend::getCell_unsafe(byte pos, bool dmg)
 		tmp = 0;
 		return tmp;
 	}
-	else if (pos >= 0x0A || (pos >= 0x02 && pos <= 0x04)) { 
+	else if(pos == 0x02){
+		if(dmg){
+			damageByte(pos);
+			written_to_PCL = true;
+			ram[pos]++;
+		}
+		return ram[pos]; 
+	}
+	else if (pos >= 0x0A || (pos > 0x02 && pos <= 0x04)) { 
 		if(dmg)damageByte(pos);
 		return ram[pos]; 
 	}
@@ -109,6 +124,9 @@ void Backend::reset(byte resetType)
 		STACK* tmp = functionStack;
 		functionStack = functionStack->next;
 		free(tmp);
+#ifdef _DEBUG
+		tmp = (STACK*) (0xFF00000 | __LINE__);
+#endif
 	}
 	stackSize = 0;
 
@@ -132,7 +150,8 @@ void Backend::reset(byte resetType)
 
 	this->ram_rb_cpy = ram[0x06];
 	lastInput = ram[0x05] & 0x10;
-
+	
+	written_to_PCL = true;
 	sleep = false;
 	prescaler_timer = 0;
 	time_eeprom_error_write = 0;
@@ -238,10 +257,9 @@ bool Backend::do_interrupts(int& needTime)
 	}
 	byte _tmpByte = ram[0x0B];
 	//RBIF in INTCON
-	if ((this->ram_rb_cpy & 0xF0) != (ram[0x06] & 0xF0)) { ram[0x0B] |= 0x01; damageByte(0x0B); }
+	if ((this->ram_rb_cpy & 0xF0 & ram[88]) != (ram[0x06] & 0xF0 & ram[88])) { ram[0x0B] |= 0x01; damageByte(0x0B); }
 	//INTF if RB0/INT (check if on change or on set...)
-	if ((this->ram_rb_cpy & 0x01) != (ram[0x06] & 0x01)) { 
-		ram[0x0B] |= 0x02;  damageByte(0x0B);}
+	if (((this->ram_rb_cpy & 0x01) != (ram[0x06] & 0x01)) && ((ram[0x06] & 0x01) == ((ram[83] >> 6) & 0x01))) { ram[0x0B] |= 0x02;  damageByte(0x0B);}
 	this->ram_rb_cpy = ram[0x06];
 	_tmpByte = ram[0x0B];
 	//if GIE or sleeping have to check interrupts....
@@ -322,7 +340,7 @@ bool Backend::do_timer()
 					if (ram[83] & 0x04) {
 						ram[0x01]++;
 						damageByte(0x01);
-						if (ram[0x01] == 0) { ram[0x0B] |= 0x04;  damageByte(0x0B);}	//set interrupt
+						if ((ram[0x01] == 0)) { ram[0x0B] |= 0x04;  damageByte(0x0B);}	//set interrupt
 					}
 					else {
 						prescaler_timer++;
@@ -331,7 +349,7 @@ bool Backend::do_timer()
 							prescaler_timer = 0;
 							ram[0x01]++;
 							damageByte(0x01);
-							if (ram[0x01] == 0) { ram[0x0B] |= 0x04;  damageByte(0x0B);}	//set interrupt
+							if ((ram[0x01] == 0)) { ram[0x0B] |= 0x04;  damageByte(0x0B);}	//set interrupt
 						}
 					}
 				}
@@ -342,7 +360,7 @@ bool Backend::do_timer()
 			if (ram[83] & 0x04) {
 				ram[0x01]++; 
 				damageByte(0x01);
-				if (ram[0x01] == 0) { ram[0x0B] |= 0x04;  damageByte(0x0B); }	//set interrupt
+				if ((ram[0x01] == 0)) { ram[0x0B] |= 0x20;  damageByte(0x0B); }	//set interrupt
 			}
 			else {
 				prescaler_timer++;
@@ -351,7 +369,7 @@ bool Backend::do_timer()
 					prescaler_timer = 0;
 					ram[0x01]++;
 					damageByte(0x01);
-					if (ram[0x01] == 0) { ram[0x0B] |= 0x04; damageByte(0x0B); }	//set interrupt
+					if ((ram[0x01] == 0)) { ram[0x0B] |= 0x04; damageByte(0x0B); }	//set interrupt
 				}
 			}
 		}
@@ -377,14 +395,15 @@ bool Backend::do_eeprom()
 	}
 	if (eeprom_wr) {
 		ram[90] |= 0x20;
-		if (ram[90] & 0x04) {
-			eeprom_write_time--;
-			if (eeprom_write_time) {
+		//if (ram[90] & 0x04) {
+			eeprom_write_time-=sleeptime;
+			if (eeprom_write_time <= 0) {
 				//write eeprom
-				ram[90] &= ~0x20;
+				ram[90] &= ~0x02;
 				eeprom_wr = false;
 				ram[90] |= 0x10;
 				damageByte(90);
+#ifdef USE_EEPROM_WRITE_ERRORS
 				if (eeprom_write_time < 5) {	//cause a biterror at eeprom write because the eeprom is used much
 					byte tmp = eeprom[eeprom_wr_addr];
 					eeprom[eeprom_wr_addr] &= rand() & 0xFF;
@@ -394,10 +413,11 @@ bool Backend::do_eeprom()
 					}
 					//else;	//biterror donot changed value....
 				}
+#endif
 			}
-		}
+		//}
 	}
-	else if (ram[90] & 0x20) {
+	else if (ram[90] & 0x04 && ram[90] & 0x02) {
 		if (eeprom_write_state == 2) {
 			eeprom_write_state = 0;
 			eeprom_wr = true;
@@ -406,7 +426,7 @@ bool Backend::do_eeprom()
 
 			eeprom_wr_addr = ram[0x09];
 			eeprom[eeprom_wr_addr] = ram[0x08];
-			eeprom_write_time = 8 + rand() % 13;	//typical write time: 10ms, max: 20ms (one operation: 1ms)
+			eeprom_write_time = 8000 + rand() % 12000;	//typical write time: 10ms, max: 20ms (one operation: 1ms)
 		}
 		else {
 			lastError = "To write EEPROM first set WREN bit in EECON1, then write 0x55 and later 0xAA into EECON2 before setting WR bit in EECON1!";
@@ -437,11 +457,11 @@ bool Backend::do_wdt()
 		//if wdt_prescaler >= settet prescaler
 		if (wdt_prescaler >= (1 << (ram[83] & 0x07))) {
 			wdt_prescaler = 0;
-			wdt_timer--;
+			wdt_timer-=sleeptime;
 		}
 	}
 	else {
-		wdt_timer--;
+		wdt_timer-=sleeptime;
 	}
 	if (wdt_timer <= 0) {
 		wdt_int_accured = true;
@@ -453,7 +473,7 @@ bool Backend::do_wdt()
 void Backend::reset_wdt()
 {
 	wdt_prescaler = 0;
-	wdt_timer = 17 + rand() % 3;	//wdt is _ABOUT_ 18ms
+	wdt_timer = 170000 + rand() % 50000;	//wdt is _ABOUT_ 18ms
 }
 
 void Backend::damageByte(size_t pos)
@@ -522,7 +542,11 @@ Backend::~Backend()
 	stopAndWait();
 	free(eeprom);
 	free(ram);
-	if (functionStack != nullptr)free(functionStack);//todo
+#ifdef _DEBUG
+		eeprom = (char*) (0xFF00000 | __LINE__);
+		ram = (byte*) (0xFF00000 | __LINE__);
+#endif
+	//if (functionStack != nullptr)free(functionStack);//todo
 	if (code != nullptr) Compiler::freeASM(code); 
 }
 
@@ -571,6 +595,9 @@ void Backend::FreeProgrammText(ASM_TEXT *& prog)
 		if(tmp->bytecode != nullptr)free(tmp->bytecode);
 		if(tmp->lineOfCode != nullptr)free(tmp->lineOfCode);
 		free(tmp);
+#ifdef _DEBUG
+		tmp = (ASM_TEXT*) (0xFF00000 | __LINE__);
+#endif
 	}
 }
 
@@ -894,7 +921,7 @@ bool Backend::SetBit(int reg, byte bank, int pos, bool val)
 		MSGLEN();
 		PRINTF1("bool Backend::SetBit(int reg, byte bank, int pos, bool val):\n\t'pos' muss zwischen (einschließlich) 0 und 7 sein und ist %d!\n", pos);
 		UNLOCK_MUTEX(m_lastError);
-		return -1;
+		return false;
 	}
 	if (bank > 1 || bank < 0) {
 		LOCK_MUTEX(m_lastError);
@@ -902,7 +929,7 @@ bool Backend::SetBit(int reg, byte bank, int pos, bool val)
 		MSGLEN();
 		PRINTF1("bool Backend::SetBit(int reg, byte bank, int pos, bool val):\n\t'bank' muss 1 oder 0 sein und ist %d!\n", bank);
 		UNLOCK_MUTEX(m_lastError);
-		return -1;
+		return false;
 	}
 	if (reg < 0 || reg > 0xFF) {
 		LOCK_MUTEX(m_lastError);
@@ -910,7 +937,7 @@ bool Backend::SetBit(int reg, byte bank, int pos, bool val)
 		MSGLEN();
 		PRINTF1("bool Backend::SetBit(int reg, byte bank, int pos, bool val):\n\t'reg' muss zwischen (einschließlich) 0x00 und 0xFF sein und ist %d!\n", reg);
 		UNLOCK_MUTEX(m_lastError);
-		return -1;
+		return false;
 	}
 #endif
 	int tmp;
@@ -941,7 +968,7 @@ int Backend::GetBit(int reg, byte bank, int pos)
 		MSGLEN();
 		PRINTF1("int Backend::GetBit(int reg, byte bank, int pos):\n\t'pos' muss zwischen (einschließlich) 0 und 7 sein und ist %d!\n", pos);
 		UNLOCK_MUTEX(m_lastError);
-		return -1;
+		return false;
 	}
 	if (bank > 1 || bank < 0) {
 		LOCK_MUTEX(m_lastError);
@@ -949,7 +976,7 @@ int Backend::GetBit(int reg, byte bank, int pos)
 		MSGLEN();
 		PRINTF1("int Backend::GetBit(int reg, byte bank, int pos):\n\t'bank' muss 1 oder 0 sein und ist %d!\n", bank);
 		UNLOCK_MUTEX(m_lastError);
-		return -1;
+		return false;
 	}
 	if (reg < 0 || reg > 0xFF) {
 		LOCK_MUTEX(m_lastError);
@@ -957,7 +984,7 @@ int Backend::GetBit(int reg, byte bank, int pos)
 		MSGLEN();
 		PRINTF1("int Backend::GetBit(int reg, byte bank, int pos):\n\t'reg' muss zwischen (einschließlich) 0x00 und 0xFF sein und ist %d!\n", reg);
 		UNLOCK_MUTEX(m_lastError);
-		return -1;
+		return false;
 	}
 #endif
 	int tmp;
@@ -1254,9 +1281,9 @@ int Backend::SUBWF(void*f, void*d) {
 	byte &cell = getCell_unsafe((int)f, d);
 	byte tmpCell = cell;
 	int tmp = (((int)(cell & 0xFF)) - ((int)(regW & 0xFF)));
-	if (tmp >= 0)ram[BYTE_C] |= BIT_C;
+	if ((tmp >= 0) && (regW != 0))ram[BYTE_C] |= BIT_C;
 	else ram[BYTE_C] &= ~BIT_C;
-	if ((((char)(tmpCell & 0x0F)) - ((char)(regW & 0x0F))) >= 0)ram[BYTE_DC] |= BIT_DC;
+	if (((((char)(tmpCell & 0x0F)) - ((char)(regW & 0x0F))) >= 0) && ((regW & 0xFF) != 0))ram[BYTE_DC] |= BIT_DC;
 	else ram[BYTE_DC] &= ~BIT_DC;
 	tmp &= 0xFF;
 	if (tmp)ram[BYTE_Z] &= ~BIT_Z;
@@ -1348,7 +1375,7 @@ int Backend::CALL(void*k, void*ign) {
 	newAdress->jumpTo = aktCode + 1;
 	newAdress->next = functionStack;
 	functionStack = newAdress;
-	aktCode = &(code->code[(int)k]);
+	aktCode = &(code->code[((int)k & 0x07FF) | (((int)ram[0x0A] & 0x18) << 8)]);
 	if (stopAtStackZero >= 0)stopAtStackZero++;
 	return 2;
 }
@@ -1361,7 +1388,7 @@ int Backend::CLRWDT(void*ign1, void*ign2) {
 	return 1;
 }
 int Backend::GOTO(void*k, void*ign) { 
-	aktCode = &(code->code[(int)k]);
+	aktCode = &(code->code[((int)k & 0x07FF) | (((int)ram[0x0A] & 0x0018) << 8)]);
 	return 2;
 }
 int Backend::IORLW(void*k, void*ign) { 
@@ -1387,6 +1414,9 @@ int Backend::RETFIE(void*ign1, void*ign2) {
 	aktCode = functionStack->jumpTo;
 	functionStack = functionStack->next;
 	free(oldStack);
+#ifdef _DEBUG
+		oldStack = (STACK*) (0xFF00000 | __LINE__);
+#endif
 	if (stopAtStackZero > 0)stopAtStackZero--;
 	ram[0x0B] |= 0x80;
 	damageByte(0x0B);
@@ -1402,6 +1432,9 @@ int Backend::RETLW(void*k, void*ign) {
 	aktCode = functionStack->jumpTo;
 	functionStack = functionStack->next;
 	free(oldStack);
+#ifdef _DEBUG
+		oldStack = (STACK*) (0xFF00000 | __LINE__);
+#endif
 	if (stopAtStackZero > 0)stopAtStackZero--;
 	regW = ((char)k);
 	return 2;
@@ -1416,6 +1449,9 @@ int Backend::RETURN(void*ign1, void*ign2) {
 	aktCode = functionStack->jumpTo;
 	functionStack = functionStack->next;
 	free(oldStack);
+#ifdef _DEBUG
+		oldStack = (STACK*) (0xFF00000 | __LINE__);
+#endif
 	if (stopAtStackZero > 0)stopAtStackZero--;
 	return 2; 
 }
@@ -1431,9 +1467,9 @@ int Backend::SLEEP(void*ign1, void*ign2) {
 }
 int Backend::SUBLW(void*k, void*ign) { 
 	int tmpW = (((char)k & 0xFF) - (regW & 0xFF));
-	if (tmpW >= 0)ram[BYTE_C] |= BIT_C;
+	if ((tmpW >= 0) && (regW != 0))ram[BYTE_C] |= BIT_C;
 	else ram[BYTE_C] &= ~BIT_C;
-	if ((((char)((char)k & 0x0F)) - ((char)(regW & 0x0F))) >= 0)ram[BYTE_DC] |= BIT_DC;
+	if (((((char)((char)k & 0x0F)) - ((char)(regW & 0x0F))) >= 0) && ((regW & 0x0F) != 0))ram[BYTE_DC] |= BIT_DC;
 	else ram[BYTE_DC] &= ~BIT_DC;
 	regW = tmpW & 0xFF;
 	if (tmpW)ram[BYTE_Z] &= ~BIT_Z;
@@ -1520,16 +1556,22 @@ void Backend::run_in_other_thread(byte modus)
 		DOIF(DEBUG_LVL >= DEBUG_ALL)PRINTF1("LOCKED MUTEXES in LINE %d\n", __LINE__);
 
 		//Programmcounter -> Pointer
-		int PC = ((ram[PCH] & 0x1F) << 8) | (ram[PCL]);
-		if (PC >= UC_SIZE_PROGRAM) {
-			reset(RESET_POWER_UP);
-			isRunning = false;
-			lastError = "Programmcounter ist außerhalb des Programmspeichers!";
-			errorInThreadHappend = true;
-			MSGLEN();
-			PRINTF("Programmcounter ist außerhalb des Programmspeichers!\n");
+		if(written_to_PCL){
+			int PC = ((ram[PCH] & 0x1F) << 8) | (ram[PCL]);
+			if (PC >= UC_SIZE_PROGRAM) {
+				reset(RESET_POWER_UP);
+				isRunning = false;
+				lastError = "Programmcounter ist außerhalb des Programmspeichers!";
+				errorInThreadHappend = true;
+				MSGLEN();
+				PRINTF("Programmcounter ist außerhalb des Programmspeichers!\n");
+			}
+			aktCode = &(code->code[PC]);
 		}
-		aktCode = &(code->code[PC]);
+		else{
+			if(aktCode - &code->code[0] >= UC_SIZE_PROGRAM)aktCode = &code->code[0];
+		}
+		written_to_PCL = false;
 
 		if(aktCode->breakpoint & !ignoreBreakpoint){
 			DOIF(DEBUG_LVL >= DEBUG_ALL)PRINTF1("UNLOCKING MUTEXES in LINE %d\n", __LINE__);
@@ -1569,11 +1611,11 @@ void Backend::run_in_other_thread(byte modus)
 		}
 
 		//Pointer -> Programmcounter
-		PC = (aktCode - &(code->code[0])) % UC_SIZE_PROGRAM;
-		ram[PCH] = (PC >> 8) & 0x1F;
-		ram[PCL] = PC & 0xFF;
-		damageByte(PCH);
-		damageByte(PCL);
+		if(!written_to_PCL){
+			int PC = (aktCode - &(code->code[0])) % UC_SIZE_PROGRAM;
+			ram[PCL] = PC & 0xFF;
+			damageByte(PCL);
+		}
 
 		//clear "read as '0'"-bits...
 		ram[0x05] &= 0x1F;
@@ -1641,15 +1683,15 @@ void Backend::run_in_other_thread(byte modus)
 		if (!errorInThreadHappend && needTime >= 1) {
 			UNLOCK_MUTEX(m_lastError);
 			runtime += needTime;
-			needTime = (needTime * sleeptime);
+			long long needTime_64 = ((long long)needTime * (long long)sleeptime * (long long)100);	//in ns
 
 			//wait for the correct time
 			auto end_time = std::chrono::high_resolution_clock::now();
 			auto time = end_time - start_time;
-			needTime -= (time.count() / 1000);
-			if (needTime <= 0)needTime = 1;
-			std::this_thread::sleep_for(std::chrono::microseconds(needTime));
-			DOIF(DEBUG_LVL >= DEBUG_MORE)PRINTF1("Sleeping for %d us\n", needTime);
+			needTime_64 -= time.count();
+			if (needTime_64 <= 0)needTime = 1;
+			std::this_thread::sleep_for(std::chrono::nanoseconds(needTime_64));
+			DOIF(DEBUG_LVL >= DEBUG_MORE)PRINTF1("Sleeping for %d us\n", needTime_64);
 		}
 		else UNLOCK_MUTEX(m_lastError);
 
