@@ -160,8 +160,10 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 	registers = (Fl_Box**)malloc(sizeof(Fl_Box*) * BOXES);
 
 	//The boxes are initialy setup with boxes of size 0. Their proper size is set in GUI::resize
+	Fl_Box* tempreg;
 	for (int i = 0; i < BOXES; i++) {
-		registers[i] = new Fl_Box(FL_NO_BOX, w, h, 0, 0, "");
+		tempreg = new Fl_Box(FL_NO_BOX, w, h, 0, 0, "");
+		registers[i] = tempreg;
 		setregbox(registers[i], i, 0);
 	}
 
@@ -203,6 +205,8 @@ int GUI::run()
 //#######################################################################################
 //#######################################################################################
 
+
+//Todo: Update PC properly
 void GUI::int_updateAll()
 {
 	backend->StartedUpdating();
@@ -213,13 +217,19 @@ void GUI::int_updateAll()
 	for (int i = 1; i < 0x0C; i++) {
 		value = getbackend()->GetByte(i, 0); 
 		switch (i) {
+			//update the Special begister boxes and the mirrored entries in bank 1 in teh MEM-Table
 		case 0x02:
 			setregbox(registers[3], 3, value);
 			setregbox(registers[5], 5, value + ((getbackend()->GetByte(i, 0) << 8)));
+			setMEMcell(Mem_table->getstyle(), i, 1, value);
 			break;
 		case 0x03:
 			setregbox(registers[1], 1, value);
 			setregbox(registers[2], 2, value);
+			setMEMcell(Mem_table->getstyle(), i, 1, value);
+			break;
+		case 0x04:
+			setMEMcell(Mem_table->getstyle(), i, 1, value);
 			break;
 		case 0x05:
 			setIOcell(IO_table->getstyle(), 2, value);
@@ -229,10 +239,12 @@ void GUI::int_updateAll()
 			break;
 		case 0x0A:
 			setregbox(registers[4], 4, value);
+			setMEMcell(Mem_table->getstyle(), i, 1, value);
 			break;
 		case 0x0B:
 			setregbox(registers[8], 8, value);
 			setregbox(registers[9], 9, value);
+			setMEMcell(Mem_table->getstyle(), i, 1, value);
 			break;
 		}
 		setMEMcell(Mem_table->getstyle(), i, 0, value);
@@ -243,9 +255,9 @@ void GUI::int_updateAll()
 		setMEMcell(Mem_table->getstyle(), i, 0, getbackend()->GetByte(i, 0));
 	}
 	
-	//Update the special Cells on bank 1:
+	//Update bank 1:
 	for (int i = 1; i < 0x0A; i++) {
-		value = getbackend()->GetByte(i, 0);
+		value = getbackend()->GetByte(i, 1);
 		switch (i) {
 		case 0x01:
 			setregbox(registers[6], 6, value);
@@ -253,13 +265,15 @@ void GUI::int_updateAll()
 			break;
 		case 0x05:
 			setIOcell(IO_table->getstyle(), 1, value);
+			break;
 		case 0x06:
 			setIOcell(IO_table->getstyle(), 4, value);
+			break;
 		case 0x08: case 0x09: break;	//No other areas need to be updated, this is only here to jump over the continue below
 		
 		default: continue;	//as this loop only updates non mapped registers, all other registers can be ignored
 		}
-		setMEMcell(Mem_table->getstyle(), i, 1, getbackend()->GetByte(i, 0));
+		setMEMcell(Mem_table->getstyle(), i, 1, value);
 	}
 
 	//Finally, redraw everything, including Reg W
@@ -293,12 +307,17 @@ void GUI::int_update(){
 		case 0x02:
 			setregbox(registers[3], 3, value);
 			setregbox(registers[5], 5, value + ((getbackend()->GetByte(pos, bank) << 8)));
+			setMEMcell(Mem_table->getstyle(), pos, 1, value);
 			queueSPregs |= 16 + 4;
 			break;
 		case 0x03:
 			setregbox(registers[1], 1, value);
 			setregbox(registers[2], 2, value);
+			setMEMcell(Mem_table->getstyle(), pos, 1, value);
 			queueSPregs |= 2 + 1;
+			break;
+		case 0x04:
+			setMEMcell(Mem_table->getstyle(), pos, 1, value);
 			break;
 		case 0x05:if (bank) {
 				setIOcell(IO_table->getstyle(), 1, value);
@@ -319,11 +338,13 @@ void GUI::int_update(){
 		case 0x0A:
 			setregbox(registers[4], 4, value);
 			setregbox(registers[5], 5, (getbackend()->GetByte(pos, bank) + (value << 8)));
+			setMEMcell(Mem_table->getstyle(), pos, 1, value);
 			queueSPregs |= 16 + 8;
 			break;
 		case 0x0B:
 			setregbox(registers[8], 8, value);
 			setregbox(registers[9], 9, value);
+			setMEMcell(Mem_table->getstyle(), pos, 1, value);
 			queueSPregs |= 128 + 256;
 			break;
 		}
