@@ -18,8 +18,9 @@ void printProg(HANDLE &hConsole, Backend*& b){
 }
 
 int main(int argc, char *argv[]) {
+	//getestet: 1,2,3,4,5,6,7,8,9,10,12
 	// use '//*' in folowing line for testing the backend, use '/*' for running programm with GUI
-	/*
+	//*
 	int progNum = 0;
 	char input = 0;
 	char path[257];
@@ -28,6 +29,7 @@ int main(int argc, char *argv[]) {
 	HANDLE  hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 	Backend* b = new Backend(new GUI());
 	ASM_TEXT*u = nullptr;
+	//b->SetCommandSpeed(1000);
 	do{
 		printf("\nSelect Program (int)... \n");
 		scanf("%d", &progNum);
