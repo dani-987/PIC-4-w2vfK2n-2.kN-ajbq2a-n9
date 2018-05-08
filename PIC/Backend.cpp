@@ -8,6 +8,16 @@
 #include <time.h>
 
 #ifdef _DEBUG
+
+#define DEBUG_NONE	0
+#define DEBUG_LESS	1
+#define DEBUG_NORM	2
+#define DEBUG_MORE	3
+#define DEBUG_RAM	4
+#define DEBUG_ALL	5
+
+VARDEF(int, DEBUG_LVL, DEBUG_RAM);
+
 #include <Windows.h>	
 HANDLE  hConsole;
 
@@ -46,15 +56,6 @@ void Backend::set_DEBUG_ONLY_TESTING(int state)
 #define RESET_WDT_TIMEOUT	3
 
 #define MSGLEN()	(lastErrorLen = (std::strlen(lastError)+1))
-
-#define DEBUG_NONE	0
-#define DEBUG_LESS	1
-#define DEBUG_NORM	2
-#define DEBUG_MORE	3
-#define DEBUG_RAM	4
-#define DEBUG_ALL	5
-
-VARDEF(int, DEBUG_LVL, DEBUG_RAM);
 
 const static byte spiegelMap[] = {
 0x99,	//0x08
@@ -1072,7 +1073,7 @@ void Backend::Wait_For_End()
 	if (uC != nullptr && uC->joinable()) { uC->join(); delete(uC); uC = nullptr; }
 }
 
-unsigned int Backend::GetRuntimeIn100ns()
+unsigned long long Backend::GetRuntimeIn100ns()
 {
 	LOCK_MUTEX(m_ram);
 	size_t ret = runtime;
