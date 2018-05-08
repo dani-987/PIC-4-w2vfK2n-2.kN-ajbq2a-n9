@@ -1076,18 +1076,27 @@ void Backend::Wait_For_End()
 
 unsigned int Backend::GetRuntimeIn100ns()
 {
+	LOCK_MUTEX(m_ram);
+	size_t ret = runtime;
+	UNLOCK_MUTEX(m_ram);
 	return runtime;
 }
 
 void Backend::ResetRuntime()
 {
+	LOCK_MUTEX(m_ram);
 	runtime = 0;
+	UNLOCK_MUTEX(m_ram);
 }
 
 size_t Backend::GetPC()
 {
-	if(code == nullptr)return 0;
-	return (aktCode - &code->code[0]);
+	size_t ret;
+	LOCK_MUTEX(m_run_code);
+	if(code == nullptr)ret = 0;
+	else ret = (aktCode - &code->code[0]);
+	UNLOCK_MUTEX(m_run_code);
+	return ret;
 }
 
 int Backend::GetAktualCodePosition()
