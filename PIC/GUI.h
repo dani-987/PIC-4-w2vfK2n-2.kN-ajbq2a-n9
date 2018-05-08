@@ -21,6 +21,7 @@ class GUI;
 #include <FL/Fl_Sys_Menu_Bar.H>
 #include <FL/Fl_Toggle_Button.H>
 #include <FL/Fl_Menu_Button.H>
+#include <assert.h>
 
 int __get_font_size_table_();
 
@@ -28,6 +29,10 @@ int __get_font_size_table_();
 
 #define CW ((int)(2.5f * (float)FONT_SIZE_TABLE))		//Width of a Cell
 #define CH ((int)(1.875f * (float)FONT_SIZE_TABLE))		//Heigth of a Cell
+
+#define CW_S ((int)(2.5f * (float)(FONT_SIZE_TABLE - 2)))		//Width of asmall  Cell
+#define CH_S ((int)(1.875f * (float)(FONT_SIZE_TABLE - 2)))		//Heigth of a small Cell
+
 #define RCMEM 16										//Number of Rows of the Memory Table
 #define CCMEM 8											//Number of Colums of the Memory Table
 #define CellsMEM 153									//Total number of Cells of the Memory Table (including headers)
@@ -45,7 +50,7 @@ int __get_font_size_table_();
 #define GUI_STANDARD_W	Fl::w()-20
 #define GUI_STANDARD_H	Fl::h()-35
 
-#define BOXES 10
+#define BOXES 7
 
 #define SCHEME			"none"
 
@@ -62,9 +67,10 @@ private:
 	MyTable *IO_table;
 	MyTable *CODE_table;
 
-	//Contains some FL_Boxes that are used to depict the special registers in detail
-	//they are seperated, because their frequency of updating is extremly different (W and PC vs. 
+	//Some FL_Boxes and MyTables that are used to depict the special registers in detail
+	//they are seperated, because their frequency of updating is extremly different (W and PC vs. Option)
 	Fl_Box** registers;
+	MyTable** regtables;
 
 	//The buttons used to controll the program execution
 	Fl_Button* Start;

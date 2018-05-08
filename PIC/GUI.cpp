@@ -60,14 +60,16 @@ namespace gui_callbacks {
 	void setWatchdog(Fl_Widget *, void *);
 	void donothing(Fl_Widget *, void *);
 }
+
+//Structure of the Menubar-Items; When changing also change MENU_ITEMCOUNT!
 Fl_Menu_Item menutable_vorlage[] = {
 	{ "&Datei", 0, nullptr, 0, FL_SUBMENU },
 		{ "&Lade Datei", 0, gui_callbacks::loadFile, 0 },
 		{0},
 	{ "Optionen", 0, nullptr, 0, FL_SUBMENU },
 		{ "Taktrate", 0, nullptr, 0, FL_SUBMENU },
-			{ "10 MHz", 0, gui_callbacks::setRate_s1, 0, FL_MENU_RADIO } , //Default Speed
-			{ "4 MHz", 0, gui_callbacks::setRate_s2, 0, FL_MENU_RADIO | FL_MENU_VALUE },
+			{ "10 MHz", 0, gui_callbacks::setRate_s1, 0, FL_MENU_RADIO } , 
+			{ "4 MHz", 0, gui_callbacks::setRate_s2, 0, FL_MENU_RADIO | FL_MENU_VALUE }, //Default Speed
 			{ "400 kHz", 0, gui_callbacks::setRate_s3, 0, FL_MENU_RADIO },
 			{ "40 kHz", 0, gui_callbacks::setRate_s4, 0, FL_MENU_RADIO },
 			{0},
@@ -190,13 +192,31 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 	CODE_table->col_width_all(w/15);
 
 	registers = (Fl_Box**)malloc(sizeof(Fl_Box*) * BOXES);
+	regtables = (MyTable**)malloc(sizeof(MyTable*) * 3);
 
-	//The boxes are initialy setup with boxes of size 0. Their proper size is set in GUI::resize
-	Fl_Box* tempreg;
+	//Sets up the boxes for the special regsiters; Their size and position are set in GUI::resize
 	for (int i = 0; i < BOXES; i++) {
-		tempreg = new Fl_Box(FL_FLAT_BOX, w, h, 0, 0, "");
-		registers[i] = tempreg;
+		registers[i] = new Fl_Box(FL_FLAT_BOX, w, h, 0, 0, "");
 		setregbox(registers[i], i, 0);
+	}
+
+	//sets up the small tables that show bitwise representations of three special registers Their posiitoned like the boxes above
+	for (int i = 0; i < 3; i++) {
+		MyTable* temptable = new MyTable(w, h, 0, 0);
+		temptable->getstyle() = setstyle_SpRegs(i);
+		temptable->when();
+		temptable->table_box(FL_NO_BOX);
+
+		//Configure table rows
+		temptable->rows(2);
+		temptable->row_resize(0);
+		temptable->row_height_all(H_SPEC_REGS/2);
+
+		//Configure table collums
+		temptable->cols(8);
+		temptable->col_resize(0);
+		temptable->col_width_all(W_SPEC_REGS/8);
+		regtables[i] = temptable;
 	}
 
 	Start = new Fl_Button(X_CONT_BUTT, Y_CONT_BUTT, W_CONT_BUTT, H_CONT_BUTT, "Start");
@@ -250,32 +270,32 @@ void GUI::int_updateAll()
 		value = getbackend()->GetByte(i, 0); 
 		switch (i) {
 			//update the Special begister boxes and the mirrored entries in bank 1 in teh MEM-Table
-		case 0x02:
-			setregbox(registers[3], 3, value);
-			setregbox(registers[5], 5, value + ((getbackend()->GetByte(i, 0) << 8)));
-			setMEMcell(Mem_table->getstyle(), i, 1, value);
-			break;
-		case 0x03:
-			setregbox(registers[1], 1, value);
+		case 0x02:	//PCL
 			setregbox(registers[2], 2, value);
+			setregbox(registers[4], 4, getbackend()->GetPC());
 			setMEMcell(Mem_table->getstyle(), i, 1, value);
 			break;
-		case 0x04:
+		case 0x03:	//Status
+			setregbox(registers[1], 1, value);
+			setregtable(regtables[0]->getstyle(), value);
 			setMEMcell(Mem_table->getstyle(), i, 1, value);
 			break;
-		case 0x05:
+		case 0x04:	//FSR
+			setMEMcell(Mem_table->getstyle(), i, 1, value);
+			break;
+		case 0x05:	//RA
 			setIOcell(IO_table->getstyle(), 2, value);
 			break;
-		case 0x06:
+		case 0x06:	//RB
 			setIOcell(IO_table->getstyle(), 5, value);
 			break;
-		case 0x0A:
-			setregbox(registers[4], 4, value);
+		case 0x0A:	//PCLATH
+			setregbox(registers[3], 3, value);
 			setMEMcell(Mem_table->getstyle(), i, 1, value);
 			break;
-		case 0x0B:
-			setregbox(registers[8], 8, value);
-			setregbox(registers[9], 9, value);
+		case 0x0B:	//INTCON
+			setregbox(registers[6], 6, value);
+			setregtable(regtables[2]->getstyle(), value);
 			setMEMcell(Mem_table->getstyle(), i, 1, value);
 			break;
 		}
@@ -291,14 +311,14 @@ void GUI::int_updateAll()
 	for (int i = 1; i < 0x0A; i++) {
 		value = getbackend()->GetByte(i, 1);
 		switch (i) {
-		case 0x01:
-			setregbox(registers[6], 6, value);
-			setregbox(registers[7], 7, value);
+		case 0x01:	//Option
+			setregbox(registers[5], 5, value);
+			setregtable(regtables[1]->getstyle(), value);
 			break;
-		case 0x05:
+		case 0x05:	//TRISA
 			setIOcell(IO_table->getstyle(), 1, value);
 			break;
-		case 0x06:
+		case 0x06:	//TRISB
 			setIOcell(IO_table->getstyle(), 4, value);
 			break;
 		case 0x08: case 0x09: break;	//No other areas need to be updated, this is only here to jump over the continue below
@@ -307,15 +327,17 @@ void GUI::int_updateAll()
 		}
 		setMEMcell(Mem_table->getstyle(), i, 1, value);
 	}
+	setregbox(registers[0], 0, getbackend()->GetRegW());
 
 	//Finally, redraw everything, including Reg W
 	IO_table->redraw();
 	for (int i = 0; i < BOXES; i++) {	
 		registers[i]->redraw();
 	}
+	for (int i = 0; i < 3; i++) {
+		regtables[i]->redraw();
+	}
 	Mem_table->redraw();
-	setregbox(registers[0], 0, getbackend()->GetRegW());
-	registers[0]->redraw();
 	CODE_table->redraw();
 }
 
@@ -325,73 +347,76 @@ void GUI::int_update(){
 	int pos;
 	byte bank;
 	char queueIO = 0;		//Remember when a value in the IO-table is changed and a redraw is necessary 
-	int queueSPregs = 0;	//Remember whether one of the Spezial register boxes was changed and a redraw is necessary
+	int queueSpRegs = 0;	//Remember whether one of the Spezial register boxes was changed and a redraw is necessary
 	while (backend->GetNextChangedCell(pos, bank)) {
 		printf("Byte %02x in Bank %d changed!", pos, bank);	
 		int value = getbackend()->GetByte(pos, bank);
 		switch (pos) {
-		case 0x01: if (bank) {
-				setregbox(registers[6], 6, value);
-				setregbox(registers[7], 7, value);
-				queueSPregs |= 64 + 32;
+		case 0x01: if (bank) {	//Option
+			setregbox(registers[5], 5, value);
+			setregtable(regtables[1]->getstyle(), value);
+				queueSpRegs |= 128 + 16;
 			}
 			break;
-		case 0x02:
-			setregbox(registers[3], 3, value);
-			setregbox(registers[5], 5, value + ((getbackend()->GetByte(pos, bank) << 8)));
-			setMEMcell(Mem_table->getstyle(), pos, 1, value);
-			queueSPregs |= 16 + 4;
-			break;
-		case 0x03:
-			setregbox(registers[1], 1, value);
+		case 0x02:	//PCL
 			setregbox(registers[2], 2, value);
+			setregbox(registers[4], 4, getbackend()->GetPC());
 			setMEMcell(Mem_table->getstyle(), pos, 1, value);
-			queueSPregs |= 2 + 1;
+			queueSpRegs |= 8 + 2;
 			break;
-		case 0x04:
+		case 0x03:	//Status
+			setregbox(registers[1], 1, value);
+			setregtable(regtables[0]->getstyle(), value);
+			setMEMcell(Mem_table->getstyle(), pos, 1, value);
+			queueSpRegs |= 64 + 1;
+			break;
+		case 0x04:	//FSR
 			setMEMcell(Mem_table->getstyle(), pos, 1, value);
 			break;
-		case 0x05:if (bank) {
+		case 0x05:if (bank) {	//RA
 				setIOcell(IO_table->getstyle(), 1, value);
 			}
-			else {
+			else {	//TRISA
 				setIOcell(IO_table->getstyle(), 2, value);
 			}
 			queueIO = 1;
 			break;
-		case 0x06:if (bank) {
+		case 0x06:if (bank) {	//RB
 				setIOcell(IO_table->getstyle(), 4, value);
 			}
-			else {
+			else {	//TRISB
 				setIOcell(IO_table->getstyle(), 5, value);
 			}
 			queueIO = 1;
 			break;
-		case 0x0A:
-			setregbox(registers[4], 4, value);
-			setregbox(registers[5], 5, (getbackend()->GetByte(pos, bank) + (value << 8)));
+		case 0x0A:	//PCLATH
+			setregbox(registers[3], 3, value);
 			setMEMcell(Mem_table->getstyle(), pos, 1, value);
-			queueSPregs |= 16 + 8;
+			queueSpRegs |= 4;
 			break;
-		case 0x0B:
-			setregbox(registers[8], 8, value);
-			setregbox(registers[9], 9, value);
+		case 0x0B:	//INTCON
+			setregbox(registers[6], 6, value);
+			setregtable(regtables[2]->getstyle(), value);
 			setMEMcell(Mem_table->getstyle(), pos, 1, value);
-			queueSPregs |= 128 + 256;
+			queueSpRegs |= 32 + 256;
 			break;
 		}
 		setMEMcell(Mem_table->getstyle(), pos, bank, value);
 	}
+	setregbox(registers[0], 0, getbackend()->GetRegW());
+
 	if (queueIO) IO_table->redraw();
 	for (int i = 0; i < BOXES; i++) {
-		if (queueSPregs&(1 << i)) {
-			registers[i + 1]->redraw();
+		if (queueSpRegs&(1 << (i - 1) || i == 0)) {
+			registers[i]->redraw();
+		}
+	}
+	for (int i = BOXES; i < BOXES + 3; i++) {
+		if (queueSpRegs&(1 << (i - 1))) {
+			regtables[i - BOXES]->redraw();
 		}
 	}
 	Mem_table->redraw();
-	//redraw Register W
-	setregbox(registers[0], 0, getbackend()->GetRegW());
-	registers[0]->redraw();
 }
 
 //#######################################################################################
@@ -411,11 +436,18 @@ void GUI::resize(int x, int y, int w, int h){
 	Mem_table->resize(X_MEM_TAB, Y_MEM_TAB, W_MEM_TAB, H_MEM_TAB);
 	IO_table->resize(X_IO_TAB, Y_IO_TAB, W_IO_TAB, H_IO_TAB);
 	CODE_table->resize(X_CODE_TAB, Y_CODE_TAB, W_CODE_TAB, H_CODE_TAB);
-	int newy = 0;
-	for (int i = 0; i < BOXES; i++) {
-		registers[i]->resize(X_SPEC_REGS, Y_SPEC_REGS + newy, W_SPEC_REGS, H_SPEC_REGS);
-		newy += H_SPEC_REGS + 10;
-		if (i == 2 || i == 7) newy += 30;
+	int newy = 0, tcount = 0, bcount = 0;
+	for (int i = 0; i < BOXES + 3; i++) {
+		if (i == 2 || i == 7 || i == 9) {
+			regtables[tcount]->resize(X_SPEC_REGS, Y_SPEC_REGS + newy, W_SPEC_REGS, H_SPEC_REGS * 1.5);
+			newy += H_SPEC_REGS * 1.5 + 10;
+			tcount++;
+		}
+		else {
+			registers[bcount]->resize(X_SPEC_REGS, Y_SPEC_REGS + newy, W_SPEC_REGS, H_SPEC_REGS);
+			newy += H_SPEC_REGS;
+			bcount++;
+		}
 	}
 	Start->resize(X_CONT_BUTT, Y_CONT_BUTT, W_CONT_BUTT, H_CONT_BUTT);
 	Stop->resize(X_CONT_BUTT + BUTT_OFFSET, Y_CONT_BUTT, W_CONT_BUTT, H_CONT_BUTT);
