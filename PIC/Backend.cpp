@@ -11,8 +11,8 @@
 #include <Windows.h>	
 HANDLE  hConsole;
 
-//TODO: interrupts: werden die -F Flags gesetzt, auch wenn die -E nicht gesetzt sind?
-//im sleep müssen auch die -E Flags gestetzt werden, damit der uC aufwacht?! vgl. Prog 9, dort werden die nicht gesetzt, es soll aber durch IE aufwachen...
+//komment this out if using GUI....
+#define USE_BACKEND_WITHOUT_GUI
 
 #define COLOR_RAM_HEAD	0xF0
 #define COLOR_RAM_NORM	0x70
@@ -25,16 +25,10 @@ HANDLE  hConsole;
 #define DAMAGE_GET_BITMAP_BYTE(pos)	(pos >> 3)
 #define DAMAGE_GET_BITMAP_BIT(pos)	(1 << (pos & 0x07))
 
-//TODO: komment this out....
-#define USE_BACKEND_WITHOUT_GUI
 
 //Komment following if not wanted....
 #define USE_RANDOM_VALUES
-//#define USE_EEPROM_WRITE_ERRORS
-//TODO:
-
-//DC und C bei Subtraktion (Prog3)
-//Interrupts
+//#define USE_EEPROM_WRITE_ERRORS		//have to be reworked if activated!
 
 #define NOT_IMPLEMENTED	"Nicht implementiert!"
 #define MEMORY_MISSING "Memory is missing."
@@ -54,10 +48,7 @@ HANDLE  hConsole;
 #define DEBUG_RAM	4
 #define DEBUG_ALL	5
 
-//PC := 250 -> PC+=5, PCH: 0/1?
-//Wird PCH geändert?
-
-VARDEF(int, DEBUG_LVL, DEBUG_NONE);
+VARDEF(int, DEBUG_LVL, DEBUG_RAM);
 
 #ifdef _DEBUG
 void Backend::set_DEBUG_ONLY_TESTING(int state)
@@ -66,6 +57,41 @@ void Backend::set_DEBUG_ONLY_TESTING(int state)
 	DEBUG_LVL = state;
 }
 #endif
+
+const static byte spiegelMap[] = {
+0x99,	//0x08
+0x3F,	//0x0F
+0xFF,	//0x18
+0xFF,	//0x1F
+0xFF,	//0x28
+0xFF,	//0x2F
+0xFF,	//0x38
+0xFF,	//0x3F
+0xFF,	//0x48
+0xFF,	//0x4F
+0xFF,	//0x58
+0xFF,	//0x5F
+0xFF,	//0x68
+0xFF,	//0x6F
+0xFF,	//0x78
+0xFF,	//0x7F
+0xFF,	//0x88
+0xFF,	//0x8F
+0xFF,	//0x98
+0xFF,	//0x9F
+0xFF,	//0xA8
+0xFF,	//0xAF
+0xFF,	//0xB8
+0xFF,	//0xBF
+0xFF,	//0xC8
+0xFF,	//0xCF
+0xFF,	//0xD8
+0xFF,	//0xDF
+0xFF,	//0xE8
+0xFF,	//0xEF
+0xFF,	//0xF8
+0xFF,	//0xFF
+};
 
 void call_backup_in_other_thread(void* _callInOtherThread) {
 	struct call_in_other_thread_s* callInOtherThread = (struct call_in_other_thread_s*)_callInOtherThread;
@@ -344,7 +370,7 @@ bool Backend::do_timer()
 					}
 					else {
 						prescaler_timer++;
-						int prescaler = (1 << (ram[83] & 0x07));
+						int prescaler = (0x02 << (ram[83] & 0x07));
 						if (prescaler_timer >= prescaler) {
 							prescaler_timer = 0;
 							ram[0x01]++;
@@ -364,7 +390,7 @@ bool Backend::do_timer()
 			}
 			else {
 				prescaler_timer++;
-				int prescaler = (2 << (ram[83] & 0x07));
+				int prescaler = (0x02 << (ram[83] & 0x07));
 				if (prescaler_timer >= prescaler) {
 					prescaler_timer = 0;
 					ram[0x01]++;
@@ -669,6 +695,7 @@ bool Backend::LoadProgramm(char * c)
 		if (this->code)Compiler::freeASM(this->code);
 		this->code = prog;
 		this->aktCode = prog->code;
+		runtime = 0;
 		ret = true;
 	}
 	//TODO else saveError
@@ -705,6 +732,11 @@ bool Backend::Stop()
 bool Backend::Step()
 {
 	return letRun(MOD_STEP);
+}
+
+bool Backend::WirdByteGespiegelt(byte pos)
+{
+	return ((spiegelMap[pos >> 3] & (0x01 << (pos & 0x07))) == 0)?false:true;
 }
 
 bool Backend::IsRunning()
@@ -1040,6 +1072,22 @@ char * Backend::GetErrorMSG()
 void Backend::Wait_For_End()
 {
 	if (uC != nullptr && uC->joinable()) { uC->join(); delete(uC); uC = nullptr; }
+}
+
+unsigned int Backend::GetRuntimeIn100ns()
+{
+	return runtime;
+}
+
+void Backend::ResetRuntime()
+{
+	runtime = 0;
+}
+
+size_t Backend::GetPC()
+{
+	if(code == nullptr)return 0;
+	return (aktCode - &code->code[0]);
 }
 
 int Backend::GetAktualCodePosition()

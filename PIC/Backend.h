@@ -13,6 +13,21 @@
 
 class Backend;
 
+#define PORT_A_BYTE		0x05
+#define PORT_A_BANK		0x00
+#define TRIS_A_BYTE		PORT_A_BYTE
+#define TRIS_A_BANK		0x01
+
+#define PORT_B_BYTE		0x06
+#define PORT_B_BANK		0x00
+#define TRIS_B_BYTE		PORT_B_BYTE
+#define TRIS_B_BANK		0x01
+
+#define PCL_BYTE		0x02
+#define PCL_BANK		0x00
+#define PCLATH_BYTE		0x0A
+#define PCLATH_BANK		0x00
+
 #define UC_SIZE_RAM		94
 #define UC_SIZE_PROGRAM	1024
 #define UC_SIZE_EEPROM	64
@@ -182,9 +197,10 @@ public:
 	//thread-save functions for external usage in GUI:
 	ASM_TEXT* GetProgrammText(size_t& anzahl);		//remember malloc! -> freeProgrammText();
 	void FreeProgrammText(ASM_TEXT*& prog);
-	bool GetNextChangedCell(int &reg, byte &bank);	//get a possibly changed cell to update in gui_int_update()
+	bool GetNextChangedCell(int &reg, byte &bank);	//get a possibly changed cell to update in gui_int_update(), if (WirdByteGespiegelt(reg) == true) the byte will be only returned for bank 0!
+	bool WirdByteGespiegelt(byte pos);				//returns true if pos is same for bank 0 and bank 1, else false
 	void StartedUpdating();							//always call before updating, otherwise it is possible that the update-function will not be called when necessary
-	bool LoadProgramm(char* c);
+	bool LoadProgramm(char* c);						//resets runtime if programm is loaded
 	bool Start();
 	bool Stop();
 	bool Step();
@@ -196,7 +212,7 @@ public:
 	Breakpointlist* GetBreakpoints();				//returns nullptr on empty list (NOT ERROR!), new! -> freeBreakpoints()
 	void FreeBreakpoints(Breakpointlist*& list);	//frees the datastructure returned by GetBreakpionts()
 	void SetCommandSpeed(size_t speed);				//standard speed: 'UC_STANDARD_SPEED' (in 100*ns, min 4 * 100*ns)
-	bool Reset();
+	bool Reset();									// will do not reset runtime!
 	int  GetByte(int reg, byte bank);				//bank: 0 or 1
 	bool SetByte(int reg, byte bank, byte val);		//bank: 0 or 1
 	int  GetBit(int b, byte bank, int pos);			//bool (= 0 or != 0 [e.g. 2 or 128])
@@ -205,7 +221,10 @@ public:
 	bool SetRegW(byte val);
 	char* GetErrorMSG();							//nullptr possible! Remember: malloc! -> free
 	void Wait_For_End();							//joins all runnig threads and returns after all threads terminated. Do not forget to call 'Stop' before, else this function will not return!
-	int GetAktualCodePosition();
+	unsigned int GetRuntimeIn100ns();				// will never cause an error
+	void ResetRuntime();							// will never cause an error
+	size_t GetPC();									// in diff. to GetAktualCodePosition() it will return the Value of PC; not the Codeline incl. Komments
+	int GetAktualCodePosition();					// get the Actual Codeline in the .LST-File for displaying it in the Programmtable, it differs form the PC!
 
 	//following ist for internal use only and not thread-save!
 	//asm-commands:
