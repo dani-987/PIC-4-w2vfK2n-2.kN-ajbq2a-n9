@@ -446,6 +446,9 @@ void GUI::resize(int x, int y, int w, int h){
 		else {
 			registers[bcount]->resize(X_SPEC_REGS, Y_SPEC_REGS + newy, W_SPEC_REGS, H_SPEC_REGS);
 			newy += H_SPEC_REGS;
+			if (!(i == 1 || i == 6 || i == 8)) {
+				newy += 10;
+			}
 			bcount++;
 		}
 	}
