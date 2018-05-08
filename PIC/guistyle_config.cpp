@@ -159,51 +159,51 @@ void setregbox(Fl_Box*& regs, int line, int value) {
 	char* txt=(char*)malloc(50);
 	
 	switch (line) {
-	case 0: {
-		sprintf(txt, "W-Reg:\t\t%02X", value);
-		break;
+		case 0: {
+			sprintf(txt, "W-Reg:\t\t%02X", value);
+			break;
+		}
+		case 1: {
+			sprintf(txt, "Status:\t\t%02X", value);
+			break;
+		}
+		case 2: {
+			int i = value;
+			sprintf(txt, "IRP\tRP1\tRP0\tTO\tPD\tZ\tDC\tC\n%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t", i&0x128 ? 1 : 0, i & 0x64 ? 1 : 0, i & 0x32 ? 1 : 0, i & 0x16 ? 1 : 0, i & 0x8 ? 1 : 0, i & 0x4 ? 1 : 0, i & 0x2 ? 1 : 0, i & 0x1 ? 1 : 0);
+			break;
+		}
+		case 3: {
+			sprintf(txt, "PCL:\t\t%02X", value);
+			break;
+		}
+		case 4: {
+			sprintf(txt, "PCLATH:\t%02X", value);
+			break;
+		}
+		case 5: {
+			sprintf(txt, "PC:\t\t%04X", value);
+			break;
+		}
+		case 6: {
+			sprintf(txt, "Option:\t%02X", value);
+			break;
+		}
+		case 7: {
+			int i = value;
+			sprintf(txt, "RBPU\tINTEDG\tT0CS\tT0SE\tPSA\tPS2\tPS1\tPS0\n%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t", i & 0x128 ? 1 : 0, i & 0x64 ? 1 : 0, i & 0x32 ? 1 : 0, i & 0x16 ? 1 : 0, i & 0x8 ? 1 : 0, i & 0x4 ? 1 : 0, i & 0x2 ? 1 : 0, i & 0x1 ? 1 : 0);
+			break;
+		}
+		case 8: {
+			sprintf(txt, "INTCON:\t%02X", value);
+			break;
+		}
+		case 9: {
+			int i = value;
+			sprintf(txt, "GIE\tEEIE\tT0IE\tINTE\tRBIE\tT0IF\tINTF\tRBIF\n%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t", i & 0x128 ? 1 : 0, i & 0x64 ? 1 : 0, i & 0x32 ? 1 : 0, i & 0x16 ? 1 : 0, i & 0x8 ? 1 : 0, i & 0x4 ? 1 : 0, i & 0x2 ? 1 : 0, i & 0x1 ? 1 : 0);
+			break;
+		}
 	}
-	case 1: {
-		sprintf(txt, "Status:\t\t%02X", value);
-		break;
-	}
-	case 2: {
-		int i = value;
-		sprintf(txt, "IRP\tRP1\tRP0\tTO\tPD\tZ\tDC\tC\n%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t", i&0x128 ? 1 : 0, i & 0x64 ? 1 : 0, i & 0x32 ? 1 : 0, i & 0x16 ? 1 : 0, i & 0x8 ? 1 : 0, i & 0x4 ? 1 : 0, i & 0x2 ? 1 : 0, i & 0x1 ? 1 : 0);
-		break;
-	}
-	case 3: {
-		sprintf(txt, "PCL:\t\t%02X", value);
-		break;
-	}
-	case 4: {
-		sprintf(txt, "PCLATH:\t%02X", value);
-		break;
-	}
-	case 5: {
-		sprintf(txt, "PC:\t\t%04X", value);
-		break;
-	}
-	case 6: {
-		sprintf(txt, "Option:\t%02X", value);
-		break;
-	}
-	case 7: {
-		int i = value;
-		sprintf(txt, "RBPU\tINTEDG\tT0CS\tT0SE\tPSA\tPS2\tPS1\tPS0\n%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t", i & 0x128 ? 1 : 0, i & 0x64 ? 1 : 0, i & 0x32 ? 1 : 0, i & 0x16 ? 1 : 0, i & 0x8 ? 1 : 0, i & 0x4 ? 1 : 0, i & 0x2 ? 1 : 0, i & 0x1 ? 1 : 0);
-		break;
-	}
-	case 8: {
-		sprintf(txt, "INTCON:\t%02X", value);
-		break;
-	}
-	case 9: {
-		int i = value;
-		sprintf(txt, "GIE\tEEIE\tT0IE\tINTE\tRBIE\tT0IF\tINTF\tRBIF\n%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t", i & 0x128 ? 1 : 0, i & 0x64 ? 1 : 0, i & 0x32 ? 1 : 0, i & 0x16 ? 1 : 0, i & 0x8 ? 1 : 0, i & 0x4 ? 1 : 0, i & 0x2 ? 1 : 0, i & 0x1 ? 1 : 0);
-		break;
-	}
-			regs->label(txt);
-	}
+	regs->label(txt);
 }
 
 //Update a label of a single cell in the MEM-table
@@ -227,7 +227,6 @@ void setIOcell(tablestyle*& mystyle, int line, int value) {
 	char high = (line % 3 == 1) ? 'i' : '1', low = (line % 3 == 1) ? 'o' : '0';
 	int pos = (CCIO + 1) * line + 1;
 	for (int i = 0; i < CCIO; i++) {
-
-		sprintf(mystyle[pos + i].label, "%c", value&(1<<i)?high:low);
+		sprintf(mystyle[pos + i].label, "%c", value&(1<<(7-i))?high:low);
 	}
 }

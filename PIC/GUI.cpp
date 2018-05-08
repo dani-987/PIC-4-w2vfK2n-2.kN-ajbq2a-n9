@@ -12,6 +12,7 @@ void gui_int_updateAll(void * gui){((GUI*)gui)->int_updateAll();}
 #define Y_MENUBAR		0
 #define W_MENUBAR		w
 #define H_MENUBAR		20
+#define MENU_ITEMCOUNT	13
 
 //Position and size of the IO-Table
 #define W_IO_TAB		((CW*(CCIO + 1.2))+20)
@@ -59,6 +60,21 @@ namespace gui_callbacks {
 	void setWatchdog(Fl_Widget *, void *);
 	void donothing(Fl_Widget *, void *);
 }
+Fl_Menu_Item menutable_vorlage[] = {
+	{ "&Datei", 0, nullptr, 0, FL_SUBMENU },
+		{ "&Lade Datei", 0, gui_callbacks::loadFile, 0 },
+		{0},
+	{ "Optionen", 0, nullptr, 0, FL_SUBMENU },
+		{ "Taktrate", 0, nullptr, 0, FL_SUBMENU },
+			{ "10 MHz", 0, gui_callbacks::setRate_s1, 0, FL_MENU_RADIO } , //Default Speed
+			{ "4 MHz", 0, gui_callbacks::setRate_s2, 0, FL_MENU_RADIO | FL_MENU_VALUE },
+			{ "400 kHz", 0, gui_callbacks::setRate_s3, 0, FL_MENU_RADIO },
+			{ "40 kHz", 0, gui_callbacks::setRate_s4, 0, FL_MENU_RADIO },
+			{0},
+		{ "Watchdog", 0, gui_callbacks::setWatchdog, 0, FL_MENU_TOGGLE },
+		{0},
+	{0}
+};
 
 //Generates the GUI initial and creates the Backend
 GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator")
@@ -74,24 +90,17 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 
 	//create Menubar
 	//Structure of the Menu. Components of each item: label, shortcut, callback, value, Flag (Optinal)
-	//Fl_Menu_Item menutable[] = {
-	//	{ "&Datei", 0, gui_callbacks::donothing, 0, FL_SUBMENU },
-	//		{ "&Lade Datei", 0, gui_callbacks::loadFile, this },
-	//		{0},
-	//	{ "Optionen", 0, gui_callbacks::donothing, 0, FL_SUBMENU },
-	//		{ "Taktrate", 0, gui_callbacks::donothing, 0, FL_SUBMENU },
-	//			{ "Speed 1", 0, gui_callbacks::setRate_s1, this, FL_MENU_RADIO | FL_MENU_VALUE} , //Default Speed
-	//			{ "Speed 2", 0, gui_callbacks::setRate_s2, this, FL_MENU_RADIO },
-	//			{ "Speed 3", 0, gui_callbacks::setRate_s3, this, FL_MENU_RADIO },
-	//			{ "Speed 4", 0, gui_callbacks::setRate_s4, this, FL_MENU_RADIO },
-	//			{0},
-	//		{ "Watchdog", 0, gui_callbacks::setWatchdog, this, FL_MENU_TOGGLE },
-	//	{0}
-	//};
+	menutable = (Fl_Menu_Item*)malloc(sizeof(Fl_Menu_Item) * MENU_ITEMCOUNT);
+	memcpy(menutable, menutable_vorlage, sizeof(menutable_vorlage));
+	for (int i = 0; i < MENU_ITEMCOUNT; i++) {
+		if (menutable[i].text != nullptr) {
+			menutable[i].user_data_ = this;
+		}
+	}
 
 	menubar = new Fl_Menu_Bar(X_MENUBAR, Y_MENUBAR, W_MENUBAR, H_MENUBAR);
-	//menubar->menu(menutable);
-	menubar->add("&Datei/&Lade Datei", nullptr, gui_callbacks::loadFile, this);
+	menubar->menu(menutable);
+	//menubar->add("&Datei/&Lade Datei", nullptr, gui_callbacks::loadFile, this);
 
 	//Fl::scheme(SCHEME);
 
@@ -185,7 +194,7 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 	//The boxes are initialy setup with boxes of size 0. Their proper size is set in GUI::resize
 	Fl_Box* tempreg;
 	for (int i = 0; i < BOXES; i++) {
-		tempreg = new Fl_Box(FL_NO_BOX, w, h, 0, 0, "");
+		tempreg = new Fl_Box(FL_FLAT_BOX, w, h, 0, 0, "");
 		registers[i] = tempreg;
 		setregbox(registers[i], i, 0);
 	}
@@ -402,11 +411,11 @@ void GUI::resize(int x, int y, int w, int h){
 	Mem_table->resize(X_MEM_TAB, Y_MEM_TAB, W_MEM_TAB, H_MEM_TAB);
 	IO_table->resize(X_IO_TAB, Y_IO_TAB, W_IO_TAB, H_IO_TAB);
 	CODE_table->resize(X_CODE_TAB, Y_CODE_TAB, W_CODE_TAB, H_CODE_TAB);
-	int newx = 0;
+	int newy = 0;
 	for (int i = 0; i < BOXES; i++) {
-		registers[i]->resize(X_SPEC_REGS + newx, Y_SPEC_REGS, W_SPEC_REGS, H_SPEC_REGS);
-		newx += 30;
-		if (i == 2 || i == 7) newx += 30;
+		registers[i]->resize(X_SPEC_REGS, Y_SPEC_REGS + newy, W_SPEC_REGS, H_SPEC_REGS);
+		newy += H_SPEC_REGS + 10;
+		if (i == 2 || i == 7) newy += 30;
 	}
 	Start->resize(X_CONT_BUTT, Y_CONT_BUTT, W_CONT_BUTT, H_CONT_BUTT);
 	Stop->resize(X_CONT_BUTT + BUTT_OFFSET, Y_CONT_BUTT, W_CONT_BUTT, H_CONT_BUTT);
@@ -438,19 +447,19 @@ void gui_callbacks::Reset(Fl_Widget *w, void *gui) {
 }
 
 void gui_callbacks::setRate_s1(Fl_Widget *w, void *gui) {
-	((GUI*)gui)->callback_settact(0);
+	((GUI*)gui)->callback_settact(4);
 }
 
 void gui_callbacks::setRate_s2(Fl_Widget *w, void *gui) {
-	((GUI*)gui)->callback_settact(1);
+	((GUI*)gui)->callback_settact(UC_STANDARD_SPEED);
 }
 
 void gui_callbacks::setRate_s3(Fl_Widget *w, void *gui) {
-	((GUI*)gui)->callback_settact(2);
+	((GUI*)gui)->callback_settact(100);
 }
 
 void gui_callbacks::setRate_s4(Fl_Widget *w, void *gui) {
-	((GUI*)gui)->callback_settact(3);
+	((GUI*)gui)->callback_settact(1000);
 }
 
 void gui_callbacks::setWatchdog(Fl_Widget *w, void *gui) {
@@ -498,8 +507,15 @@ void GUI::callback_reset() {
 }
 
 void GUI::callback_settact(int freq) {
-
+	printf("Set speed to Speed%d\n", freq);
+	getbackend()->SetCommandSpeed(freq);
 }
 void GUI::callback_watchdog() {
-
+	printf("%s watchdog\n", (getbackend()->IsWatchdogEnabled())?("Disabled"):("Enabled"));
+	if (getbackend()->IsWatchdogEnabled()) {
+		getbackend()->DisableWatchdog();
+	}
+	else {
+		getbackend()->EnableWatchdog();
+	}
 }
