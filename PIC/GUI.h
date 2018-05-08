@@ -18,6 +18,9 @@ class GUI;
 #include <FL\Fl_Box.H>
 #include <FL\Enumerations.H>
 #include <FL\Fl_Button.H>
+#include <FL/Fl_Sys_Menu_Bar.H>
+#include <FL/Fl_Toggle_Button.H>
+#include <FL/Fl_Menu_Button.H>
 
 int __get_font_size_table_();
 
@@ -94,6 +97,8 @@ public:
 	void callback_stop();
 	void callback_step();
 	void callback_reset();
+	void callback_settact(int freq);
+	void callback_watchdog();
 };
 
 //TODO: def in .cpp
