@@ -12,7 +12,7 @@
 HANDLE  hConsole;
 
 //komment this out if using GUI....
-#define USE_BACKEND_WITHOUT_GUI
+//#define USE_BACKEND_WITHOUT_GUI
 
 #define COLOR_RAM_HEAD	0xF0
 #define COLOR_RAM_NORM	0x70
@@ -20,6 +20,12 @@ HANDLE  hConsole;
 #define COLOR_RAM_OTHER	0xB9
 
 #define COLOR_STANDARD	0x07
+
+void Backend::set_DEBUG_ONLY_TESTING(int state)
+{
+	printf("Setting DBG_LVL 2 %d\n", state);
+	DEBUG_LVL = state;
+}
 #endif
 
 #define DAMAGE_GET_BITMAP_BYTE(pos)	(pos >> 3)
@@ -49,14 +55,6 @@ HANDLE  hConsole;
 #define DEBUG_ALL	5
 
 VARDEF(int, DEBUG_LVL, DEBUG_RAM);
-
-#ifdef _DEBUG
-void Backend::set_DEBUG_ONLY_TESTING(int state)
-{
-	printf("Setting DBG_LVL 2 %d\n", state);
-	DEBUG_LVL = state;
-}
-#endif
 
 const static byte spiegelMap[] = {
 0x99,	//0x08
