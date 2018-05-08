@@ -53,6 +53,7 @@ class GUI : public Fl_Double_Window
 {
 private:
 	Backend* backend;
+	Fl_Menu_Item* menutable;
 
 	Fl_Menu_Bar* menubar;
 	Fl_Native_File_Chooser* chooser;
