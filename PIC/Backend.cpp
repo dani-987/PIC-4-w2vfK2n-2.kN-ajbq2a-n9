@@ -499,7 +499,7 @@ bool Backend::do_wdt()
 void Backend::reset_wdt()
 {
 	wdt_prescaler = 0;
-	wdt_timer = 170000 + rand() % 50000;	//wdt is _ABOUT_ 18ms
+	wdt_timer = 175000 + (rand() % 10000);	//wdt is _ABOUT_ 18ms
 }
 
 void Backend::damageByte(size_t pos)

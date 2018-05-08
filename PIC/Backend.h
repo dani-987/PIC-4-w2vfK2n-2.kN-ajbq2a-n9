@@ -172,7 +172,7 @@ private:
 	unsigned int runtime;
 	MUTEX m_runtime;
 
-	size_t wdt_timer, wdt_prescaler, wdt_end;
+	int wdt_timer, wdt_prescaler, wdt_end;
 	byte timer_sync;
 	bool timer_written, timer_sync_written;
 	bool wdt_active, wdt_int_accured;
