@@ -49,6 +49,7 @@ void Backend::set_DEBUG_ONLY_TESTING(int state)
 #define NOT_IMPLEMENTED	"Nicht implementiert!"
 #define MEMORY_MISSING "Memory is missing."
 #define FUNCTIONSTACK_EMPTY	"Fuctionstack is empty!"
+#define STACK_OVERFLOW "Stackoverflow!"
 
 #define RESET_POWER_UP		0
 #define RESET_CLRWDT		1
@@ -321,8 +322,10 @@ DO_INTERRUPT:
 		STACK* newAdress = (STACK*)malloc(sizeof(STACK));
 		if (newAdress == nullptr) {
 			lastError = MEMORY_MISSING;
+			MSGLEN();
 			return -1;
 		}
+		stackSize++;
 		newAdress->jumpTo = aktCode;
 		newAdress->next = functionStack;
 		functionStack = newAdress;
@@ -1423,17 +1426,24 @@ int Backend::ANDLW(void*k, void*ign) {
 	return 1;
 }
 int Backend::CALL(void*k, void*ign) {
-	STACK* newAdress = (STACK*)malloc(sizeof(STACK));
-	if (newAdress == nullptr) {
-		lastError = MEMORY_MISSING;
-		return -1;
+	if(stackSize > STACK_SIZE){
+		STACK* newAdress = (STACK*)malloc(sizeof(STACK));
+		if (newAdress == nullptr) {
+			lastError = MEMORY_MISSING;
+			MSGLEN();
+			return -1;
+		}
+		newAdress->jumpTo = aktCode + 1;
+		newAdress->next = functionStack;
+		functionStack = newAdress;
+		aktCode = &(code->code[((int)k & 0x07FF) | (((int)ram[0x0A] & 0x18) << 8)]);
+		if (stopAtStackZero >= 0)stopAtStackZero++;
+		stackSize++;
+		return 2;
 	}
-	newAdress->jumpTo = aktCode + 1;
-	newAdress->next = functionStack;
-	functionStack = newAdress;
-	aktCode = &(code->code[((int)k & 0x07FF) | (((int)ram[0x0A] & 0x18) << 8)]);
-	if (stopAtStackZero >= 0)stopAtStackZero++;
-	return 2;
+	lastError = STACK_OVERFLOW;
+	MSGLEN();
+	return -1;
 }
 int Backend::CLRWDT(void*ign1, void*ign2) {
 	//TO & PD
@@ -1470,6 +1480,7 @@ int Backend::RETFIE(void*ign1, void*ign2) {
 	aktCode = functionStack->jumpTo;
 	functionStack = functionStack->next;
 	free(oldStack);
+	stackSize--;
 #ifdef _DEBUG
 		oldStack = (STACK*) (0xFF00000 | __LINE__);
 #endif
@@ -1488,6 +1499,7 @@ int Backend::RETLW(void*k, void*ign) {
 	aktCode = functionStack->jumpTo;
 	functionStack = functionStack->next;
 	free(oldStack);
+	stackSize--;
 #ifdef _DEBUG
 		oldStack = (STACK*) (0xFF00000 | __LINE__);
 #endif
@@ -1505,6 +1517,7 @@ int Backend::RETURN(void*ign1, void*ign2) {
 	aktCode = functionStack->jumpTo;
 	functionStack = functionStack->next;
 	free(oldStack);
+	stackSize--;
 #ifdef _DEBUG
 		oldStack = (STACK*) (0xFF00000 | __LINE__);
 #endif
