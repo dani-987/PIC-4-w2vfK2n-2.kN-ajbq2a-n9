@@ -301,7 +301,7 @@ void GUI::int_updateAll()
 		case 0x06:
 			setIOcell(IO_table->getstyle(), 4, value);
 			break;
-		case 0x08: case 0x09: break;	//No other areas need to be updated, this is only here to jump over the continue below
+		case 0x08: case 0x07: case 0x09: break;	//No other areas need to be updated, this is only here to jump over the continue below
 		
 		default: continue;	//as this loop only updates non mapped registers, all other registers can be ignored
 		}

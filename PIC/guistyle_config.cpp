@@ -41,7 +41,7 @@ tablestyle * setstyle_MEM()
 		}
 		else if (i == 17 || (i > 22 && i < 27) || i == 35 || (i > 40 && i < 50) || i > 126) {
 			s[i] = MEM_Uninstalled;
-			filltxt(txt, "00");
+			filltxt(txt, "");
 		}
 		//Anything below here is initilaized with "00" and has it's label updated on change of the respective Memory Adress
 		else if (i < 23) {
