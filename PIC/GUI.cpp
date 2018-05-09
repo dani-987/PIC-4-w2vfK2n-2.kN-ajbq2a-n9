@@ -282,7 +282,7 @@ int GUI::run()
 void GUI::int_updateAll()
 {
 	backend->StartedUpdating();
-	PRINTF("int_updateAll() called!\n");
+	//PRINTF("int_updateAll() called!\n");
 	int value;
 	//First update everything on bank on
 	//beginning with the spezial registers that, so of them having additional representations that need to be updated
@@ -359,17 +359,19 @@ void GUI::int_updateAll()
 	}
 	Mem_table->redraw();
 	CODE_table->redraw();
+	CODE_table->setcodeline(getbackend()->GetAktualCodePosition());
 }
 
 void GUI::int_update(){
+
 	backend->StartedUpdating();	//call at begining is necessary!
-	PRINTF("int_update() called!\n");
+	//PRINTF("int_update() called!\n");
 	int pos;
 	byte bank;
 	char queueIO = 0;		//Remember when a value in the IO-table is changed and a redraw is necessary 
 	int queueSpRegs = 0;	//Remember whether one of the Spezial register boxes was changed and a redraw is necessary
 	while (backend->GetNextChangedCell(pos, bank)) {
-		printf("Byte %02x in Bank %d changed!", pos, bank);	
+		//printf("Byte %02x in Bank %d changed!", pos, bank);	
 		int value = getbackend()->GetByte(pos, bank);
 		switch (pos) {
 		case 0x01: if (bank) {	//Option
@@ -437,6 +439,8 @@ void GUI::int_update(){
 		}
 	}
 	Mem_table->redraw();
+	CODE_table->setcodeline(getbackend()->GetAktualCodePosition());
+	CODE_table->redraw();
 }
 
 //#######################################################################################
@@ -564,11 +568,11 @@ void GUI::callback_reset() {
 }
 
 void GUI::callback_settact(int freq) {
-	printf("Set speed to Speed%d\n", freq);
+	//printf("Set speed to Speed%d\n", freq);
 	getbackend()->SetCommandSpeed(freq);
 }
 void GUI::callback_watchdog() {
-	printf("%s watchdog\n", (getbackend()->IsWatchdogEnabled())?("Disabled"):("Enabled"));
+	//printf("%s watchdog\n", (getbackend()->IsWatchdogEnabled())?("Disabled"):("Enabled"));
 	if (getbackend()->IsWatchdogEnabled()) {
 		getbackend()->DisableWatchdog();
 	}

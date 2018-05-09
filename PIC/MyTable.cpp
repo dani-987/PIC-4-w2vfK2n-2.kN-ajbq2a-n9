@@ -5,7 +5,7 @@
 #define DEBUG_LVL_NORMAL	1
 #define DEBUG_LVL_MUCH	2
 #define DEBUG_LVL_ALL	3
-VARDEF(int, DEBUG___LVL, DEBUG_LVL_MUCH);
+VARDEF(int, DEBUG___LVL, DEBUG_LVL_NORMAL);
 
 
 #define COLHEADERPOS(C) (C+((row_header())?(1):(0)))
@@ -14,8 +14,7 @@ VARDEF(int, DEBUG___LVL, DEBUG_LVL_MUCH);
 
 
 MyTable::MyTable(int x, int y, int w, int h,  const char *l) : Fl_Table_Row(x, y, w, h, l) {
-	callback(&event_callback, (void*)this);
-	mystyle = setstyle_MEM();
+	codeline = -1;
 	end();
 }
 MyTable::~MyTable() {
@@ -36,7 +35,6 @@ void MyTable::draw_cell(TableContext context, int R, int C, int X, int Y, int W,
 	case CONTEXT_STARTPAGE:
 		DOIF(DEBUG___LVL >= DEBUG_LVL_MUCH)PRINTF6("Called Startpage Context (R: %d C: %d X: %d Y: %d W: %d H: %d)\n",R,C,X,Y,W,H);
 		fl_font(mystyle[position].font, mystyle[position].fontsize);
-
 		return;
 
 	case CONTEXT_COL_HEADER:
@@ -89,7 +87,7 @@ void MyTable::draw_cell(TableContext context, int R, int C, int X, int Y, int W,
 			DOIF(DEBUG___LVL >= DEBUG_LVL_ALL)PRINTF2("Headers enabled: rows: %d, columns: %d\n", row_header(), col_header());
 
 			// BG COLOR
-			fl_color(is_selected(R, C) ? selection_color() : mystyle[position].backgroundcolor);
+			fl_color((getcodeline()==R) ? selection_color() : mystyle[position].backgroundcolor);
 			fl_rectf(X, Y, W, H);
 
 			// TEXT
@@ -130,4 +128,11 @@ void MyTable::event_callback2()
 	DOIF(DEBUG___LVL >= DEBUG_LVL_MUCH)PRINTF1("'%s' callback: ", (label() ? label() : "?"));
 	DOIF(DEBUG___LVL >= DEBUG_LVL_ALL)PRINTF5("Row=%d Col=%d Context=%d Event=%d InteractiveResize? %d\n",
 		R, C, (int)context, (int)Fl::event(), (int)is_interactive_resize());
+}
+
+int MyTable::getcodeline() {
+	return codeline;
+}
+void MyTable::setcodeline(int newline) {
+	codeline = newline;
 }

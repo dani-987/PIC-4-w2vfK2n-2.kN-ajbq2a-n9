@@ -17,6 +17,7 @@ private:
 	Fl_Color cell_bgcolor;				// color of cell's bg color
 	Fl_Color cell_fgcolor;				// color of cell's fg color
 	tablestyle* mystyle;				// the style-Array of the table
+	int codeline;
 
 protected:
 	void draw_cell(TableContext context,  		// table cell drawing
@@ -26,5 +27,7 @@ protected:
 public:
 	MyTable(int x, int y, int w, int h, const char *l = 0);
 	~MyTable();
+	int getcodeline();
+	void setcodeline(int newline);
 	tablestyle*& getstyle();
 };

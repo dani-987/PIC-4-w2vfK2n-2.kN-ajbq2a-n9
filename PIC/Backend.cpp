@@ -16,7 +16,7 @@
 #define DEBUG_RAM	4
 #define DEBUG_ALL	5
 
-VARDEF(int, DEBUG_LVL, DEBUG_RAM);
+VARDEF(int, DEBUG_LVL, DEBUG_NONE);
 
 #include <Windows.h>	
 HANDLE  hConsole;
