@@ -5,7 +5,7 @@
 #define DEBUG_LVL_NORMAL	1
 #define DEBUG_LVL_MUCH	2
 #define DEBUG_LVL_ALL	3
-VARDEF(int, DEBUG___LVL, DEBUG_LVL_NORMAL);
+VARDEF(int, DEBUG___LVL, DEBUG_LVL_MUCH);
 
 
 #define COLHEADERPOS(C) (C+((row_header())?(1):(0)))

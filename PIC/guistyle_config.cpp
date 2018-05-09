@@ -167,7 +167,7 @@ tablestyle * setstyle_SpRegs(int type) {
 	char* txt;
 	char** Bitnames = &txt;	//Initialization
 	char* Bitnames_Status[] = { { "IRP" },{ "RP1" },{ "RP0" },{ "!TO" },{ "!PD" },{ "Z" },{ "DC" },{ "C" } };
-	char* Bitnames_Option[] = { { "!RPBU" },{ "INTEDG" },{ "T0CS" },{ "T0SE" },{ "PSA" },{ "PS2" },{ "PS1" },{ "PS0" } };
+	char* Bitnames_Option[] = { { "RPBU" },{ "IEDG" },{ "T0CS" },{ "T0SE" },{ "PSA" },{ "PS2" },{ "PS1" },{ "PS0" } };
 	char* Bitnames_Intcon[] = { { "GIE" },{ "EEIE" },{ "T0IE" },{ "INTE" },{ "RBIE" },{ "T0IF" },{ "INTF" },{ "RBIF" } };
 	switch (type) {
 		case 0: Bitnames = Bitnames_Status; break;

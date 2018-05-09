@@ -37,6 +37,7 @@ void gui_int_updateAll(void * gui){((GUI*)gui)->int_updateAll();}
 #define Y_SPEC_REGS		40
 #define W_SPEC_REGS		(w/5)
 #define H_SPEC_REGS		60
+#define H_SPEC_BOX		(H_SPEC_REGS*7+H_SPEC_REGS*1.2*3+10*7)
 
 //Position and size of the controll buttons
 
@@ -194,15 +195,16 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 	registers = (Fl_Box**)malloc(sizeof(Fl_Box*) * BOXES);
 	regtables = (MyTable**)malloc(sizeof(MyTable*) * 3);
 
+	subwin = new Fl_Scroll(X_SPEC_REGS, Y_SPEC_REGS, W_SPEC_REGS + 10, H_SPEC_BOX);
 	//Sets up the boxes for the special regsiters; Their size and position are set in GUI::resize
 	for (int i = 0; i < BOXES; i++) {
-		registers[i] = new Fl_Box(FL_FLAT_BOX, w, h, 0, 0, "");
+		registers[i] = new Fl_Box(FL_FLAT_BOX, 0, 0, W_SPEC_REGS, H_SPEC_REGS, "");
 		setregbox(registers[i], i, 0);
 	}
 
 	//sets up the small tables that show bitwise representations of three special registers Their posiitoned like the boxes above
 	for (int i = 0; i < 3; i++) {
-		MyTable* temptable = new MyTable(w, h, 0, 0);
+		MyTable* temptable = new MyTable(0, 0, W_SPEC_REGS, H_SPEC_REGS*1.2);
 		temptable->getstyle() = setstyle_SpRegs(i);
 		temptable->when();
 		temptable->table_box(FL_NO_BOX);
@@ -217,6 +219,24 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 		temptable->col_resize(0);
 		temptable->col_width_all(W_SPEC_REGS/8);
 		regtables[i] = temptable;
+	}
+	subwin->end();
+	subwin->scroll_to(0, 0);
+	int newy = 0, tcount = 0, bcount=0;
+	for (int i = 0; i < BOXES + 3; i++) {
+		if (i == 2 || i == 7 || i == 9) {
+			regtables[tcount]->resize(0, 0 + newy, W_SPEC_REGS, H_SPEC_REGS * 1.2);
+			newy += H_SPEC_REGS * 1.2 + 10;
+			tcount++;
+		}
+		else {
+			registers[bcount]->resize(0, 0 + newy, W_SPEC_REGS, H_SPEC_REGS);
+			newy += H_SPEC_REGS;
+			if (!(i == 1 || i == 6 || i == 8)) {
+				newy += 10;
+			}
+			bcount++;
+		}
 	}
 
 	Start = new Fl_Button(X_CONT_BUTT, Y_CONT_BUTT, W_CONT_BUTT, H_CONT_BUTT, "Start");
@@ -436,22 +456,24 @@ void GUI::resize(int x, int y, int w, int h){
 	Mem_table->resize(X_MEM_TAB, Y_MEM_TAB, W_MEM_TAB, H_MEM_TAB);
 	IO_table->resize(X_IO_TAB, Y_IO_TAB, W_IO_TAB, H_IO_TAB);
 	CODE_table->resize(X_CODE_TAB, Y_CODE_TAB, W_CODE_TAB, H_CODE_TAB);
-	int newy = 0, tcount = 0, bcount = 0;
+	/*int newy = 0, tcount = 0, bcount = 0;
 	for (int i = 0; i < BOXES + 3; i++) {
 		if (i == 2 || i == 7 || i == 9) {
-			regtables[tcount]->resize(X_SPEC_REGS, Y_SPEC_REGS + newy, W_SPEC_REGS, H_SPEC_REGS * 1.5);
-			newy += H_SPEC_REGS * 1.5 + 10;
+			regtables[tcount]->resize(0, 0 + newy, W_SPEC_REGS, H_SPEC_REGS * 1.2);
+			newy += H_SPEC_REGS * 1.2 + 10;
 			tcount++;
 		}
 		else {
-			registers[bcount]->resize(X_SPEC_REGS, Y_SPEC_REGS + newy, W_SPEC_REGS, H_SPEC_REGS);
+			registers[bcount]->resize(0, 0 + newy, W_SPEC_REGS, H_SPEC_REGS);
 			newy += H_SPEC_REGS;
 			if (!(i == 1 || i == 6 || i == 8)) {
 				newy += 10;
 			}
 			bcount++;
 		}
-	}
+	}*/
+	//int subx = subwin->xposition(), suby = subwin->yposition();
+	subwin->resize(X_SPEC_REGS, Y_SPEC_REGS, W_SPEC_REGS + 10, min(H_SPEC_BOX, h - Y_SPEC_REGS));
 	Start->resize(X_CONT_BUTT, Y_CONT_BUTT, W_CONT_BUTT, H_CONT_BUTT);
 	Stop->resize(X_CONT_BUTT + BUTT_OFFSET, Y_CONT_BUTT, W_CONT_BUTT, H_CONT_BUTT);
 	Step->resize(X_CONT_BUTT + (BUTT_OFFSET * 2), Y_CONT_BUTT, W_CONT_BUTT, H_CONT_BUTT);
