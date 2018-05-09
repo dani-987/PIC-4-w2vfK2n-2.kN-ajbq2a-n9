@@ -50,6 +50,7 @@ int main(int argc, char *argv[]) {
 	HANDLE  hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 	Backend* b = new Backend(new GUI());
 	ASM_TEXT*u = nullptr;
+	b->set_DEBUG_ONLY_TESTING(0);
 	do{
 		printf("\nSelect Program (int)... \n");
 		scanf("%d", &progNum);

@@ -169,10 +169,10 @@ private:
 	call_in_other_thread_s callInOtherThread;
 	MUTEX m_callInOtherThread;
 
-	unsigned int runtime;
+	unsigned long long runtime;
 	MUTEX m_runtime;
 
-	size_t wdt_timer, wdt_prescaler, wdt_end;
+	int wdt_timer, wdt_prescaler, wdt_end;
 	byte timer_sync;
 	bool timer_written, timer_sync_written;
 	bool wdt_active, wdt_int_accured;
@@ -221,7 +221,7 @@ public:
 	bool SetRegW(byte val);
 	char* GetErrorMSG();							//nullptr possible! Remember: malloc! -> free
 	void Wait_For_End();							//joins all runnig threads and returns after all threads terminated. Do not forget to call 'Stop' before, else this function will not return!
-	unsigned int GetRuntimeIn100ns();				// will never cause an error
+	unsigned long long GetRuntimeIn100ns();				// will never cause an error
 	void ResetRuntime();							// will never cause an error
 	size_t GetPC();									// in diff. to GetAktualCodePosition() it will return the Value of PC; not the Codeline incl. Komments
 	int GetAktualCodePosition();					// get the Actual Codeline in the .LST-File for displaying it in the Programmtable, it differs form the PC!

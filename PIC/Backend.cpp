@@ -8,11 +8,21 @@
 #include <time.h>
 
 #ifdef _DEBUG
+
+#define DEBUG_NONE	0
+#define DEBUG_LESS	1
+#define DEBUG_NORM	2
+#define DEBUG_MORE	3
+#define DEBUG_RAM	4
+#define DEBUG_ALL	5
+
+VARDEF(int, DEBUG_LVL, DEBUG_RAM);
+
 #include <Windows.h>	
 HANDLE  hConsole;
 
 //komment this out if using GUI....
-#define USE_BACKEND_WITHOUT_GUI
+//#define USE_BACKEND_WITHOUT_GUI
 
 #define COLOR_RAM_HEAD	0xF0
 #define COLOR_RAM_NORM	0x70
@@ -20,6 +30,12 @@ HANDLE  hConsole;
 #define COLOR_RAM_OTHER	0xB9
 
 #define COLOR_STANDARD	0x07
+
+void Backend::set_DEBUG_ONLY_TESTING(int state)
+{
+	printf("Setting DBG_LVL 2 %d\n", state);
+	DEBUG_LVL = state;
+}
 #endif
 
 #define DAMAGE_GET_BITMAP_BYTE(pos)	(pos >> 3)
@@ -40,23 +56,6 @@ HANDLE  hConsole;
 #define RESET_WDT_TIMEOUT	3
 
 #define MSGLEN()	(lastErrorLen = (std::strlen(lastError)+1))
-
-#define DEBUG_NONE	0
-#define DEBUG_LESS	1
-#define DEBUG_NORM	2
-#define DEBUG_MORE	3
-#define DEBUG_RAM	4
-#define DEBUG_ALL	5
-
-VARDEF(int, DEBUG_LVL, DEBUG_RAM);
-
-#ifdef _DEBUG
-void Backend::set_DEBUG_ONLY_TESTING(int state)
-{
-	printf("Setting DBG_LVL 2 %d\n", state);
-	DEBUG_LVL = state;
-}
-#endif
 
 const static byte spiegelMap[] = {
 0x99,	//0x08
@@ -499,7 +498,7 @@ bool Backend::do_wdt()
 void Backend::reset_wdt()
 {
 	wdt_prescaler = 0;
-	wdt_timer = 170000 + rand() % 50000;	//wdt is _ABOUT_ 18ms
+	wdt_timer = 175000 + (rand() % 10000);	//wdt is _ABOUT_ 18ms
 }
 
 void Backend::damageByte(size_t pos)
@@ -1074,7 +1073,7 @@ void Backend::Wait_For_End()
 	if (uC != nullptr && uC->joinable()) { uC->join(); delete(uC); uC = nullptr; }
 }
 
-unsigned int Backend::GetRuntimeIn100ns()
+unsigned long long Backend::GetRuntimeIn100ns()
 {
 	LOCK_MUTEX(m_ram);
 	size_t ret = runtime;

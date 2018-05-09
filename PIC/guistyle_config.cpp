@@ -12,6 +12,17 @@ void filltxt(char*& txt, char* tofill) {
 	}
 }
 
+void filltxt_code(char*& txt, char* tofill) {
+	if (tofill != nullptr) {
+		txt = (char*)malloc(strlen(tofill) + 1);
+		sprintf(txt, " %s", tofill);
+	}
+	else {
+		txt = (char*)malloc(1);
+		sprintf(txt, "");
+	}
+}
+
 //Tablestyles for the Memory Table
 tablestyle MEM_Startpage = {nullptr, FL_HELVETICA, FONT_SIZE_TABLE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_LIGHT2, FL_ALIGN_CENTER},
 	MEM_Rowheaders = { nullptr, FL_HELVETICA, FONT_SIZE_TABLE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_LIGHT2, FL_ALIGN_CENTER },
@@ -124,11 +135,11 @@ tablestyle * setstyle_Code(int lines, ASM_TEXT* code) {
 			char* txt;
 			s[i] = CODE_TEXT;
 			switch (i % CCCODE) {
-			case 0: filltxt(txt, code->bytecode); break;
-			case 1: filltxt(txt, code->lineOfCode); break;
-			case 2: filltxt(txt, code->label); break;
-			case 3: filltxt(txt, code->asmCode); break;
-			case 4: filltxt(txt, code->comment); code = code->next; break;
+			case 0: filltxt_code(txt, code->bytecode); break;
+			case 1: filltxt_code(txt, code->lineOfCode); break;
+			case 2: filltxt_code(txt, code->label); break;
+			case 3: filltxt_code(txt, code->asmCode); break;
+			case 4: filltxt_code(txt, code->comment); code = code->next; break;
 			default: txt = (char*)malloc(1); sprintf(txt, ""); break;//default path will never be used, but compiler wants it anyway because of the initialization of txt
 			}
 			s[i].label = txt;
@@ -145,8 +156,40 @@ tablestyle * setstyle_Code(int lines, ASM_TEXT* code) {
 	}
 	return s;
 }
-	
 
+tablestyle SpRegs_Headers = { nullptr, FL_HELVETICA, FONT_SIZE_TABLE - 2, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_LIGHT2, FL_ALIGN_CENTER },
+		SpRegs_Values = { nullptr, FL_HELVETICA, FONT_SIZE_TABLE - 2, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_WHITE, FL_ALIGN_CENTER };
+
+
+tablestyle * setstyle_SpRegs(int type) {
+	assert(type >= 0 && type <= 2);
+	tablestyle* s = (tablestyle*)malloc(sizeof(tablestyle) * 16);
+	char* txt;
+	char** Bitnames = &txt;	//Initialization
+	char* Bitnames_Status[] = { { "IRP" },{ "RP1" },{ "RP0" },{ "!TO" },{ "!PD" },{ "Z" },{ "DC" },{ "C" } };
+	char* Bitnames_Option[] = { { "!RPBU" },{ "INTEDG" },{ "T0CS" },{ "T0SE" },{ "PSA" },{ "PS2" },{ "PS1" },{ "PS0" } };
+	char* Bitnames_Intcon[] = { { "GIE" },{ "EEIE" },{ "T0IE" },{ "INTE" },{ "RBIE" },{ "T0IF" },{ "INTF" },{ "RBIF" } };
+	switch (type) {
+		case 0: Bitnames = Bitnames_Status; break;
+		case 1: Bitnames = Bitnames_Option; break;
+		case 2: Bitnames = Bitnames_Intcon; break;
+	}
+	for (int i = 0; i < 16; i++) {
+		if (i < 8) {
+			s[i] = SpRegs_Headers;
+			filltxt(txt, Bitnames[i]);
+			s[i].label = txt;
+		}
+		else {
+			s[i] = SpRegs_Values;
+			filltxt(txt, "0");
+			s[i].label = txt;
+		}
+	}
+	return s;
+}
+
+	
 void freetablestyle(tablestyle*& tofree, int cells){
 	for (int i = 0; i < cells; i++) {
 		free(tofree[i].label);
@@ -168,42 +211,33 @@ void setregbox(Fl_Box*& regs, int line, int value) {
 			break;
 		}
 		case 2: {
-			int i = value;
-			sprintf(txt, "IRP\tRP1\tRP0\tTO\tPD\tZ\tDC\tC\n%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t", i&0x128 ? 1 : 0, i & 0x64 ? 1 : 0, i & 0x32 ? 1 : 0, i & 0x16 ? 1 : 0, i & 0x8 ? 1 : 0, i & 0x4 ? 1 : 0, i & 0x2 ? 1 : 0, i & 0x1 ? 1 : 0);
-			break;
-		}
-		case 3: {
 			sprintf(txt, "PCL:\t\t%02X", value);
 			break;
 		}
-		case 4: {
+		case 3: {
 			sprintf(txt, "PCLATH:\t%02X", value);
 			break;
 		}
-		case 5: {
+		case 4: {
 			sprintf(txt, "PC:\t\t%04X", value);
 			break;
 		}
-		case 6: {
+		case 5: {
 			sprintf(txt, "Option:\t%02X", value);
 			break;
 		}
-		case 7: {
-			int i = value;
-			sprintf(txt, "RBPU\tINTEDG\tT0CS\tT0SE\tPSA\tPS2\tPS1\tPS0\n%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t", i & 0x128 ? 1 : 0, i & 0x64 ? 1 : 0, i & 0x32 ? 1 : 0, i & 0x16 ? 1 : 0, i & 0x8 ? 1 : 0, i & 0x4 ? 1 : 0, i & 0x2 ? 1 : 0, i & 0x1 ? 1 : 0);
-			break;
-		}
-		case 8: {
+		case 6: {
 			sprintf(txt, "INTCON:\t%02X", value);
-			break;
-		}
-		case 9: {
-			int i = value;
-			sprintf(txt, "GIE\tEEIE\tT0IE\tINTE\tRBIE\tT0IF\tINTF\tRBIF\n%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t", i & 0x128 ? 1 : 0, i & 0x64 ? 1 : 0, i & 0x32 ? 1 : 0, i & 0x16 ? 1 : 0, i & 0x8 ? 1 : 0, i & 0x4 ? 1 : 0, i & 0x2 ? 1 : 0, i & 0x1 ? 1 : 0);
 			break;
 		}
 	}
 	regs->label(txt);
+}
+
+void setregtable(tablestyle *& mystyle, int value){
+	for (int i = 0; i < 8; i++) {
+		sprintf(mystyle[i + 8].label,"%s", (value & (1 << (8 - i))) ? "1" : "0");
+	}
 }
 
 //Update a label of a single cell in the MEM-table

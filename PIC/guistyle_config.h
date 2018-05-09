@@ -29,9 +29,13 @@ struct tablestyle {
 tablestyle* setstyle_MEM();
 tablestyle* setstyle_IO();
 tablestyle* setstyle_Code(int lines, ASM_TEXT* code);
+tablestyle* setstyle_SpRegs(int type);	//type: 0=Status; 1=Option, 2=Intcon
+
 
 void freetablestyle(tablestyle*& tofree, int cells);
 
+//Updates the labels of the tables
 void setregbox(Fl_Box*& regs, int line, int value);
+void setregtable(tablestyle*& mystyle, int value);
 void setMEMcell(tablestyle*& mystyle, int pos, int bank, int value);
 void setIOcell(tablestyle*& mystyle, int line, int value);
