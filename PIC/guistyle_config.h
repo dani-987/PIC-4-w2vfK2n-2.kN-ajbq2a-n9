@@ -9,8 +9,8 @@ typedef struct tablestyle tablestyle;
 //					v
 
 #include "GUI.h"
-#include <FL\Enumerations.H>
-#include <FL\Fl_Box.H>
+#include <FL/Enumerations.H>
+#include <FL/Fl_Box.H>
 
 
 //Contains all necessary style information to draw a cell

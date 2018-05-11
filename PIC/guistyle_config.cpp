@@ -24,19 +24,19 @@ void filltxt_code(char*& txt, char* tofill) {
 }
 
 //Tablestyles for the Memory Table
-tablestyle MEM_Startpage = {nullptr, FL_HELVETICA, FONT_SIZE_TABLE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_LIGHT2, FL_ALIGN_CENTER},
-	MEM_Rowheaders = { nullptr, FL_HELVETICA, FONT_SIZE_TABLE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_LIGHT2, FL_ALIGN_CENTER },
-	MEM_Colheaders = { nullptr, FL_HELVETICA, FONT_SIZE_TABLE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_LIGHT2, FL_ALIGN_CENTER },
-	MEM_Reserved_B0 = { nullptr, FL_HELVETICA, FONT_SIZE_TABLE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_BLUE, FL_ALIGN_CENTER },
-	MEM_Reserved_B1 = { nullptr, FL_HELVETICA, FONT_SIZE_TABLE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_GREEN, FL_ALIGN_CENTER },
-	MEM_Available = { nullptr, FL_HELVETICA, FONT_SIZE_TABLE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_WHITE, FL_ALIGN_CENTER },
-	MEM_Uninstalled = { nullptr, FL_HELVETICA, FONT_SIZE_TABLE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_LIGHT1, FL_ALIGN_CENTER };
+tablestyle MEM_Startpage = {nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_LIGHT2, FL_ALIGN_CENTER},
+	MEM_Rowheaders = { nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_LIGHT2, FL_ALIGN_CENTER },
+	MEM_Colheaders = { nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_LIGHT2, FL_ALIGN_CENTER },
+	MEM_Reserved_B0 = { nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_BLUE, FL_ALIGN_CENTER },
+	MEM_Reserved_B1 = { nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_GREEN, FL_ALIGN_CENTER },
+	MEM_Available = { nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_WHITE, FL_ALIGN_CENTER },
+	MEM_Uninstalled = { nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_LIGHT1, FL_ALIGN_CENTER };
 
 tablestyle * setstyle_MEM()
 {
 	char* txt;
-	tablestyle* s = (tablestyle*)malloc(sizeof(tablestyle) * CellsMEM);
-	for (int i = 0; i < CellsMEM; i++) {
+	tablestyle* s = (tablestyle*)malloc(sizeof(tablestyle) * CELL_COUNT_MEM);
+	for (int i = 0; i < CELL_COUNT_MEM; i++) {
 		if (!i) { s[i] = MEM_Startpage; txt = nullptr; }
 		//the first few cases have unchanging labels that are set here and never change (headers and unimplemented cells)
 		else if (i < 9) { 
@@ -73,16 +73,16 @@ tablestyle * setstyle_MEM()
 }
 
 
-tablestyle IO_Rowheaders = { nullptr, FL_HELVETICA, FONT_SIZE_TABLE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_LIGHT2, FL_ALIGN_CENTER },
-	IO_DigitEnum = { nullptr, FL_HELVETICA, FONT_SIZE_TABLE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_WHITE, FL_ALIGN_CENTER },
-	IO_TrisValues = { nullptr, FL_HELVETICA, FONT_SIZE_TABLE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_WHITE, FL_ALIGN_CENTER },
-	IO_Values = { nullptr, FL_HELVETICA, FONT_SIZE_TABLE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_WHITE, FL_ALIGN_CENTER };
+tablestyle IO_Rowheaders = { nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_LIGHT2, FL_ALIGN_CENTER },
+	IO_DigitEnum = { nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_WHITE, FL_ALIGN_CENTER },
+	IO_TrisValues = { nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_WHITE, FL_ALIGN_CENTER },
+	IO_Values = { nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_WHITE, FL_ALIGN_CENTER };
 
 //TODO, aber nicht notwendig: alles auf filltxt umstellen
 tablestyle * setstyle_IO()
 {
-	tablestyle* s = (tablestyle*)malloc(sizeof(tablestyle) * CellsIO);
-	for (int i = 0; i < CellsIO; i++) {
+	tablestyle* s = (tablestyle*)malloc(sizeof(tablestyle) * CELL_COUNT_IO);
+	for (int i = 0; i < CELL_COUNT_IO; i++) {
 		char* txt = "";			//Initializing here because compiler will otherwise cry about use of uninitilized variable 
 		if (!(i % 9)) {
 			s[i] = IO_Rowheaders;
@@ -111,22 +111,27 @@ tablestyle * setstyle_IO()
 	return s;
 }
 
-tablestyle CODE_Colheaders = { nullptr, FL_HELVETICA, FONT_SIZE_TABLE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_DARK_YELLOW, FL_ALIGN_CENTER },
-CODE_TEXT = { nullptr, FL_HELVETICA, FONT_SIZE_TABLE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_BLUE, FL_ALIGN_LEFT };
+tablestyle CODE_Colheaders = { nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_DARK_YELLOW, FL_ALIGN_CENTER },
+CODE_TEXT = { nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_BLUE, FL_ALIGN_LEFT };
 
 tablestyle * setstyle_Code(int lines, ASM_TEXT* code) {
 	int CellsCode = (lines + 1) * CCCODE;
 	tablestyle* s = (tablestyle*)malloc(sizeof(tablestyle) * CellsCode);
 	for (int i = 0; i < CCCODE; i++) {
 		s[i] = CODE_Colheaders;
-		char *txt = (char*)malloc(15);
+		char *txt;
 		switch (i) {
-		case 0: sprintf(txt, "Bytecode"); break;
-		case 1: sprintf(txt, "Zeilen"); break;
-		case 2: sprintf(txt, "Labels"); break;
-		case 3: sprintf(txt, "Befehle"); break;
-		case 4: sprintf(txt, "Kommentare"); break;
+		case 0: filltxt(txt, "BP"); break;
+		case 1: filltxt(txt, "Bytecode"); break;
+		case 2: filltxt(txt, "Zeilen"); break;
+		case 3: filltxt(txt, "Labels"); break;
+		case 4: filltxt(txt, "Befehle"); break;
+		case 5: filltxt(txt, "Kommentare"); break;
+		default: txt = (char*)malloc(1); sprintf(txt, ""); break; //default case again only here so the compiler doesn't complain. It will never be used
 		}
+		int neww, newh;
+		get_dimension(txt, neww, newh);
+		get_col_width_CODE(i) = neww;
 		s[i].label = txt;
 	}
 	if (code != nullptr) {
@@ -135,13 +140,17 @@ tablestyle * setstyle_Code(int lines, ASM_TEXT* code) {
 			char* txt;
 			s[i] = CODE_TEXT;
 			switch (i % CCCODE) {
-			case 0: filltxt_code(txt, code->bytecode); break;
-			case 1: filltxt_code(txt, code->lineOfCode); break;
-			case 2: filltxt_code(txt, code->label); break;
-			case 3: filltxt_code(txt, code->asmCode); break;
-			case 4: filltxt_code(txt, code->comment); code = code->next; break;
+			case 0: filltxt_code(txt, ""); break;
+			case 1: filltxt_code(txt, code->bytecode); break;
+			case 2: filltxt_code(txt, code->lineOfCode); break;
+			case 3: filltxt_code(txt, code->label); break;
+			case 4: filltxt_code(txt, code->asmCode); break;
+			case 5: filltxt_code(txt, code->comment); code = code->next; break;
 			default: txt = (char*)malloc(1); sprintf(txt, ""); break;//default path will never be used, but compiler wants it anyway because of the initialization of txt
 			}
+			int neww, newh;
+			get_dimension(txt, neww, newh);
+			get_col_width_CODE(i%6) = max(neww, get_col_width_CODE(i%6));
 			s[i].label = txt;
 		}
 	}
@@ -152,13 +161,14 @@ tablestyle * setstyle_Code(int lines, ASM_TEXT* code) {
 			s[i] = CODE_TEXT;
 			sprintf(txt, "");
 			s[i].label = txt;
+			//no dimension calcuation here because "" is always smaller than any of the header labels
 		}
 	}
 	return s;
 }
 
-tablestyle SpRegs_Headers = { nullptr, FL_HELVETICA, FONT_SIZE_TABLE - 2, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_LIGHT2, FL_ALIGN_CENTER },
-		SpRegs_Values = { nullptr, FL_HELVETICA, FONT_SIZE_TABLE - 2, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_WHITE, FL_ALIGN_CENTER };
+tablestyle SpRegs_Headers = { nullptr, FL_HELVETICA, FONT_SIZE - 2, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_LIGHT2, FL_ALIGN_CENTER },
+		SpRegs_Values = { nullptr, FL_HELVETICA, FONT_SIZE - 2, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_WHITE, FL_ALIGN_CENTER };
 
 
 tablestyle * setstyle_SpRegs(int type) {
@@ -167,7 +177,7 @@ tablestyle * setstyle_SpRegs(int type) {
 	char* txt;
 	char** Bitnames = &txt;	//Initialization
 	char* Bitnames_Status[] = { { "IRP" },{ "RP1" },{ "RP0" },{ "!TO" },{ "!PD" },{ "Z" },{ "DC" },{ "C" } };
-	char* Bitnames_Option[] = { { "RPBU" },{ "IEDG" },{ "T0CS" },{ "T0SE" },{ "PSA" },{ "PS2" },{ "PS1" },{ "PS0" } };
+	char* Bitnames_Option[] = { { "!RPBU" },{ "INTEDG" },{ "T0CS" },{ "T0SE" },{ "PSA" },{ "PS2" },{ "PS1" },{ "PS0" } };
 	char* Bitnames_Intcon[] = { { "GIE" },{ "EEIE" },{ "T0IE" },{ "INTE" },{ "RBIE" },{ "T0IF" },{ "INTF" },{ "RBIF" } };
 	switch (type) {
 		case 0: Bitnames = Bitnames_Status; break;

@@ -1,51 +1,89 @@
 #include "GUI.h"
 
-int __font_size_table_ = 14;
-int __get_font_size_table_() {return __font_size_table_;}
+//Variables for size-parameters that might be allow to change (TODO) + Getters
+int my_font_size = 14;
+int cell_width_Mem;
+int cell_height_Mem;
+int cell_width_SpRegs;
+int cell_height_SpRegs;
+int* col_width_CODE;
+int label_width_button;
+int label_height_button;
+
+int& get_font_size() { return my_font_size; }
+int& get_cell_width_Mem() { return cell_width_Mem; }
+int& get_cell_height_Mem() { return cell_height_Mem; }
+int& get_cell_width_SpRegs() { return cell_width_SpRegs; }
+int& get_cell_height_SpRegs() { return cell_height_SpRegs; }
+int& get_col_width_CODE(int column) { return col_width_CODE[column]; }
+int& get_label_width_button() { return label_width_button; }
+int& get_label_height_button() { return label_height_button; }
+
+//Set Cell dimensions based on the currently selcted font size
+void setsizes() {
+	get_dimension(BASE_LABEL_MEM, get_cell_width_Mem(), get_cell_height_Mem());
+	get_dimension_small(BASE_LABEL_SPREGS, get_cell_width_SpRegs(), get_cell_height_SpRegs());
+	get_dimension(BASE_LABEL_BUTTON, get_label_width_button(), get_label_height_button());
+}
+
+//Custome overload for fl_measure: gives the size (in pixels) of an object as printed on screen
+void get_dimension(char* tomeasure, int& width, int& height) {
+	fl_font(FL_HELVETICA, FONT_SIZE);
+	width = 0; height = 0;
+	fl_measure(tomeasure, width, height);
+}
+
+void get_dimension_small(char* tomeasure, int& width, int& height) {
+	fl_font(FL_HELVETICA, FONT_SIZE_SMALL);
+	width = 0; height = 0;
+	fl_measure(tomeasure, width, height);
+}
 
 void gui_int_update(void * gui){((GUI*)gui)->int_update();}
 
 void gui_int_updateAll(void * gui){((GUI*)gui)->int_updateAll();}
 
-//Position and size of the menu-bar
+//Position and size of the menubar
 #define X_MENUBAR		0
 #define Y_MENUBAR		0
-#define W_MENUBAR		w
-#define H_MENUBAR		20
+#define W_MENUBAR		WINDOW_WIDTH
+#define H_MENUBAR		CELL_HEIGHT_MEM
 #define MENU_ITEMCOUNT	13
 
 //Position and size of the IO-Table
-#define W_IO_TAB		((CW*(CCIO + 1.2))+20)
-#define H_IO_TAB		(CH*(RCIO)+2)
-#define X_IO_TAB		10
-#define Y_IO_TAB		(h-(10+H_IO_TAB))
+#define W_IO_TAB		(CELL_WIDTH_MEM*CCMEM+ROW_HEADER_WIDTH_MEM + 5)
+#define H_IO_TAB		(CELL_HEIGHT_MEM*RCIO + 5)
+#define X_IO_TAB		SIDEMARGINE
+#define Y_IO_TAB		(h - (BOTTOMMARGINE+H_IO_TAB))
 
 //Position and size of the MEM-Table
-#define X_MEM_TAB		X_IO_TAB
-#define Y_MEM_TAB		40
+#define X_MEM_TAB		SIDEMARGINE
+#define Y_MEM_TAB		TOPMARGINE
 #define W_MEM_TAB		W_IO_TAB
-#define H_MEM_TAB		(Y_IO_TAB-(Y_MEM_TAB+20))
+#define H_MEM_TAB		(Y_IO_TAB-(Y_MEM_TAB+INTERSPACE))
+
+//Position and size of the Spezial Registers Scroll subwindow
+#define X_SPREGS		(X_IO_TAB+W_IO_TAB+INTERSPACE)
+#define Y_SPREGS		TOPMARGINE
+#define W_SPREGS		(CCSPREGS*CELL_WIDTH_SPREGS+SCROLLBAR_WIDTH)
+#define H_SPREGS		(h - (TOPMARGINE+BOTTOMMARGINE))
+#define W_SPREGS_TABLE	(CELL_WIDTH_SPREGS*CCSPREGS + 5)
+#define H_SPREGS_TABLE	(CELL_HEIGHT_SPREGS*RCSPREGS + 5)
+#define W_SPREGS_BOX	W_SPREGS_TABLE
+#define H_SPREGS_BOX	CELL_HEIGHT_SPREGS
 
 //Position and size of the CODE-Table
-#define W_CODE_TAB		(w / 3)
-#define H_CODE_TAB		(h - 150)
-#define X_CODE_TAB		(w - (W_CODE_TAB + 10))
-#define Y_CODE_TAB		40
-
-//Position and size of the Spezial Registers Box
-#define X_SPEC_REGS		(X_IO_TAB+W_IO_TAB+40)
-#define Y_SPEC_REGS		40
-#define W_SPEC_REGS		(w/5)
-#define H_SPEC_REGS		60
-#define H_SPEC_BOX		(H_SPEC_REGS*7+H_SPEC_REGS*1.2*3+10*7)
+#define X_CODE_TAB		(X_SPREGS+W_SPREGS+INTERSPACE)
+#define Y_CODE_TAB		TOPMARGINE
+#define W_CODE_TAB		(w-(X_SPREGS+W_SPREGS+INTERSPACE))
+#define H_CODE_TAB		(h - (TOPMARGINE+BOTTOMMARGINE+BOX_HEIGHT_BUTTON+INTERSPACE))
 
 //Position and size of the controll buttons
-
-#define H_CONT_BUTT		40
-#define W_CONT_BUTT		(w/15)
-#define Y_CONT_BUTT		(h-(10+H_CONT_BUTT))
-#define X_CONT_BUTT		(X_CODE_TAB + 20)
-#define BUTT_OFFSET		(W_CONT_BUTT + 20)
+#define H_BUTTON		BOX_HEIGHT_BUTTON
+#define W_BUTTON		BOX_WIDTH_BUTTON
+#define Y_BUTTON		(Y_CODE_TAB+H_CODE_TAB+INTERSPACE)
+#define X_BUTTON(a)		(X_CODE_TAB + INTERSPACE + a * (W_BUTTON + INTERSPACE))
+#define BUTTON_OFFSET	20
 
 
 namespace gui_callbacks {
@@ -82,14 +120,19 @@ Fl_Menu_Item menutable_vorlage[] = {
 //Generates the GUI initial and creates the Backend
 GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator")
 {
+	//int wi = 0, hi = 0;
+	//fl_font(FL_HELVETICA, FONT_SIZE);
+	//fl_measure("Tris", w, h);
 	//Create Backend
 	backend = new Backend(this);
 
 	/*//TODO: fontsize ändern <- sollte in resize gemacht werden?
-	if (w < 750)__font_size_table_ = 12;
-	else if (w < 1000)__font_size_table_ = 14;
-	else __font_size_table_ = 16;
+	if (w < 750)my_font_size = 12;
+	else if (w < 1000)my_font_size = 14;
+	else my_font_size = 16;
 	*/
+
+	setsizes();
 
 	//create Menubar
 	//Structure of the Menu. Components of each item: label, shortcut, callback, value, Flag (Optinal)
@@ -103,7 +146,6 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 
 	menubar = new Fl_Menu_Bar(X_MENUBAR, Y_MENUBAR, W_MENUBAR, H_MENUBAR);
 	menubar->menu(menutable);
-	//menubar->add("&Datei/&Lade Datei", nullptr, gui_callbacks::loadFile, this);
 
 	//Fl::scheme(SCHEME);
 
@@ -135,24 +177,23 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 	//Table for the Memory
 	Mem_table = new MyTable(X_MEM_TAB, Y_MEM_TAB, W_MEM_TAB, H_MEM_TAB, "Memory");
 	Mem_table->getstyle() = setstyle_MEM();
-	Mem_table->selection_color(FL_YELLOW);
+	//Mem_table->selection_color(FL_YELLOW);
 	Mem_table->when(FL_WHEN_RELEASE | FL_WHEN_CHANGED);
 	Mem_table->table_box(FL_NO_BOX);
 
-
 	// Configure table rows
 	Mem_table->row_header(1);
-	Mem_table->row_header_width(CW*1.2);
+	Mem_table->row_header_width(ROW_HEADER_WIDTH_MEM);
 	Mem_table->row_resize(0);
 	Mem_table->rows(RCMEM);
-	Mem_table->row_height_all(CH);
+	Mem_table->row_height_all(CELL_HEIGHT_MEM);
 
-	// Configure table collums
+	// Configure table columns
 	Mem_table->cols(CCMEM);
 	Mem_table->col_header(1);
-	Mem_table->col_header_height(CH*1.2);
+	Mem_table->col_header_height(COL_HEADER_HEIGHT_MEM);
 	Mem_table->col_resize(0);
-	Mem_table->col_width_all(CW);
+	Mem_table->col_width_all(CELL_WIDTH_MEM);
 
 	//Table for the IO-Registers
 	IO_table = new MyTable(X_IO_TAB, Y_IO_TAB, W_IO_TAB, H_IO_TAB, "IO-Registers");
@@ -163,92 +204,85 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 	//Configure table rows
 	IO_table->row_resize(0);
 	IO_table->row_header(1);
-	IO_table->row_header_width(CW*1.2);
+	IO_table->row_header_width(ROW_HEADER_WIDTH_MEM);
 	IO_table->rows(RCIO);
-	IO_table->row_height_all(CH);
+	IO_table->row_height_all(CELL_HEIGHT_MEM);
 
-	//Configure table collums
+	//Configure table columns
 	IO_table->cols(CCIO);
 	IO_table->col_resize(0);
-	IO_table->col_width_all(CW);
+	IO_table->col_width_all(CELL_WIDTH_MEM);
 
 	//Table for the Code
-	CODE_table = new MyTable(X_CODE_TAB, Y_CODE_TAB, W_CODE_TAB, H_CODE_TAB, "CODE");
+	CODE_table = new MyTable(X_CODE_TAB, Y_CODE_TAB, W_CODE_TAB, H_CODE_TAB, "Code");
+	col_width_CODE = (int*)malloc(sizeof(int)*RCCODE);
+	ZeroMemory(col_width_CODE, sizeof(int)*RCCODE);
 	CODE_table->getstyle() = setstyle_Code(RCCODE, nullptr);
 	//CODE_table->selection_color(FL_YELLOW);
 	CODE_table->when(FL_WHEN_RELEASE | FL_WHEN_CHANGED);
 	CODE_table->table_box(FL_NO_BOX);
 
-
 	// Configure table rows
 	CODE_table->rows(RCCODE);
 	CODE_table->row_resize(0);
-	CODE_table->row_height_all(CH);
+	CODE_table->row_height_all(CELL_HEIGHT_CODE);
 
-	// Configure table collums
+	// Configure table columns
 	CODE_table->cols(CCCODE);
 	CODE_table->col_header(1);
-	CODE_table->col_header_height(CH*1.2);
-	CODE_table->col_resize(0);
-	CODE_table->col_width_all(w/15);
+	CODE_table->col_header_height(COL_HEADER_HEIGHT_CODE);
+	CODE_table->col_resize(1);
+	//CODE_table->col_width_all(w/15);
+	for (int i = 0; i < CCCODE; i++) {
+		CODE_table->col_width(i, CELL_WIDTH_CODE(i));
+	}
 
 	registers = (Fl_Box**)malloc(sizeof(Fl_Box*) * BOXES);
-	regtables = (MyTable**)malloc(sizeof(MyTable*) * 3);
+	regtables = (MyTable**)malloc(sizeof(MyTable*) * TABLES);
 
-	subwin = new Fl_Scroll(X_SPEC_REGS, Y_SPEC_REGS, W_SPEC_REGS + 10, H_SPEC_BOX);
-	//Sets up the boxes for the special regsiters; Their size and position are set in GUI::resize
+	subwin = new Fl_Scroll(X_SPREGS, Y_SPREGS, W_SPREGS , H_SPREGS);
+	//Sets up the boxes for the special regsiters
+	int newy = 0;
 	for (int i = 0; i < BOXES; i++) {
-		registers[i] = new Fl_Box(FL_FLAT_BOX, 0, 0, W_SPEC_REGS, H_SPEC_REGS, "");
+		registers[i] = new Fl_Box(FL_UP_BOX, 0, newy, W_SPREGS_BOX, H_SPREGS_BOX,"");
+		newy += H_SPREGS_BOX + (i == 1 || i == 5 || i == 7) ? (H_SPREGS_TABLE) : 0 + INTERSPACE_SMALL;
 		setregbox(registers[i], i, 0);
 	}
 
 	//sets up the small tables that show bitwise representations of three special registers Their posiitoned like the boxes above
-	for (int i = 0; i < 3; i++) {
-		MyTable* temptable = new MyTable(0, 0, W_SPEC_REGS, H_SPEC_REGS*1.2);
+	newy = 0;
+	for (int i = 0; i < TABLES; i++) {
+		MyTable* temptable = new MyTable(0, newy, W_SPREGS_TABLE, H_SPREGS_TABLE);
+		newy += H_SPREGS_TABLE + (i == 0) ? 4 : 1 * (H_SPREGS_BOX + INTERSPACE_SMALL);
+
 		temptable->getstyle() = setstyle_SpRegs(i);
 		temptable->when();
 		temptable->table_box(FL_NO_BOX);
 
 		//Configure table rows
-		temptable->rows(2);
+		temptable->rows(RCSPREGS);
 		temptable->row_resize(0);
-		temptable->row_height_all(H_SPEC_REGS/2);
+		temptable->row_height_all(CELL_HEIGHT_SPREGS);
 
-		//Configure table collums
-		temptable->cols(8);
+		//Configure table columns
+		temptable->cols(CCSPREGS);
 		temptable->col_resize(0);
-		temptable->col_width_all(W_SPEC_REGS/8);
+		temptable->col_width_all(CELL_WIDTH_SPREGS);
 		regtables[i] = temptable;
 	}
 	subwin->end();
 	subwin->scroll_to(0, 0);
-	int newy = 0, tcount = 0, bcount=0;
-	for (int i = 0; i < BOXES + 3; i++) {
-		if (i == 2 || i == 7 || i == 9) {
-			regtables[tcount]->resize(0, 0 + newy, W_SPEC_REGS, H_SPEC_REGS * 1.2);
-			newy += H_SPEC_REGS * 1.2 + 10;
-			tcount++;
-		}
-		else {
-			registers[bcount]->resize(0, 0 + newy, W_SPEC_REGS, H_SPEC_REGS);
-			newy += H_SPEC_REGS;
-			if (!(i == 1 || i == 6 || i == 8)) {
-				newy += 10;
-			}
-			bcount++;
-		}
-	}
 
-	Start = new Fl_Button(X_CONT_BUTT, Y_CONT_BUTT, W_CONT_BUTT, H_CONT_BUTT, "Start");
+	Start = new Fl_Button(X_BUTTON(0), Y_BUTTON, W_BUTTON, H_BUTTON, "Start");
 	Start->callback(gui_callbacks::Start, this);
 
-	Stop = new Fl_Button(X_CONT_BUTT + BUTT_OFFSET, Y_CONT_BUTT, W_CONT_BUTT, H_CONT_BUTT, "Stop");
+	Stop = new Fl_Button(X_BUTTON(1), Y_BUTTON, W_BUTTON, H_BUTTON, "Stop");
 	Stop->callback(gui_callbacks::Stop, this);
 
-	Step = new Fl_Button(X_CONT_BUTT + (BUTT_OFFSET * 2), Y_CONT_BUTT + (BUTT_OFFSET * 2), W_CONT_BUTT, H_CONT_BUTT, "Step");
+	Step = new Fl_Button(X_BUTTON(2), Y_BUTTON, W_BUTTON, H_BUTTON, "Step");
 	Step->callback(gui_callbacks::Step, this);
 
-	Reset = new Fl_Button(X_CONT_BUTT + (BUTT_OFFSET * 3), Y_CONT_BUTT + (BUTT_OFFSET * 3), W_CONT_BUTT, H_CONT_BUTT, "Reset");
+	Reset = new Fl_Button(X_BUTTON(3), Y_BUTTON, W_BUTTON, H_BUTTON, "Reset");
 	Reset->callback(gui_callbacks::Reset, this);
 
 	int_updateAll();
@@ -278,7 +312,6 @@ int GUI::run()
 //#######################################################################################
 
 
-//Todo: Update PC properly
 void GUI::int_updateAll()
 {
 	backend->StartedUpdating();
@@ -451,37 +484,36 @@ void GUI::int_update(){
 
 void GUI::resize(int x, int y, int w, int h){
 	/*//TODO: fonsize ändern
-	if (w < 750)__font_size_table_ = 12;
-	else if (w < 1000)__font_size_table_ = 14;
-	else __font_size_table_ = 16;
+	if (w < 750)my_font_size = 12;
+	else if (w < 1000)my_font_size = 14;
+	else my_font_size = 16;
 	*/
 	Fl_Double_Window::resize(x, y, w, h);
 	menubar->resize(X_MENUBAR, Y_MENUBAR, W_MENUBAR, H_MENUBAR);
 	Mem_table->resize(X_MEM_TAB, Y_MEM_TAB, W_MEM_TAB, H_MEM_TAB);
 	IO_table->resize(X_IO_TAB, Y_IO_TAB, W_IO_TAB, H_IO_TAB);
 	CODE_table->resize(X_CODE_TAB, Y_CODE_TAB, W_CODE_TAB, H_CODE_TAB);
-	/*int newy = 0, tcount = 0, bcount = 0;
+	int newy = 0, tcount = 0, bcount = 0;
 	for (int i = 0; i < BOXES + 3; i++) {
 		if (i == 2 || i == 7 || i == 9) {
-			regtables[tcount]->resize(0, 0 + newy, W_SPEC_REGS, H_SPEC_REGS * 1.2);
-			newy += H_SPEC_REGS * 1.2 + 10;
+			regtables[tcount]->resize(0, newy, W_SPREGS_TABLE, H_SPREGS_TABLE);
+			newy += H_SPREGS_TABLE + (tcount == 0) ? 4 : 1 * (H_SPREGS_BOX + INTERSPACE_SMALL);
 			tcount++;
 		}
 		else {
-			registers[bcount]->resize(0, 0 + newy, W_SPEC_REGS, H_SPEC_REGS);
-			newy += H_SPEC_REGS;
-			if (!(i == 1 || i == 6 || i == 8)) {
-				newy += 10;
-			}
+			registers[bcount]->resize(0, newy, W_SPREGS_BOX, H_SPREGS_BOX);
+			newy += H_SPREGS_BOX;
+			newy += H_SPREGS_BOX + (bcount == 1 || bcount == 5 || bcount == 7) ? (H_SPREGS_TABLE) : 0 + INTERSPACE_SMALL;
 			bcount++;
 		}
-	}*/
+	}
+	subwin->scroll_to(0, 0);
 	//int subx = subwin->xposition(), suby = subwin->yposition();
-	subwin->resize(X_SPEC_REGS, Y_SPEC_REGS, W_SPEC_REGS + 10, min(H_SPEC_BOX, h - Y_SPEC_REGS));
-	Start->resize(X_CONT_BUTT, Y_CONT_BUTT, W_CONT_BUTT, H_CONT_BUTT);
-	Stop->resize(X_CONT_BUTT + BUTT_OFFSET, Y_CONT_BUTT, W_CONT_BUTT, H_CONT_BUTT);
-	Step->resize(X_CONT_BUTT + (BUTT_OFFSET * 2), Y_CONT_BUTT, W_CONT_BUTT, H_CONT_BUTT);
-	Reset->resize(X_CONT_BUTT + (BUTT_OFFSET * 3), Y_CONT_BUTT, W_CONT_BUTT, H_CONT_BUTT);
+	subwin->resize(X_SPREGS, Y_SPREGS, W_SPREGS, H_SPREGS);
+	Start->resize(X_BUTTON(0), Y_BUTTON, W_BUTTON, H_BUTTON);
+	Stop->resize(X_BUTTON(1), Y_BUTTON, W_BUTTON, H_BUTTON);
+	Step->resize(X_BUTTON(2), Y_BUTTON, W_BUTTON, H_BUTTON);
+	Reset->resize(X_BUTTON(3), Y_BUTTON, W_BUTTON, H_BUTTON);
 	flush();
 }
 
@@ -538,11 +570,14 @@ void GUI::callback_load_file(){
 		freetablestyle(CODE_table->getstyle(), CellsCODE);
 		size_t lines = 1;
 		ASM_TEXT* code = backend->GetProgrammText(lines);
-		CODE_table->getstyle() = setstyle_Code(lines, code);	//TODO: entsprechende Funktion:freesytle_Code(tablestyle*& toFree); wird benötigt und muss durch free(CODE_table->getstyle()); ersetzt werden...
+		CODE_table->getstyle() = setstyle_Code(lines, code);
 		backend->FreeProgrammText(code);
 		CODE_table->rows(lines);
+		for (int i = 0; i < CCCODE; i++) {
+			CODE_table->col_width(i, CELL_WIDTH_CODE(i));
+		}
+		int_updateAll();
 	}
-	int_updateAll();
 }
 
 //callback that is called when the window is closed

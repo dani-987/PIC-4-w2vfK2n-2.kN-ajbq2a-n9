@@ -166,8 +166,8 @@ int main(int argc, char *argv[]) {
 	}while(1);
 	return true;/*/
 	Fl::lock();
-
 	GUI* gui = new GUI();
+
 	return gui->run();
 	//*/
 }
