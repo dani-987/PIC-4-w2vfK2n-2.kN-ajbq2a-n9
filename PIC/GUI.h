@@ -57,7 +57,7 @@ int& get_label_height_button();
 #define LABEL_WIDTH_SPREGS		get_cell_width_SpRegs()
 #define CELL_WIDTH_SPREGS		((int)((float)LABEL_WIDTH_SPREGS * 1.2f))
 #define LABEL_HEIGHT_SPREGS		get_cell_height_SpRegs()
-#define CELL_HEIGHT_SPREGS		((int)((float)LABEL_HEIGHT_MEM * 1.2f))
+#define CELL_HEIGHT_SPREGS		((int)((float)LABEL_HEIGHT_MEM * 1.5f))
 
 #define LABEL_WIDTH_CODE(a)		get_col_width_CODE(a)
 #define CELL_WIDTH_CODE(a)		((int)((float)LABEL_WIDTH_CODE(a) * 1.2f))
@@ -86,13 +86,6 @@ int& get_label_height_button();
 #define BOX_WIDTH_BUTTON		(LABEL_WIDTH_BUTTON * 2)
 #define LABEL_HEIGHT_BUTTON		get_label_height_button()
 #define BOX_HEIGHT_BUTTON		(LABEL_HEIGHT_BUTTON * 2)
-
-
-#define CW ((int)(2.5f * (float)FONT_SIZE))				//Width of a Cell in the MEM-Block
-#define CH ((int)(1.875f * (float)FONT_SIZE))			//Heigth of a Cell in the MEM-Block
-
-#define CW_S ((int)(2.5f * (float)(FONT_SIZE - 2)))		//Width of a small  Cell
-#define CH_S ((int)(1.875f * (float)(FONT_SIZE - 2)))	//Heigth of a small Cell
 
 #define WINDOW_BASE_X_OFFSET	10
 #define WINDOW_BASE_Y_OFFSET	5
@@ -129,6 +122,7 @@ private:
 	Fl_Button* Stop;
 	Fl_Button* Step;
 	Fl_Button* Reset;
+	Fl_Button* SetW;
 
 public:
 	GUI(int x = WINDOW_BASE_X_OFFSET, int y = WINDOW_BASE_Y_OFFSET, int w = GUI_STANDARD_W, int h = GUI_STANDARD_H);
@@ -158,6 +152,8 @@ public:
 	void callback_reset();
 	void callback_settact(int freq);
 	void callback_watchdog();
+	void callback_setW();
+	void callback_changeOutput();
 };
 
 //TODO: def in .cpp

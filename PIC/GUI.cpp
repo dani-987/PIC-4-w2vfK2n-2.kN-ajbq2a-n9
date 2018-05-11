@@ -97,7 +97,9 @@ namespace gui_callbacks {
 	void setRate_s3(Fl_Widget *, void *);
 	void setRate_s4(Fl_Widget *, void *);
 	void setWatchdog(Fl_Widget *, void *);
-	void donothing(Fl_Widget *, void *);
+	//void donothing(Fl_Widget *, void *);
+	void setW(Fl_Widget *, void *);
+	void changeOutput(Fl_Widget *, void *);
 }
 
 //Structure of the Menubar-Items; When changing also change MENU_ITEMCOUNT!
@@ -197,8 +199,9 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 
 	//Table for the IO-Registers
 	IO_table = new MyTable(X_IO_TAB, Y_IO_TAB, W_IO_TAB, H_IO_TAB, "IO-Registers");
+	IO_table->callback(gui_callbacks::changeOutput, this);
 	IO_table->getstyle() = setstyle_IO();
-	IO_table->when(FL_WHEN_RELEASE | FL_WHEN_CHANGED);
+	IO_table->when(FL_WHEN_CHANGED);
 	IO_table->table_box(FL_NO_BOX);
 
 	//Configure table rows
@@ -244,16 +247,17 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 	//Sets up the boxes for the special regsiters
 	int newy = 0;
 	for (int i = 0; i < BOXES; i++) {
-		registers[i] = new Fl_Box(FL_UP_BOX, 0, newy, W_SPREGS_BOX, H_SPREGS_BOX,"");
+		registers[i] = new Fl_Box(FL_FLAT_BOX, 0, newy, W_SPREGS_BOX, H_SPREGS_BOX,"");
 		newy += H_SPREGS_BOX + (i == 1 || i == 5 || i == 7) ? (H_SPREGS_TABLE) : 0 + INTERSPACE_SMALL;
 		setregbox(registers[i], i, 0);
+		registers[i]->align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE);
 	}
 
 	//sets up the small tables that show bitwise representations of three special registers Their posiitoned like the boxes above
 	newy = 0;
 	for (int i = 0; i < TABLES; i++) {
 		MyTable* temptable = new MyTable(0, newy, W_SPREGS_TABLE, H_SPREGS_TABLE);
-		newy += H_SPREGS_TABLE + (i == 0) ? 4 : 1 * (H_SPREGS_BOX + INTERSPACE_SMALL);
+		newy += H_SPREGS_TABLE + (i == 0) ? 4 : 2 * (H_SPREGS_BOX + INTERSPACE_SMALL);
 
 		temptable->getstyle() = setstyle_SpRegs(i);
 		temptable->when();
@@ -270,6 +274,8 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 		temptable->col_width_all(CELL_WIDTH_SPREGS);
 		regtables[i] = temptable;
 	}
+	SetW = new Fl_Button((int)((float)W_SPREGS_TABLE*0.5f), 0, W_BUTTON, H_SPREGS_BOX, "Change");
+	SetW->callback(gui_callbacks::setW, this);
 	subwin->end();
 	subwin->scroll_to(0, 0);
 
@@ -494,19 +500,20 @@ void GUI::resize(int x, int y, int w, int h){
 	IO_table->resize(X_IO_TAB, Y_IO_TAB, W_IO_TAB, H_IO_TAB);
 	CODE_table->resize(X_CODE_TAB, Y_CODE_TAB, W_CODE_TAB, H_CODE_TAB);
 	int newy = 0, tcount = 0, bcount = 0;
-	for (int i = 0; i < BOXES + 3; i++) {
+	for (int i = 0; i < BOXES + TABLES; i++) {
 		if (i == 2 || i == 7 || i == 9) {
 			regtables[tcount]->resize(0, newy, W_SPREGS_TABLE, H_SPREGS_TABLE);
-			newy += H_SPREGS_TABLE + (tcount == 0) ? 4 : 1 * (H_SPREGS_BOX + INTERSPACE_SMALL);
+			newy += H_SPREGS_TABLE + INTERSPACE_SMALL;
 			tcount++;
 		}
 		else {
 			registers[bcount]->resize(0, newy, W_SPREGS_BOX, H_SPREGS_BOX);
-			newy += H_SPREGS_BOX;
-			newy += H_SPREGS_BOX + (bcount == 1 || bcount == 5 || bcount == 7) ? (H_SPREGS_TABLE) : 0 + INTERSPACE_SMALL;
+			int htest = H_SPREGS_BOX;
+			newy += H_SPREGS_BOX + ((bcount == 1 || bcount == 5 || bcount == 6) ? 0 : INTERSPACE_SMALL);
 			bcount++;
 		}
 	}
+	SetW->resize((int)((float)W_SPREGS_TABLE*0.5f), 0, W_BUTTON, H_SPREGS_BOX);
 	subwin->scroll_to(0, 0);
 	//int subx = subwin->xposition(), suby = subwin->yposition();
 	subwin->resize(X_SPREGS, Y_SPREGS, W_SPREGS, H_SPREGS);
@@ -559,7 +566,15 @@ void gui_callbacks::setWatchdog(Fl_Widget *w, void *gui) {
 	((GUI*)gui)->callback_watchdog();
 }
 
-void gui_callbacks::donothing(Fl_Widget *, void *){}
+//void gui_callbacks::donothing(Fl_Widget *, void *){}
+
+void gui_callbacks::setW(Fl_Widget *, void * gui) {
+	((GUI*)gui)->callback_setW();
+}
+
+void gui_callbacks::changeOutput(Fl_Widget *, void *gui) {
+	((GUI*)gui)->callback_changeOutput();
+}
 
 void GUI::callback_load_file(){
 	if (chooser->show() != 0)return;
@@ -614,4 +629,60 @@ void GUI::callback_watchdog() {
 	else {
 		getbackend()->EnableWatchdog();
 	}
+}
+
+//TODO: Fix bug of button disappering when you press start
+void GUI::callback_setW() {
+	char isrunning = 0;
+	if (getbackend()->IsRunning()) {
+		getbackend()->Stop();
+		isrunning = 1;
+	}
+
+	char* current = (char*)malloc(3);
+	sprintf(current, "%02X", getbackend()->GetRegW());
+	const char* input = fl_input("Set Value of Register W:", current);
+	if (input == nullptr) {
+		if (isrunning) {
+			getbackend()->Start();
+		}
+		return;
+	}
+	if (input[0] == '0' && (input[1] == 'x' || input[1]=='X')) {
+		getbackend()->SetRegW(strtol(input + 2, NULL, 16));
+	}
+	else {
+		getbackend()->SetRegW(strtol(input, NULL, 10));
+	}
+	if (isrunning) { getbackend()->Start(); }
+}
+
+void GUI::callback_changeOutput() {
+
+	char isrunning = 0;
+	if (getbackend()->IsRunning()) {
+		getbackend()->Stop();
+		isrunning = 1;
+	}
+
+	int R = IO_table->callback_row(),
+		C = 7 - IO_table->callback_col();
+	if (R == 2) {
+
+		//getbackend()->GetBit(0x05, 0, 0);
+		//getbackend()->SetBit(0x05, 0, 0, 0);
+		//getbackend()->GetBit(0x05, 0, 0);
+
+		char bit = getbackend()->GetBit(0x05, 0, C);
+		getbackend()->SetBit(0x05, 0, C, (bit) ? (0) : (1));
+		setIOcell(IO_table->getstyle(), 2, getbackend()->GetByte(0x05, 0));
+		IO_table->redraw();
+	}
+	if (R == 5) {
+		char bit = getbackend()->GetBit(0x06, 0, C);
+		getbackend()->SetBit(0x06, 0, C, (bit) ? (0) : (1));
+		setIOcell(IO_table->getstyle(), 5, getbackend()->GetByte(0x06, 0));
+		IO_table->redraw();
+	}
+	if (isrunning) { getbackend()->Start(); }
 }

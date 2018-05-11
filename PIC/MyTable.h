@@ -10,6 +10,9 @@ class MyTable;
 #include <FL/fl_draw.H>
 #include <FL/Fl_Table_Row.H>
 
+#define COLHEADERPOS(C) (C+((row_header())?(1):(0)))
+#define ROWHEADERPOS(R) ((R+((col_header())?(1):(0)))*(cols()+1))
+#define CELLPOS(R,C)	((R+((col_header())?(1):(0)))*(cols()+((row_header())?(1):(0)))+C+((row_header())?(1):(0)))
 
 class MyTable : public Fl_Table_Row
 {

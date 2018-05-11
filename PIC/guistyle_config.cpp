@@ -112,7 +112,7 @@ tablestyle * setstyle_IO()
 }
 
 tablestyle CODE_Colheaders = { nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_DARK_YELLOW, FL_ALIGN_CENTER },
-CODE_TEXT = { nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_BLUE, FL_ALIGN_LEFT };
+CODE_TEXT = { nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_LIGHT1, FL_ALIGN_LEFT };
 
 tablestyle * setstyle_Code(int lines, ASM_TEXT* code) {
 	int CellsCode = (lines + 1) * CCCODE;

@@ -8,9 +8,7 @@
 VARDEF(int, DEBUG___LVL, DEBUG_LVL_NORMAL);
 
 
-#define COLHEADERPOS(C) (C+((row_header())?(1):(0)))
-#define ROWHEADERPOS(R) ((R+((col_header())?(1):(0)))*(cols()+1))
-#define CELLPOS(R,C)	((R+((col_header())?(1):(0)))*(cols()+((row_header())?(1):(0)))+C+((row_header())?(1):(0)))
+
 
 
 MyTable::MyTable(int x, int y, int w, int h,  const char *l) : Fl_Table_Row(x, y, w, h, l) {
