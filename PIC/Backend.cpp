@@ -1794,7 +1794,7 @@ void Backend::run_in_other_thread(byte modus)
 		//wait for 1000us if asm could be executed
 		if (!errorInThreadHappend && needTime >= 1) {
 			UNLOCK_MUTEX(m_lastError);
-			runtime += needTime;
+			runtime += needTime * sleeptime;
 			long long needTime_64 = ((long long)needTime * (long long)sleeptime * (long long)100);	//in ns
 
 			//wait for the correct time
