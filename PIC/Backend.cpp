@@ -165,6 +165,7 @@ void Backend::reset(byte resetType)
 
 	ram[0x02] = 0x00;
 	ram[0x03] &= 0x1F;
+	ram[0x05] &= 0x1F;
 	ram[0x0A] = 0;
 	ram[0x0B] &= 0x01 ;
 
@@ -942,6 +943,24 @@ bool Backend::SetByte(int reg, byte bank, byte val)
 	else ram[0x03] |= 0x20;
 	getCell_unsafe(reg) = val;
 	ram[0x03] = tmp;
+	
+	if(written_to_PCL && code){
+		int PC = ((ram[0x0A] & 0x1F) << 8) | (ram[0x02]);
+		if (PC >= UC_SIZE_PROGRAM) {
+			reset(RESET_POWER_UP);
+			isRunning = false;
+			lastError = "Programmcounter ist außerhalb des Programmspeichers!";
+			errorInThreadHappend = true;
+			MSGLEN();
+			PRINTF("Programmcounter ist außerhalb des Programmspeichers!\n");
+		}
+		aktCode = &(code->code[PC]);
+	}
+	//clear "read as '0'"-bits...
+	ram[0x05] &= 0x1F;
+	ram[0x0A] &= 0x1F;
+	ram[87] &= 0x1F;
+	ram[90] &= 0x1F;
 	UNLOCK_MUTEX(m_ram);
 	return true;
 }
@@ -989,6 +1008,24 @@ bool Backend::SetBit(int reg, byte bank, int pos, bool val)
 	if(val)getCell_unsafe(reg) |= (1 << pos);
 	else getCell_unsafe(reg) &= ~(1 << pos);
 	ram[0x03] = tmp;
+	
+	if(written_to_PCL && code){
+		int PC = ((ram[0x0A] & 0x1F) << 8) | (ram[0x02]);
+		if (PC >= UC_SIZE_PROGRAM) {
+			reset(RESET_POWER_UP);
+			isRunning = false;
+			lastError = "Programmcounter ist außerhalb des Programmspeichers!";
+			errorInThreadHappend = true;
+			MSGLEN();
+			PRINTF("Programmcounter ist außerhalb des Programmspeichers!\n");
+		}
+		aktCode = &(code->code[PC]);
+	}
+	//clear "read as '0'"-bits...
+	ram[0x05] &= 0x1F;
+	ram[0x0A] &= 0x1F;
+	ram[87] &= 0x1F;
+	ram[90] &= 0x1F;
 	UNLOCK_MUTEX(m_ram);
 	return true;
 }
