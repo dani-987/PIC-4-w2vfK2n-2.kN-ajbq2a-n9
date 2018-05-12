@@ -917,7 +917,7 @@ int Backend::GetByte(int reg, byte bank)
 	int ret, tmp;
 	LOCK_MUTEX(m_ram);
 	tmp = ram[0x03];
-	if ((reg & 0x0F) == 0x03) { UNLOCK_MUTEX(m_ram); return tmp; }
+	if ((reg & 0x7F) == 0x03) { UNLOCK_MUTEX(m_ram); return tmp; }
 	if (bank == 0)ram[0x03] = ram[0x03] & (~0x20);
 	else ram[0x03] = ram[0x03] | 0x20;
 	ret = getCell_unsafe(reg, false);
@@ -948,7 +948,7 @@ bool Backend::SetByte(int reg, byte bank, byte val)
 #endif
 	int tmp;
 	LOCK_MUTEX(m_ram);
-	if ((reg & 0x0F) == 0x03) { ram[0x03] = val; damageByte(0x03); UNLOCK_MUTEX(m_ram); return true; }
+	if ((reg & 0x7F) == 0x03) { ram[0x03] = val; damageByte(0x03); UNLOCK_MUTEX(m_ram); return true; }
 	tmp = ram[0x03];
 	if (bank == 0)ram[0x03] &= (~0x20);
 	else ram[0x03] |= 0x20;
@@ -1006,7 +1006,7 @@ bool Backend::SetBit(int reg, byte bank, int pos, bool val)
 #endif
 	int tmp;
 	LOCK_MUTEX(m_ram);
-	if ((reg & 0x0F) == 0x03) { 
+	if ((reg & 0x7F) == 0x03) { 
 		if(val)ram[0x03] |= (1 << pos);
 		else ram[0x03] &= ~(1 << pos);
 		damageByte(0x03);
@@ -1072,7 +1072,7 @@ int Backend::GetBit(int reg, byte bank, int pos)
 	int tmp;
 	bool val;
 	LOCK_MUTEX(m_ram);
-	if ((reg & 0x0F) == 0x03) {
+	if ((reg & 0x7F) == 0x03) {
 		val = (ram[0x03] & (1 << pos));
 		UNLOCK_MUTEX(m_ram);
 		return val;
