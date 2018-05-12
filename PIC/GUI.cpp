@@ -48,7 +48,7 @@ void gui_int_updateAll(void * gui){((GUI*)gui)->int_updateAll();}
 #define Y_MENUBAR		0
 #define W_MENUBAR		WINDOW_WIDTH
 #define H_MENUBAR		CELL_HEIGHT_MEM
-#define MENU_ITEMCOUNT	13
+#define MENU_ITEMCOUNT	16
 
 //Position and size of the IO-Table
 #define W_IO_TAB		(CELL_WIDTH_MEM*CCMEM+ROW_HEADER_WIDTH_MEM + 5)
@@ -103,6 +103,7 @@ namespace gui_callbacks {
 	void setMem(Fl_Widget *, void *);
 	void resettimer(Fl_Widget *, void *);
 	void togglebreakpoint(Fl_Widget *w, void *);
+	void openhelp(Fl_Widget *w, void *);
 }
 
 //Structure of the Menubar-Items; When changing also change MENU_ITEMCOUNT!
@@ -118,6 +119,9 @@ Fl_Menu_Item menutable_vorlage[] = {
 			{ "40 kHz", 0, gui_callbacks::setRate_s4, 0, FL_MENU_RADIO },
 			{0},
 		{ "Watchdog", 0, gui_callbacks::setWatchdog, 0, FL_MENU_TOGGLE },
+		{0},
+	{ "Hilfe", 0, nullptr, 0, FL_SUBMENU},
+		{ "Hilfe öffnen", 0, gui_callbacks::openhelp, 0},
 		{0},
 	{0}
 };
@@ -408,8 +412,8 @@ void GUI::int_updateAll()
 	Timerreset->redraw();
 	SetW->redraw();
 	Mem_table->redraw();
-	CODE_table->redraw();
 	CODE_table->setcodeline(getbackend()->GetAktualCodePosition());
+	CODE_table->redraw();
 }
 
 void GUI::int_update(){
@@ -419,7 +423,7 @@ void GUI::int_update(){
 	int pos;
 	byte bank;
 	char queueIO = 0;		//Remember when a value in the IO-table is changed and a redraw is necessary 
-	int queueSpRegs = 64;	//Remember whether one of the Spezial register boxes was changed and a redraw is necessary
+	int queueSpRegs = 64;	//Remember whether one of the Spezial register boxes was changed and a redraw is necessary; 64 is the timer
 	while (backend->GetNextChangedCell(pos, bank)) {
 		//printf("Byte %02x in Bank %d changed!", pos, bank);	
 		int value = getbackend()->GetByte(pos, bank);
@@ -427,7 +431,7 @@ void GUI::int_update(){
 		case 0x01: if (bank) {	//Option
 			setregbox(registers[5], 5, value);
 			setregtable(regtables[1]->getstyle(), value);
-				queueSpRegs |= 128 + 16;
+				queueSpRegs |= 256 + 16;
 			}
 			break;
 		case 0x02:	//PCL
@@ -440,7 +444,7 @@ void GUI::int_update(){
 			setregbox(registers[1], 1, value);
 			setregtable(regtables[0]->getstyle(), value);
 			setMEMcell(Mem_table->getstyle(), pos, 1, value);
-			queueSpRegs |= 64 + 1;
+			queueSpRegs |= 128 + 1;
 			break;
 		case 0x04:	//FSR
 			setMEMcell(Mem_table->getstyle(), pos, 1, value);
@@ -470,7 +474,7 @@ void GUI::int_update(){
 			setregbox(registers[6], 6, value);
 			setregtable(regtables[2]->getstyle(), value);
 			setMEMcell(Mem_table->getstyle(), pos, 1, value);
-			queueSpRegs |= 32 + 256;
+			queueSpRegs |= 32 + 512;
 			break;
 		}
 		setMEMcell(Mem_table->getstyle(), pos, bank, value);
@@ -602,6 +606,10 @@ void gui_callbacks::togglebreakpoint(Fl_Widget *w, void *gui) {
 	((GUI*)gui)->callback_togglebreakpoint();
 }
 
+void gui_callbacks::openhelp(Fl_Widget *w, void *gui) {
+	system("start C:\\Users\\Jan\\Documents\\Visual\ Studio\ 2017\\Projects\\PIC\\Doku\\Benutzerhandbuch.pdf");
+}
+
 
 void GUI::callback_load_file(){
 	if (chooser->show() != 0)return;
@@ -659,7 +667,6 @@ void GUI::callback_watchdog() {
 	}
 }
 
-//TODO: Fix bug of button disappering when you press start
 void GUI::callback_setW() {
 	if (!finished_startup) { return; }
 	char isrunning = 0;
@@ -685,11 +692,10 @@ void GUI::callback_setW() {
 	}
 	if (isrunning) { getbackend()->Start(); }
 	int_update();
-	//SetW->redraw();
 }
 
 void GUI::callback_changeOutput() {
-	if (!finished_startup) { return; }
+	if (!finished_startup || Fl::event() == 2) { return; }
 	int R = IO_table->callback_row(),
 		C = 7 - IO_table->callback_col();
 

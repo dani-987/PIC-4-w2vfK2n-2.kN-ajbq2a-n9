@@ -280,5 +280,5 @@ void setIOcell(tablestyle*& mystyle, int line, int value) {
 }
 
 void togglebreakpoint(tablestyle*& mystyle, int line, int action) {
-	sprintf(mystyle[(line + 1)*CCCODE].label, (action == -2) ? "  " : "BP");
+	sprintf(mystyle[(((action == -2)?line:action) + 1)*CCCODE].label, (action == -2) ? "  " : "BP");
 }

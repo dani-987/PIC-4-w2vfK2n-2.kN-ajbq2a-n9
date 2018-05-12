@@ -56,7 +56,6 @@ void MyTable::draw_cell(TableContext context, int R, int C, int X, int Y, int W,
 		return;
 
 	case CONTEXT_ROW_HEADER:
-		//sprintf_s(s, "%d%d", (int)floor(R / 2), (R % 2) ? 8 : 0);
 		position = ROWHEADERPOS(R);
 		DOIF(DEBUG___LVL >= DEBUG_LVL_MUCH)PRINTF4("Called ROW_Header Context with: R=%d, C=%d, position=%d label=%s\n", R, C, position, mystyle[position].label);
 
@@ -78,6 +77,7 @@ void MyTable::draw_cell(TableContext context, int R, int C, int X, int Y, int W,
 
 	case CONTEXT_CELL:
 	{
+
 		fl_push_clip(X, Y, W, H);
 		{
 			position = CELLPOS(R, C);
@@ -109,23 +109,6 @@ void MyTable::draw_cell(TableContext context, int R, int C, int X, int Y, int W,
 	case CONTEXT_NONE:
 		return;
 	}
-}
-
-
-void MyTable::event_callback(Fl_Widget*, void *data)
-{
-	MyTable *o = (MyTable*)data;
-	o->event_callback2();
-}
-
-void MyTable::event_callback2()
-{
-	int R = callback_row(),
-		C = callback_col();
-	TableContext context = callback_context();
-	DOIF(DEBUG___LVL >= DEBUG_LVL_MUCH)PRINTF1("'%s' callback: ", (label() ? label() : "?"));
-	DOIF(DEBUG___LVL >= DEBUG_LVL_ALL)PRINTF5("Row=%d Col=%d Context=%d Event=%d InteractiveResize? %d\n",
-		R, C, (int)context, (int)Fl::event(), (int)is_interactive_resize());
 }
 
 int MyTable::getcodeline() {
