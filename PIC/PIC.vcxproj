@@ -109,6 +109,9 @@
       <AdditionalLibraryDirectories>..\fltk-1.3.4-2\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>Shlwapi.lib;fltk.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PreBuildEvent>
+      <Command>copy /Y "$(SolutionDir)Doku\Benutzerhandbuch.pdf" "$(OutDir)Benutzerhandbuch.pdf"</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -143,8 +146,7 @@
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>
-      </Command>
+      <Command>copy /Y "$(SolutionDir)Doku\Benutzerhandbuch.pdf" "$(OutDir)Benutzerhandbuch.pdf"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
