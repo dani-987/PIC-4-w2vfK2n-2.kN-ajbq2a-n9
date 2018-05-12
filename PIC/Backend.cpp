@@ -1024,7 +1024,7 @@ int Backend::GetBit(int reg, byte bank, int pos)
 	int tmp;
 	bool val;
 	LOCK_MUTEX(m_ram);
-	if ((reg = 0x0F) == 0x03) {
+	if ((reg & 0x0F) == 0x03) {
 		val = (ram[0x03] & (1 << pos));
 		UNLOCK_MUTEX(m_ram);
 		return val;
