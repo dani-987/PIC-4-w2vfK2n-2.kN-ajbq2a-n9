@@ -175,6 +175,8 @@ void Backend::reset(byte resetType)
 	ram[88] = 0xFF;
 	ram[90] = 0x00;
 
+	if(code)aktCode = &code->code[0];
+
 	this->ram_rb_cpy = ram[0x06];
 	lastInput = ram[0x05] & 0x10;
 	
@@ -880,6 +882,10 @@ bool Backend::Reset()
 	UNLOCK_MUTEX(m_eeprom);
 	UNLOCK_MUTEX(m_ram);
 	UNLOCK_MUTEX(m_run_code);
+	
+	LOCK_MUTEX(m_isRunningLocked);
+	isRunningLocked = false;
+	UNLOCK_MUTEX(m_isRunningLocked);
 	return true;
 }
 
