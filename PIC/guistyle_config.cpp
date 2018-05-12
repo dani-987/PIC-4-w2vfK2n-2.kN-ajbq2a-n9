@@ -14,7 +14,7 @@ void filltxt(char*& txt, char* tofill) {
 
 void filltxt_code(char*& txt, char* tofill) {
 	if (tofill != nullptr) {
-		txt = (char*)malloc(strlen(tofill) + 1);
+		txt = (char*)malloc(strlen(tofill) + 2);
 		sprintf(txt, " %s", tofill);
 	}
 	else {
@@ -202,6 +202,7 @@ tablestyle * setstyle_SpRegs(int type) {
 	
 void freetablestyle(tablestyle*& tofree, int cells){
 	for (int i = 0; i < cells; i++) {
+		PRINTF1("%s\n",tofree[i].label);
 		free(tofree[i].label);
 	}
 	free(tofree);
@@ -246,7 +247,7 @@ void setregbox(Fl_Box*& regs, int line, int value) {
 
 void setregtable(tablestyle *& mystyle, int value){
 	for (int i = 0; i < 8; i++) {
-		sprintf(mystyle[i + 8].label,"%s", (value & (1 << (8 - i))) ? "1" : "0");
+		sprintf(mystyle[i + 8].label,"%s", (value & (1 << (7 - i))) ? "1" : "0");
 	}
 }
 

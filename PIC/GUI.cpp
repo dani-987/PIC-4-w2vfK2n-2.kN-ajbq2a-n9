@@ -477,11 +477,7 @@ void GUI::int_update(){
 			registers[i]->redraw();
 		}
 	}
-	for (int i = BOXES; i < BOXES + 3; i++) {
-		if (queueSpRegs&(1 << (i - 1))) {
-			regtables[i - BOXES]->redraw();
-		}
-	}
+	SetW->redraw();
 	Mem_table->redraw();
 	CODE_table->setcodeline(getbackend()->GetAktualCodePosition());
 	CODE_table->redraw();
@@ -642,6 +638,7 @@ void GUI::callback_watchdog() {
 
 //TODO: Fix bug of button disappering when you press start
 void GUI::callback_setW() {
+	if (!finished_startup) { return; }
 	char isrunning = 0;
 	if (getbackend()->IsRunning()) {
 		getbackend()->Stop();
@@ -665,28 +662,33 @@ void GUI::callback_setW() {
 	}
 	if (isrunning) { getbackend()->Start(); }
 	int_update();
+	SetW->redraw();
 }
 
 void GUI::callback_changeOutput() {
+	if (!finished_startup) { return; }
 	int R = IO_table->callback_row(),
 		C = 7 - IO_table->callback_col();
+
+	//getbackend()->GetBit(0x05, 0, C);	//returns 1
+	//getbackend()->GetByte(0x05, 0);		//returns 255 weil vorher so gesetzt
+	//getbackend()->SetBit(0x05, 0, C, 0);//retruns true
+	//getbackend()->GetBit(0x05, 0, C);	//returns 1
+	//getbackend()->GetByte(0x05, 0);		//returns 254
+	//getbackend()->SetBit(0x05, 0, C, 1);
+	//getbackend()->GetBit(0x05, 0, C);
+	//getbackend()->GetByte(0x05, 0);
+
 	if (R == 2) {
-
-		//getbackend()->GetBit(0x05, 0, 0);
-		//getbackend()->SetBit(0x05, 0, 0, 0);
-		//getbackend()->GetBit(0x05, 0, 0);
-
 		char bit = getbackend()->GetBit(0x05, 0, C);
-		getbackend()->SetBit(0x05, 0, C, (bit) ? (0) : (1));
-		setIOcell(IO_table->getstyle(), 2, getbackend()->GetByte(0x05, 0));
-		IO_table->redraw();
+		getbackend()->SetBit(0x05, 0, C, !bit);//(bit) ? (0) : (1));
 	}
-	if (R == 5) {
+	else if (R == 5) {
 		char bit = getbackend()->GetBit(0x06, 0, C);
 		getbackend()->SetBit(0x06, 0, C, (bit) ? (0) : (1));
-		setIOcell(IO_table->getstyle(), 5, getbackend()->GetByte(0x06, 0));
-		IO_table->redraw();
 	}
+	else { return; }
+	int_update();
 }
 
 void GUI::callback_setMem() {
