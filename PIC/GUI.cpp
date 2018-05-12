@@ -484,7 +484,7 @@ void GUI::int_update(){
 
 	if (queueIO) IO_table->redraw();
 	for (int i = 0; i < BOXES; i++) {
-		if (queueSpRegs&(1 << (i - 1) || i == 0)) {
+		if (queueSpRegs&(1 << (i - 1)) || i == 0) {
 			registers[i]->redraw();
 		}
 	}
@@ -607,7 +607,7 @@ void gui_callbacks::togglebreakpoint(Fl_Widget *w, void *gui) {
 }
 
 void gui_callbacks::openhelp(Fl_Widget *w, void *gui) {
-	system("start C:\\Users\\Jan\\Documents\\Visual\ Studio\ 2017\\Projects\\PIC\\Doku\\Benutzerhandbuch.pdf");
+	system("start Benutzerhandbuch.pdf");
 }
 
 
