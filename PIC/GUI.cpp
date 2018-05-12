@@ -101,6 +101,8 @@ namespace gui_callbacks {
 	void setW(Fl_Widget *, void *);
 	void changeOutput(Fl_Widget *, void *);
 	void setMem(Fl_Widget *, void *);
+	void resettimer(Fl_Widget *, void *);
+	void togglebreakpoint(Fl_Widget *w, void *);
 }
 
 //Structure of the Menubar-Items; When changing also change MENU_ITEMCOUNT!
@@ -123,10 +125,6 @@ Fl_Menu_Item menutable_vorlage[] = {
 //Generates the GUI initial and creates the Backend
 GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator")
 {
-	//int wi = 0, hi = 0;
-	//fl_font(FL_HELVETICA, FONT_SIZE);
-	//fl_measure("Tris", w, h);
-	//Create Backend
 	backend = new Backend(this);
 
 	/*//TODO: fontsize ändern <- sollte in resize gemacht werden?
@@ -204,7 +202,7 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 	IO_table = new MyTable(X_IO_TAB, Y_IO_TAB, W_IO_TAB, H_IO_TAB, "IO-Registers");
 	IO_table->callback(gui_callbacks::changeOutput, this);
 	IO_table->getstyle() = setstyle_IO();
-	IO_table->when(FL_WHEN_CHANGED);
+	IO_table->when(FL_WHEN_RELEASE | FL_WHEN_CHANGED);
 	IO_table->table_box(FL_NO_BOX);
 
 	//Configure table rows
@@ -223,9 +221,10 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 	CODE_table = new MyTable(X_CODE_TAB, Y_CODE_TAB, W_CODE_TAB, H_CODE_TAB, "Code");
 	col_width_CODE = (int*)malloc(sizeof(int)*RCCODE);
 	ZeroMemory(col_width_CODE, sizeof(int)*RCCODE);
+	CODE_table-> callback(gui_callbacks::togglebreakpoint, this);
 	CODE_table->getstyle() = setstyle_Code(RCCODE, nullptr);
 	//CODE_table->selection_color(FL_YELLOW);
-	CODE_table->when(FL_WHEN_RELEASE | FL_WHEN_CHANGED);
+	CODE_table->when(FL_WHEN_RELEASE);
 	CODE_table->table_box(FL_NO_BOX);
 
 	// Configure table rows
@@ -250,7 +249,7 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 	//Sets up the boxes for the special regsiters
 	int newy = 0;
 	for (int i = 0; i < BOXES; i++) {
-		registers[i] = new Fl_Box(FL_FLAT_BOX, 0, newy, W_SPREGS_BOX, H_SPREGS_BOX,"");
+		registers[i] = new Fl_Box(FL_FLAT_BOX, 0, newy, W_SPREGS_BOX, H_SPREGS_BOX, "");
 		newy += H_SPREGS_BOX + (i == 1 || i == 5 || i == 7) ? (H_SPREGS_TABLE) : 0 + INTERSPACE_SMALL;
 		setregbox(registers[i], i, 0);
 		registers[i]->align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE);
@@ -279,6 +278,10 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 	}
 	SetW = new Fl_Button((int)((float)W_SPREGS_TABLE*0.5f), 0, W_BUTTON, H_SPREGS_BOX, "Change");
 	SetW->callback(gui_callbacks::setW, this);
+
+	Timerreset = new Fl_Button((int)((float)W_SPREGS_TABLE*0.5f), 0, W_BUTTON, H_SPREGS_BOX, "Reset");
+	Timerreset->callback(gui_callbacks::resettimer, this);
+
 	subwin->end();
 	subwin->scroll_to(0, 0);
 
@@ -392,15 +395,18 @@ void GUI::int_updateAll()
 		setMEMcell(Mem_table->getstyle(), i, 1, value);
 	}
 	setregbox(registers[0], 0, getbackend()->GetRegW());
+	setregbox(registers[7], 7, getbackend()->GetRuntimeIn100ns());
 
 	//Finally, redraw everything, including Reg W
 	IO_table->redraw();
-	for (int i = 0; i < BOXES; i++) {	
+	for (int i = 0; i < BOXES; i++) {
 		registers[i]->redraw();
 	}
 	for (int i = 0; i < 3; i++) {
 		regtables[i]->redraw();
 	}
+	Timerreset->redraw();
+	SetW->redraw();
 	Mem_table->redraw();
 	CODE_table->redraw();
 	CODE_table->setcodeline(getbackend()->GetAktualCodePosition());
@@ -413,7 +419,7 @@ void GUI::int_update(){
 	int pos;
 	byte bank;
 	char queueIO = 0;		//Remember when a value in the IO-table is changed and a redraw is necessary 
-	int queueSpRegs = 0;	//Remember whether one of the Spezial register boxes was changed and a redraw is necessary
+	int queueSpRegs = 64;	//Remember whether one of the Spezial register boxes was changed and a redraw is necessary
 	while (backend->GetNextChangedCell(pos, bank)) {
 		//printf("Byte %02x in Bank %d changed!", pos, bank);	
 		int value = getbackend()->GetByte(pos, bank);
@@ -470,6 +476,7 @@ void GUI::int_update(){
 		setMEMcell(Mem_table->getstyle(), pos, bank, value);
 	}
 	setregbox(registers[0], 0, getbackend()->GetRegW());
+	setregbox(registers[7], 7, getbackend()->GetRuntimeIn100ns());
 
 	if (queueIO) IO_table->redraw();
 	for (int i = 0; i < BOXES; i++) {
@@ -477,6 +484,12 @@ void GUI::int_update(){
 			registers[i]->redraw();
 		}
 	}
+	for (int i = BOXES; i < BOXES + TABLES; i++) {
+		if (queueSpRegs&(1 << (i - 1))) {
+			regtables[i - BOXES]->redraw();
+		}
+	}
+	Timerreset->redraw();
 	SetW->redraw();
 	Mem_table->redraw();
 	CODE_table->setcodeline(getbackend()->GetAktualCodePosition());
@@ -509,7 +522,7 @@ void GUI::resize(int x, int y, int w, int h){
 		}
 		else {
 			registers[bcount]->resize(0, newy, W_SPREGS_BOX, H_SPREGS_BOX);
-			int htest = H_SPREGS_BOX;
+			if (bcount == BOXES - 1) { Timerreset->resize((int)((float)W_SPREGS_TABLE*0.5f), newy, W_BUTTON, H_SPREGS_BOX); }
 			newy += H_SPREGS_BOX + ((bcount == 1 || bcount == 5 || bcount == 6) ? 0 : INTERSPACE_SMALL);
 			bcount++;
 		}
@@ -581,6 +594,15 @@ void gui_callbacks::setMem(Fl_Widget *, void *gui) {
 	((GUI*)gui)->callback_setMem();
 }
 
+void gui_callbacks::resettimer(Fl_Widget *, void *gui) {
+	((GUI*)gui)->callback_resettimer();
+}
+
+void gui_callbacks::togglebreakpoint(Fl_Widget *w, void *gui) {
+	((GUI*)gui)->callback_togglebreakpoint();
+}
+
+
 void GUI::callback_load_file(){
 	if (chooser->show() != 0)return;
 	PRINTF1("Chosen File: '%s'", chooser->filename());
@@ -620,6 +642,7 @@ void GUI::callback_step() {
 
 void GUI::callback_reset() {
 	getbackend()->Reset();
+	int_updateAll();
 }
 
 void GUI::callback_settact(int freq) {
@@ -662,22 +685,13 @@ void GUI::callback_setW() {
 	}
 	if (isrunning) { getbackend()->Start(); }
 	int_update();
-	SetW->redraw();
+	//SetW->redraw();
 }
 
 void GUI::callback_changeOutput() {
 	if (!finished_startup) { return; }
 	int R = IO_table->callback_row(),
 		C = 7 - IO_table->callback_col();
-
-	//getbackend()->GetBit(0x05, 0, C);	//returns 1
-	//getbackend()->GetByte(0x05, 0);		//returns 255 weil vorher so gesetzt
-	//getbackend()->SetBit(0x05, 0, C, 0);//retruns true
-	//getbackend()->GetBit(0x05, 0, C);	//returns 1
-	//getbackend()->GetByte(0x05, 0);		//returns 254
-	//getbackend()->SetBit(0x05, 0, C, 1);
-	//getbackend()->GetBit(0x05, 0, C);
-	//getbackend()->GetByte(0x05, 0);
 
 	if (R == 2) {
 		char bit = getbackend()->GetBit(0x05, 0, C);
@@ -692,13 +706,14 @@ void GUI::callback_changeOutput() {
 }
 
 void GUI::callback_setMem() {
+	if (!finished_startup) { return; }
 	int R = Mem_table->callback_row(),
 		C = Mem_table->callback_col(),
 		pos = 0;
 	char bank = 0;
 
 	//Exclude empty areas of the table
-	if ((R == 1 && C > 3) || (R == 3 && C > 3) || (R == 4 && C < 4) || R > 13 || R<0 || !finished_startup) {
+	if ((R == 1 && C > 3) || (R == 3 && C > 3) || (R == 4 && C < 4) || R > 13 || R<0) {
 		return;
 	}
 
@@ -745,5 +760,23 @@ void GUI::callback_setMem() {
 	
 	free(current); free(question);
 	if (isrunning) { getbackend()->Start(); }
+	int_update();
+}
+
+void GUI::callback_resettimer() {
+	getbackend()->ResetRuntime();
+	int_update();
+}
+
+void GUI::callback_togglebreakpoint(){
+	if (!finished_startup) { return; }
+	if (CODE_table->callback_context() == 64|| Fl::event() == 2) { return; }
+	int R = CODE_table->callback_row(),
+		C = CODE_table->callback_col();
+	if (R < 0) { return; }
+
+	int action = getbackend()->ToggleBreakpoint(R);
+	if (action == -1 || action == -3) { return; }
+	togglebreakpoint(CODE_table->getstyle(), R, action);
 	int_update();
 }

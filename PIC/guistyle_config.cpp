@@ -140,7 +140,7 @@ tablestyle * setstyle_Code(int lines, ASM_TEXT* code) {
 			char* txt;
 			s[i] = CODE_TEXT;
 			switch (i % CCCODE) {
-			case 0: filltxt_code(txt, ""); break;
+			case 0: filltxt_code(txt, "  "); break;
 			case 1: filltxt_code(txt, code->bytecode); break;
 			case 2: filltxt_code(txt, code->lineOfCode); break;
 			case 3: filltxt_code(txt, code->label); break;
@@ -157,11 +157,11 @@ tablestyle * setstyle_Code(int lines, ASM_TEXT* code) {
 	else {
 		//This loop is for the intial table when no file is loaded, so all labels are empty
 		for (int i = CCCODE; i < CellsCode; i++) {
-			char* txt = (char*)malloc(1);
+			char* txt = (char*)malloc(3);
 			s[i] = CODE_TEXT;
-			sprintf(txt, "");
+			sprintf(txt, "  ");
 			s[i].label = txt;
-			//no dimension calcuation here because "" is always smaller than any of the header labels
+			//no dimension calcuation here because "  " is always smaller than any of the header labels
 		}
 	}
 	return s;
@@ -241,6 +241,9 @@ void setregbox(Fl_Box*& regs, int line, int value) {
 			sprintf(txt, "INTCON:\t%02X", value);
 			break;
 		}
+		case 7: {
+			sprintf(txt, "Laufzeit: %.4f ms", (float)value/10000);
+		}
 	}
 	regs->label(txt);
 }
@@ -274,4 +277,8 @@ void setIOcell(tablestyle*& mystyle, int line, int value) {
 	for (int i = 0; i < CCIO; i++) {
 		sprintf(mystyle[pos + i].label, "%c", value&(1<<(7-i))?high:low);
 	}
+}
+
+void togglebreakpoint(tablestyle*& mystyle, int line, int action) {
+	sprintf(mystyle[(line + 1)*CCCODE].label, (action == -2) ? "  " : "BP");
 }

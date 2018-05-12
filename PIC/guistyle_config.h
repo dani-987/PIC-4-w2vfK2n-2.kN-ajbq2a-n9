@@ -39,3 +39,4 @@ void setregbox(Fl_Box*& regs, int line, int value);
 void setregtable(tablestyle*& mystyle, int value);
 void setMEMcell(tablestyle*& mystyle, int pos, int bank, int value);
 void setIOcell(tablestyle*& mystyle, int line, int value);
+void togglebreakpoint(tablestyle*& mystyle, int line, int action);

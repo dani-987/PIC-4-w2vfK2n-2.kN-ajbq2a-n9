@@ -93,7 +93,7 @@ int& get_label_height_button();
 #define GUI_STANDARD_H	Fl::h()-35
 
 //Numbers of Objects of each type in the SPREGS Scroll subwindow
-#define BOXES 7
+#define BOXES 8
 #define TABLES 3
 
 #define SCHEME			"none"
@@ -123,6 +123,7 @@ private:
 	Fl_Button* Step;
 	Fl_Button* Reset;
 	Fl_Button* SetW;
+	Fl_Button* Timerreset;
 
 	int finished_startup;
 
@@ -157,6 +158,8 @@ public:
 	void callback_setW();
 	void callback_changeOutput();
 	void callback_setMem();
+	void callback_resettimer();
+	void callback_togglebreakpoint();
 };
 
 //TODO: def in .cpp

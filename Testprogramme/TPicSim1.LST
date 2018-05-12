@@ -4,7 +4,7 @@
                     00004           ;(c) St. Lehmann
                     00005           ;Ersterstellung: 23.03.2016
                     00006           ;
-                    00007           list c=132          ;Zeilenlänge im LST auf 132 Zeichen setzen
+                    00007           list c=132          ;Zeilenlänge im LST auf 132 Zeichen setzen Zeilenlänge im LST auf 132 Zeichen setzen Zeilenlänge im LST auf 132 Zeichen setzen Zeilenlänge im LST auf 132 Zeichen setzen
                     00008           
                     00009           ;Definition einiger Symbole
                     00010           ;zuerst Hardware-Register
