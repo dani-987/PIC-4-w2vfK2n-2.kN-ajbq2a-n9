@@ -703,7 +703,12 @@ bool Backend::LoadProgramm(char * c)
 		runtime = 0;
 		ret = true;
 	}
-	//TODO else saveError
+	else{
+		LOCK_MUTEX(m_lastError);
+		lastError = comp.getCompilerError();
+		MSGLEN();
+		UNLOCK_MUTEX(m_lastError);
+	}
 	LOCK_MUTEX(m_ram);
 	for (int i = 0; i < UC_SIZE_RAM; i++) {
 #ifdef USE_RANDOM_VALUES
@@ -1791,7 +1796,7 @@ void Backend::run_in_other_thread(byte modus)
 		UNLOCK_MUTEX(m_regW);
 		DOIF(DEBUG_LVL >= DEBUG_ALL)PRINTF1("UNLOCKED MUTEXES in LINE %d\n", __LINE__);
 
-		//wait for 1000us if asm could be executed
+		//wait if asm could be executed
 		if (!errorInThreadHappend && needTime >= 1) {
 			UNLOCK_MUTEX(m_lastError);
 			runtime += needTime * sleeptime;
