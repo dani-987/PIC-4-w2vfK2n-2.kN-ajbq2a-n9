@@ -100,6 +100,7 @@ namespace gui_callbacks {
 	//void donothing(Fl_Widget *, void *);
 	void setW(Fl_Widget *, void *);
 	void changeOutput(Fl_Widget *, void *);
+	void setMem(Fl_Widget *, void *);
 }
 
 //Structure of the Menubar-Items; When changing also change MENU_ITEMCOUNT!
@@ -135,6 +136,7 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 	*/
 
 	setsizes();
+	finished_startup = 0;
 
 	//create Menubar
 	//Structure of the Menu. Components of each item: label, shortcut, callback, value, Flag (Optinal)
@@ -178,6 +180,7 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 
 	//Table for the Memory
 	Mem_table = new MyTable(X_MEM_TAB, Y_MEM_TAB, W_MEM_TAB, H_MEM_TAB, "Memory");
+	Mem_table->callback(gui_callbacks::setMem, this);
 	Mem_table->getstyle() = setstyle_MEM();
 	//Mem_table->selection_color(FL_YELLOW);
 	Mem_table->when(FL_WHEN_RELEASE | FL_WHEN_CHANGED);
@@ -292,6 +295,8 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 	Reset->callback(gui_callbacks::Reset, this);
 
 	int_updateAll();
+
+	finished_startup = 1;
 }
 
 
@@ -576,6 +581,10 @@ void gui_callbacks::changeOutput(Fl_Widget *, void *gui) {
 	((GUI*)gui)->callback_changeOutput();
 }
 
+void gui_callbacks::setMem(Fl_Widget *, void *gui) {
+	((GUI*)gui)->callback_setMem();
+}
+
 void GUI::callback_load_file(){
 	if (chooser->show() != 0)return;
 	PRINTF1("Chosen File: '%s'", chooser->filename());
@@ -639,8 +648,8 @@ void GUI::callback_setW() {
 		isrunning = 1;
 	}
 
-	char* current = (char*)malloc(3);
-	sprintf(current, "%02X", getbackend()->GetRegW());
+	char* current = (char*)malloc(5);
+	sprintf(current, "0x%02X", getbackend()->GetRegW());
 	const char* input = fl_input("Set Value of Register W:", current);
 	if (input == nullptr) {
 		if (isrunning) {
@@ -655,16 +664,10 @@ void GUI::callback_setW() {
 		getbackend()->SetRegW(strtol(input, NULL, 10));
 	}
 	if (isrunning) { getbackend()->Start(); }
+	int_update();
 }
 
 void GUI::callback_changeOutput() {
-
-	char isrunning = 0;
-	if (getbackend()->IsRunning()) {
-		getbackend()->Stop();
-		isrunning = 1;
-	}
-
 	int R = IO_table->callback_row(),
 		C = 7 - IO_table->callback_col();
 	if (R == 2) {
@@ -684,5 +687,61 @@ void GUI::callback_changeOutput() {
 		setIOcell(IO_table->getstyle(), 5, getbackend()->GetByte(0x06, 0));
 		IO_table->redraw();
 	}
+}
+
+void GUI::callback_setMem() {
+	int R = Mem_table->callback_row(),
+		C = Mem_table->callback_col(),
+		pos = 0;
+	char bank = 0;
+
+	//Exclude empty areas of the table
+	if ((R == 1 && C > 3) || (R == 3 && C > 3) || (R == 4 && C < 4) || R > 13 || R<0 || !finished_startup) {
+		return;
+	}
+
+	//Exclude Locations that connot be set
+	if ((!R || R == 2) && (!C || C == 7)) {
+		fl_alert("This Memory Location cannot be set");
+		return;
+	}
+
+	char isrunning = 0;
+	if (getbackend()->IsRunning()) {
+		getbackend()->Stop();
+		isrunning = 1;
+	}
+
+	//get memory location from table coordinates
+	if (R<2) {
+		pos += R * CCMEM + C;
+	}
+	else if (R<4) {
+		pos += (R - 2) * CCMEM + C;
+		bank = 1;
+	}
+	else {
+		pos+= (R - 3) * CCMEM + C;
+	}
+
+	char* current = (char*)malloc(5); 
+	char* question = (char*)malloc(50);
+	sprintf(current, "0x%02X", getbackend()->GetByte(pos, bank));
+	if (R < 4) sprintf(question, "Set Value of Location %1X%1X:", (R < 2) ? 0 : 8, (R % 2) ? C + 8 : C);
+	else sprintf(question, "Set Value of Location %1X%1X:", (R - 3) / 2, (R % 2) ? C : C + 8);
+
+	const char* input = fl_input(question, current);
+	if (input == nullptr) {
+		//User clicked "Abbrechen", nothing to do
+	}
+	else if (input[0] == '0' && (input[1] == 'x' || input[1] == 'X')) {
+		getbackend()->SetByte(pos, bank, strtol(input + 2, NULL, 16));
+	}
+	else {
+		getbackend()->SetByte(pos, bank, strtol(input, NULL, 10));
+	}
+	
+	free(current); free(question);
 	if (isrunning) { getbackend()->Start(); }
+	int_update();
 }

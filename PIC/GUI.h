@@ -124,6 +124,8 @@ private:
 	Fl_Button* Reset;
 	Fl_Button* SetW;
 
+	int finished_startup;
+
 public:
 	GUI(int x = WINDOW_BASE_X_OFFSET, int y = WINDOW_BASE_Y_OFFSET, int w = GUI_STANDARD_W, int h = GUI_STANDARD_H);
 	~GUI();
@@ -154,6 +156,7 @@ public:
 	void callback_watchdog();
 	void callback_setW();
 	void callback_changeOutput();
+	void callback_setMem();
 };
 
 //TODO: def in .cpp
