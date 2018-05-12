@@ -1030,12 +1030,12 @@ int Backend::GetBit(int reg, byte bank, int pos)
 		return val;
 	}
 	tmp = ram[0x03];
-	if (bank == 0)ram[0x03] = ram[0x03] & (~0x20);
-	else ram[0x03] = ram[0x03] | 0x20;
+	if (bank == 0)ram[0x03] &= (~0x20);
+	else ram[0x03] |= 0x20;
 	val = (getCell_unsafe(reg, false) & (1 << pos));
 	ram[0x03] = tmp;
 	UNLOCK_MUTEX(m_ram);
-	return true;
+	return val;
 }
 
 int Backend::GetRegW()
@@ -1426,7 +1426,7 @@ int Backend::ANDLW(void*k, void*ign) {
 	return 1;
 }
 int Backend::CALL(void*k, void*ign) {
-	if(stackSize > STACK_SIZE){
+	if(stackSize < STACK_SIZE){
 		STACK* newAdress = (STACK*)malloc(sizeof(STACK));
 		if (newAdress == nullptr) {
 			lastError = MEMORY_MISSING;
