@@ -165,6 +165,7 @@ void Backend::reset(byte resetType)
 
 	ram[0x02] = 0x00;
 	ram[0x03] &= 0x1F;
+	ram[0x05] &= 0x1F;
 	ram[0x0A] = 0;
 	ram[0x0B] &= 0x01 ;
 
@@ -173,6 +174,8 @@ void Backend::reset(byte resetType)
 	ram[87] = 0x1F;
 	ram[88] = 0xFF;
 	ram[90] = 0x00;
+
+	if(code)aktCode = &code->code[0];
 
 	this->ram_rb_cpy = ram[0x06];
 	lastInput = ram[0x05] & 0x10;
@@ -700,7 +703,12 @@ bool Backend::LoadProgramm(char * c)
 		runtime = 0;
 		ret = true;
 	}
-	//TODO else saveError
+	else{
+		LOCK_MUTEX(m_lastError);
+		lastError = comp.getCompilerError();
+		MSGLEN();
+		UNLOCK_MUTEX(m_lastError);
+	}
 	LOCK_MUTEX(m_ram);
 	for (int i = 0; i < UC_SIZE_RAM; i++) {
 #ifdef USE_RANDOM_VALUES
@@ -879,6 +887,10 @@ bool Backend::Reset()
 	UNLOCK_MUTEX(m_eeprom);
 	UNLOCK_MUTEX(m_ram);
 	UNLOCK_MUTEX(m_run_code);
+	
+	LOCK_MUTEX(m_isRunningLocked);
+	isRunningLocked = false;
+	UNLOCK_MUTEX(m_isRunningLocked);
 	return true;
 }
 
@@ -942,6 +954,24 @@ bool Backend::SetByte(int reg, byte bank, byte val)
 	else ram[0x03] |= 0x20;
 	getCell_unsafe(reg) = val;
 	ram[0x03] = tmp;
+	
+	if(written_to_PCL && code){
+		int PC = ((ram[0x0A] & 0x1F) << 8) | (ram[0x02]);
+		if (PC >= UC_SIZE_PROGRAM) {
+			reset(RESET_POWER_UP);
+			isRunning = false;
+			lastError = "Programmcounter ist außerhalb des Programmspeichers!";
+			errorInThreadHappend = true;
+			MSGLEN();
+			PRINTF("Programmcounter ist außerhalb des Programmspeichers!\n");
+		}
+		aktCode = &(code->code[PC]);
+	}
+	//clear "read as '0'"-bits...
+	ram[0x05] &= 0x1F;
+	ram[0x0A] &= 0x1F;
+	ram[87] &= 0x1F;
+	ram[90] &= 0x1F;
 	UNLOCK_MUTEX(m_ram);
 	return true;
 }
@@ -989,6 +1019,24 @@ bool Backend::SetBit(int reg, byte bank, int pos, bool val)
 	if(val)getCell_unsafe(reg) |= (1 << pos);
 	else getCell_unsafe(reg) &= ~(1 << pos);
 	ram[0x03] = tmp;
+	
+	if(written_to_PCL && code){
+		int PC = ((ram[0x0A] & 0x1F) << 8) | (ram[0x02]);
+		if (PC >= UC_SIZE_PROGRAM) {
+			reset(RESET_POWER_UP);
+			isRunning = false;
+			lastError = "Programmcounter ist außerhalb des Programmspeichers!";
+			errorInThreadHappend = true;
+			MSGLEN();
+			PRINTF("Programmcounter ist außerhalb des Programmspeichers!\n");
+		}
+		aktCode = &(code->code[PC]);
+	}
+	//clear "read as '0'"-bits...
+	ram[0x05] &= 0x1F;
+	ram[0x0A] &= 0x1F;
+	ram[87] &= 0x1F;
+	ram[90] &= 0x1F;
 	UNLOCK_MUTEX(m_ram);
 	return true;
 }
@@ -1748,10 +1796,10 @@ void Backend::run_in_other_thread(byte modus)
 		UNLOCK_MUTEX(m_regW);
 		DOIF(DEBUG_LVL >= DEBUG_ALL)PRINTF1("UNLOCKED MUTEXES in LINE %d\n", __LINE__);
 
-		//wait for 1000us if asm could be executed
+		//wait if asm could be executed
 		if (!errorInThreadHappend && needTime >= 1) {
 			UNLOCK_MUTEX(m_lastError);
-			runtime += needTime;
+			runtime += needTime * sleeptime;
 			long long needTime_64 = ((long long)needTime * (long long)sleeptime * (long long)100);	//in ns
 
 			//wait for the correct time
