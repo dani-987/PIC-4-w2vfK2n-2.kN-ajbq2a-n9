@@ -167,6 +167,7 @@ public:
 //		All interfaces to backend
 void gui_int_update(void* gui);
 void gui_int_updateAll(void* gui); 
+void gui_handle_error(void* gui);
 
 /*
 void gui_callback_xy(void* gui) {
