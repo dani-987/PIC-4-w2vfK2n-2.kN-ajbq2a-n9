@@ -41,7 +41,7 @@ int& get_label_height_button();
 #define WINDOW_HEIGTH		h
 #define BASE_LABEL_MEM		"Tris"					//Longest table-label of the MEM-Block, basis for the dímensions of its two tables
 #define BASE_LABEL_SPREGS	"INTEDG"				//Longest table-label of the SpRegs-Block, basis for the dímensions of its three tables
-#define BASE_LABEL_BUTTON	"Reset"					//Longest label of any or the controll buttons
+#define BASE_LABEL_BUTTON	"Step Over"					//Longest label of any or the controll buttons
 #define INTERSPACE			20						//Distance between two Areas of the Main window
 #define INTERSPACE_SMALL	10						//Distance between two Areas in the scroll-subarea (SpRegs)
 #define SCROLLBAR_WIDTH		30
@@ -83,7 +83,7 @@ int& get_label_height_button();
 
 //Sizes of the controll buttons
 #define LABEL_WIDTH_BUTTON		get_label_width_button()
-#define BOX_WIDTH_BUTTON		(LABEL_WIDTH_BUTTON * 2)
+#define BOX_WIDTH_BUTTON		(LABEL_WIDTH_BUTTON * 1.2)
 #define LABEL_HEIGHT_BUTTON		get_label_height_button()
 #define BOX_HEIGHT_BUTTON		(LABEL_HEIGHT_BUTTON * 2)
 
@@ -122,6 +122,8 @@ private:
 	Fl_Button* Stop;
 	Fl_Button* Step;
 	Fl_Button* Reset;
+	Fl_Button* StepOut;
+	Fl_Button* StepOver;
 	Fl_Button* SetW;
 	Fl_Button* Timerreset;
 
@@ -154,6 +156,8 @@ public:
 	void callback_stop();
 	void callback_step();
 	void callback_reset();
+	void callback_stepout();
+	void callback_stepover();
 	void callback_settact(int freq);
 	void callback_watchdog();
 	void callback_setW();

@@ -94,6 +94,8 @@ namespace gui_callbacks {
 	void Stop(Fl_Widget *, void *);
 	void Step(Fl_Widget *, void *);
 	void Reset(Fl_Widget *, void *);
+	void Stepout(Fl_Widget *, void *);
+	void Stepover(Fl_Widget *, void *);
 	void setRate_s1(Fl_Widget *, void *);
 	void setRate_s2(Fl_Widget *, void *);
 	void setRate_s3(Fl_Widget *, void *);
@@ -300,7 +302,13 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 	Step = new Fl_Button(X_BUTTON(2), Y_BUTTON, W_BUTTON, H_BUTTON, "Step");
 	Step->callback(gui_callbacks::Step, this);
 
-	Reset = new Fl_Button(X_BUTTON(3), Y_BUTTON, W_BUTTON, H_BUTTON, "Reset");
+	StepOut = new Fl_Button(X_BUTTON(4), Y_BUTTON, W_BUTTON, H_BUTTON, "Step Out");
+	StepOut->callback(gui_callbacks::Stepout, this);
+
+	StepOver = new Fl_Button(X_BUTTON(3), Y_BUTTON, W_BUTTON, H_BUTTON, "Step Over");
+	StepOver->callback(gui_callbacks::Stepover, this);
+
+	Reset = new Fl_Button(X_BUTTON(5), Y_BUTTON, W_BUTTON, H_BUTTON, "Reset");
 	Reset->callback(gui_callbacks::Reset, this);
 
 	int_updateAll();
@@ -551,7 +559,9 @@ void GUI::resize(int x, int y, int w, int h){
 	Start->resize(X_BUTTON(0), Y_BUTTON, W_BUTTON, H_BUTTON);
 	Stop->resize(X_BUTTON(1), Y_BUTTON, W_BUTTON, H_BUTTON);
 	Step->resize(X_BUTTON(2), Y_BUTTON, W_BUTTON, H_BUTTON);
-	Reset->resize(X_BUTTON(3), Y_BUTTON, W_BUTTON, H_BUTTON);
+	StepOver->resize(X_BUTTON(3), Y_BUTTON, W_BUTTON, H_BUTTON);
+	StepOut->resize(X_BUTTON(4), Y_BUTTON, W_BUTTON, H_BUTTON);
+	Reset->resize(X_BUTTON(5), Y_BUTTON, W_BUTTON, H_BUTTON);
 	flush();
 }
 
@@ -575,6 +585,14 @@ void gui_callbacks::Step(Fl_Widget *w, void *gui) {
 }
 void gui_callbacks::Reset(Fl_Widget *w, void *gui) {
 	((GUI*)gui)->callback_reset();
+}
+
+void gui_callbacks::Stepout(Fl_Widget *, void *gui) {
+	((GUI*)gui)->callback_stepout();
+}
+
+void gui_callbacks::Stepover(Fl_Widget *, void *gui) {
+	((GUI*)gui)->callback_stepover();
 }
 
 void gui_callbacks::setRate_s1(Fl_Widget *w, void *gui) {
@@ -664,6 +682,14 @@ void GUI::callback_step() {
 void GUI::callback_reset() {
 	getbackend()->Reset();
 	int_updateAll();
+}
+
+void GUI::callback_stepout() {
+	getbackend()->StepOut();
+}
+
+void GUI::callback_stepover() {
+	getbackend()->StepOver();
 }
 
 void GUI::callback_settact(int freq) {
