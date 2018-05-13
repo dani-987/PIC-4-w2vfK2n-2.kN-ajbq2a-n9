@@ -85,7 +85,7 @@ void MyTable::draw_cell(TableContext context, int R, int C, int X, int Y, int W,
 			DOIF(DEBUG___LVL >= DEBUG_LVL_ALL)PRINTF2("Headers enabled: rows: %d, columns: %d\n", row_header(), col_header());
 
 			// BG COLOR
-			fl_color((getcodeline()==R) ? FL_BLUE : mystyle[position].backgroundcolor);
+			fl_color((getcodeline()==R) ? FL_MAGENTA : mystyle[position].backgroundcolor);
 			fl_rectf(X, Y, W, H);
 
 			// TEXT

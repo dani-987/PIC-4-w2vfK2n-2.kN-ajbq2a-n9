@@ -146,7 +146,8 @@
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>copy /Y "$(SolutionDir)Doku\Benutzerhandbuch.pdf" "$(OutDir)Benutzerhandbuch.pdf"</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

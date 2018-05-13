@@ -27,7 +27,7 @@ void filltxt_code(char*& txt, char* tofill) {
 tablestyle MEM_Startpage = {nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_LIGHT2, FL_ALIGN_CENTER},
 	MEM_Rowheaders = { nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_LIGHT2, FL_ALIGN_CENTER },
 	MEM_Colheaders = { nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_LIGHT2, FL_ALIGN_CENTER },
-	MEM_Reserved_B0 = { nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_BLUE, FL_ALIGN_CENTER },
+	MEM_Reserved_B0 = { nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_MAGENTA, FL_ALIGN_CENTER },
 	MEM_Reserved_B1 = { nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_GREEN, FL_ALIGN_CENTER },
 	MEM_Available = { nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_WHITE, FL_ALIGN_CENTER },
 	MEM_Uninstalled = { nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_LIGHT1, FL_ALIGN_CENTER };
@@ -73,12 +73,12 @@ tablestyle * setstyle_MEM()
 }
 
 
-tablestyle IO_Rowheaders = { nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_LIGHT2, FL_ALIGN_CENTER },
-	IO_DigitEnum = { nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_WHITE, FL_ALIGN_CENTER },
-	IO_TrisValues = { nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_WHITE, FL_ALIGN_CENTER },
+tablestyle IO_Rowheaders = { nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_LIGHT3, FL_ALIGN_CENTER },
+	IO_DigitEnum = { nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_LIGHT2, FL_ALIGN_CENTER },
+	IO_TrisValues = { nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_LIGHT2, FL_ALIGN_CENTER },
 	IO_Values = { nullptr, FL_HELVETICA, FONT_SIZE, FL_NO_BOX, FL_BLACK, FL_BLACK, FL_WHITE, FL_ALIGN_CENTER };
 
-//TODO, aber nicht notwendig: alles auf filltxt umstellen
+
 tablestyle * setstyle_IO()
 {
 	tablestyle* s = (tablestyle*)malloc(sizeof(tablestyle) * CELL_COUNT_IO);

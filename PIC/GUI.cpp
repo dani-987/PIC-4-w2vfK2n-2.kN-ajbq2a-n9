@@ -43,6 +43,8 @@ void gui_int_update(void * gui){((GUI*)gui)->int_update();}
 
 void gui_int_updateAll(void * gui){((GUI*)gui)->int_updateAll();}
 
+void gui_handle_error(void* gui) { ((GUI*)gui)->handle_error(); }
+
 //Position and size of the menubar
 #define X_MENUBAR		0
 #define Y_MENUBAR		0
@@ -500,6 +502,17 @@ void GUI::int_update(){
 	CODE_table->redraw();
 }
 
+void GUI::handle_error() {
+	char* errormsg = getbackend()->GetErrorMSG();
+	if (errormsg != nullptr) {
+		fl_alert("Es ist ein Fehler aufgetreten:\n%s", errormsg);
+	}
+	else {
+		fl_alert("Es ist ein Speicherfehler aufgetreten.", errormsg);
+	}
+	free(errormsg);
+}
+
 //#######################################################################################
 //#######################################################################################
 //######################	O	V	E	R	R	I	D	E	S	#########################
@@ -613,7 +626,7 @@ void gui_callbacks::openhelp(Fl_Widget *w, void *gui) {
 
 void GUI::callback_load_file(){
 	if (chooser->show() != 0)return;
-	PRINTF1("Chosen File: '%s'", chooser->filename());
+	PRINTF1("Datei auswählen: '%s'", chooser->filename());
 	if(!backend->LoadProgramm((char*)chooser->filename()))
 		fl_alert(backend->GetErrorMSG());
 	else {
@@ -677,7 +690,7 @@ void GUI::callback_setW() {
 
 	char* current = (char*)malloc(5);
 	sprintf(current, "0x%02X", getbackend()->GetRegW());
-	const char* input = fl_input("Set Value of Register W:", current);
+	const char* input = fl_input("Neuer Wert für Register W:", current);
 	if (input == nullptr) {
 		if (isrunning) {
 			getbackend()->Start();
@@ -719,13 +732,13 @@ void GUI::callback_setMem() {
 	char bank = 0;
 
 	//Exclude empty areas of the table
-	if ((R == 1 && C > 3) || (R == 3 && C > 3) || (R == 4 && C < 4) || R > 13 || R<0) {
+	if ((R == 1 && C > 3) || (R == 3 && C > 3) || (R == 4 && C < 4) || R > 13 || R<0 || Mem_table->callback_context()==32) {
 		return;
 	}
 
 	//Exclude Locations that connot be set
 	if ((!R || R == 2) && (!C || C == 7)) {
-		fl_alert("This Memory Location cannot be set");
+		fl_alert("Dieses Speicherstelle kann nicht beschrieben werden!");
 		return;
 	}
 
@@ -750,8 +763,8 @@ void GUI::callback_setMem() {
 	char* current = (char*)malloc(5); 
 	char* question = (char*)malloc(50);
 	sprintf(current, "0x%02X", getbackend()->GetByte(pos, bank));
-	if (R < 4) sprintf(question, "Set Value of Location %1X%1X:", (R < 2) ? 0 : 8, (R % 2) ? C + 8 : C);
-	else sprintf(question, "Set Value of Location %1X%1X:", (R - 3) / 2, (R % 2) ? C : C + 8);
+	if (R < 4) sprintf(question, "Neuer Wert für Speicherstelle %1X%1X:", (R < 2) ? 0 : 8, (R % 2) ? C + 8 : C);
+	else sprintf(question, "Neuer Wert für Speicherstelle %1X%1X:", (R - 3) / 2, (R % 2) ? C : C + 8);
 
 	const char* input = fl_input(question, current);
 	if (input == nullptr) {
