@@ -136,11 +136,17 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 	backend = new Backend(this);
 
 	//set fontsize depending on window size
-	if (w < 900) { 
-		get_font_size() = 10; 
+	if (w < 800) { 
+		get_font_size() = 9; 
 	}
-	else if (w < 1200) {
+	else if (w < 1000) {
+		get_font_size() = 11; 
+	}
+	else if (w < 1400) {
 		get_font_size() = 12; 
+	}
+	else if (w < 1590) {
+		get_font_size() = 13; 
 	}
 	else { 
 		get_font_size() = 14; 
