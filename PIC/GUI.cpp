@@ -528,11 +528,18 @@ void GUI::handle_error() {
 //#######################################################################################
 
 void GUI::resize(int x, int y, int w, int h){
-	/*//TODO: fonsize ändern
-	if (w < 750)my_font_size = 12;
-	else if (w < 1000)my_font_size = 14;
-	else my_font_size = 16;
-	*/
+	//TODO: fonsize ändern
+	if (w < 750) { 
+		get_font_size() = 6; 
+	}
+	else if (w < 1000) { 
+		get_font_size() = 10; 
+	}
+	else { 
+		get_font_size() = 14; 
+	}
+	setsizes();
+	
 	Fl_Double_Window::resize(x, y, w, h);
 	menubar->resize(X_MENUBAR, Y_MENUBAR, W_MENUBAR, H_MENUBAR);
 	Mem_table->resize(X_MEM_TAB, Y_MEM_TAB, W_MEM_TAB, H_MEM_TAB);
