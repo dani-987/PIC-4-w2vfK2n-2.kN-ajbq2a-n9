@@ -85,7 +85,7 @@ void gui_handle_error(void* gui) { ((GUI*)gui)->handle_error(); }
 #define W_BUTTON		BOX_WIDTH_BUTTON
 #define Y_BUTTON		(Y_CODE_TAB+H_CODE_TAB+INTERSPACE)
 #define X_BUTTON(a)		(X_CODE_TAB + INTERSPACE + a * (W_BUTTON + INTERSPACE))
-#define BUTTON_OFFSET	20
+#define BUTTON_OFFSET	((int)((float)FONT_SIZE*1.5f))
 
 
 namespace gui_callbacks {
@@ -135,11 +135,17 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 {
 	backend = new Backend(this);
 
-	/*//TODO: fontsize ändern <- sollte in resize gemacht werden?
-	if (w < 750)my_font_size = 12;
-	else if (w < 1000)my_font_size = 14;
-	else my_font_size = 16;
-	*/
+	//set fontsize depending on window size
+	if (w < 900) { 
+		get_font_size() = 10; 
+	}
+	else if (w < 1200) {
+		get_font_size() = 12; 
+	}
+	else { 
+		get_font_size() = 14; 
+	}
+	
 
 	setsizes();
 	finished_startup = 0;
@@ -295,21 +301,27 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 
 	Start = new Fl_Button(X_BUTTON(0), Y_BUTTON, W_BUTTON, H_BUTTON, "Start");
 	Start->callback(gui_callbacks::Start, this);
+	Start->labelsize(get_font_size());
 
 	Stop = new Fl_Button(X_BUTTON(1), Y_BUTTON, W_BUTTON, H_BUTTON, "Stop");
 	Stop->callback(gui_callbacks::Stop, this);
+	Stop->labelsize(get_font_size());
 
 	Step = new Fl_Button(X_BUTTON(2), Y_BUTTON, W_BUTTON, H_BUTTON, "Step");
 	Step->callback(gui_callbacks::Step, this);
+	Step->labelsize(get_font_size());
 
 	StepOut = new Fl_Button(X_BUTTON(4), Y_BUTTON, W_BUTTON, H_BUTTON, "Step Out");
 	StepOut->callback(gui_callbacks::Stepout, this);
+	StepOut->labelsize(get_font_size());
 
 	StepOver = new Fl_Button(X_BUTTON(3), Y_BUTTON, W_BUTTON, H_BUTTON, "Step Over");
 	StepOver->callback(gui_callbacks::Stepover, this);
+	StepOver->labelsize(get_font_size());
 
 	Reset = new Fl_Button(X_BUTTON(5), Y_BUTTON, W_BUTTON, H_BUTTON, "Reset");
 	Reset->callback(gui_callbacks::Reset, this);
+	Reset->labelsize(get_font_size());
 
 	int_updateAll();
 
@@ -529,16 +541,16 @@ void GUI::handle_error() {
 
 void GUI::resize(int x, int y, int w, int h){
 	//TODO: fonsize ändern
-	if (w < 750) { 
-		get_font_size() = 6; 
-	}
-	else if (w < 1000) { 
-		get_font_size() = 10; 
-	}
-	else { 
-		get_font_size() = 14; 
-	}
-	setsizes();
+	//if (w < 1000) { 
+	//	get_font_size() = 6; 
+	//}
+	//else if (w < 1300) { 
+	//	get_font_size() = 10; 
+	//}
+	//else { 
+	//	get_font_size() = 14; 
+	//}
+	//setsizes();
 	
 	Fl_Double_Window::resize(x, y, w, h);
 	menubar->resize(X_MENUBAR, Y_MENUBAR, W_MENUBAR, H_MENUBAR);
