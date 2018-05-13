@@ -48,7 +48,7 @@ void Backend::set_DEBUG_ONLY_TESTING(int state)
 
 #define NOT_IMPLEMENTED	"Nicht implementiert!"
 #define MEMORY_MISSING "Memory is missing."
-#define FUNCTIONSTACK_EMPTY	"Fuctionstack is empty!"
+#define FUNCTIONSTACK_EMPTY	"Fuctionstack is empty! CALL is missing before RETURN, RETLW or RETFIE!"
 #define STACK_OVERFLOW "Stackoverflow!"
 
 #define RESET_POWER_UP		0
@@ -742,6 +742,16 @@ bool Backend::Stop()
 bool Backend::Step()
 {
 	return letRun(MOD_STEP);
+}
+
+bool Backend::StepOut()
+{
+	return letRun(MOD_STEP_OUT);
+}
+
+bool Backend::StepOver()
+{
+	return letRun(MOD_STEP_OVER);
 }
 
 bool Backend::WirdByteGespiegelt(byte pos)
@@ -1819,7 +1829,7 @@ void Backend::run_in_other_thread(byte modus)
 	DOIF(DEBUG_LVL >= DEBUG_LESS)PRINTF("STOPPING\n");
 
 	LOCK_MUTEX(m_lastError);
-	if (errorInThreadHappend);	//TODO: msg 2 gui that error happened
+	if (errorInThreadHappend) Fl::awake(gui_handle_error, gui);
 	UNLOCK_MUTEX(m_lastError);
 
 	LOCK_MUTEX(m_terminated);

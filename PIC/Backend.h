@@ -204,6 +204,8 @@ public:
 	bool Start();
 	bool Stop();
 	bool Step();
+	bool StepOut();
+	bool StepOver();
 	bool IsRunning();
 	void EnableWatchdog();
 	void DisableWatchdog();
