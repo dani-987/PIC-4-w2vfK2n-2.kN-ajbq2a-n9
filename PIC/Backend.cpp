@@ -16,7 +16,7 @@
 #define DEBUG_RAM	4
 #define DEBUG_ALL	5
 
-VARDEF(int, DEBUG_LVL, DEBUG_NONE);
+VARDEF(int, DEBUG_LVL, DEBUG_RAM);
 
 #include <Windows.h>	
 HANDLE  hConsole;
@@ -419,7 +419,7 @@ bool Backend::do_timer()
 			if (ram[83] & 0x04) {
 				ram[0x01]++; 
 				damageByte(0x01);
-				if ((ram[0x01] == 0)) { ram[0x0B] |= 0x20;  damageByte(0x0B); }	//set interrupt
+				if ((ram[0x01] == 0)) { ram[0x0B] |= 0x04;  damageByte(0x0B); }	//set interrupt
 			}
 			else {
 				prescaler_timer++;
