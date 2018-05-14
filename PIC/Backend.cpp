@@ -53,8 +53,8 @@ void Backend::set_DEBUG_ONLY_TESTING(int state)
 
 #define RESET_POWER_UP		0
 #define RESET_CLRWDT		1
-#define RESET_SLEEP			2
-#define RESET_WDT_TIMEOUT	3
+#define RESET_MCLR			2
+#define RESET_INTERUPT		3
 
 #define MSGLEN()	(lastErrorLen = (std::strlen(lastError)+1))
 
@@ -145,66 +145,90 @@ byte & Backend::getCell_unsafe(byte pos, bool dmg)
 
 void Backend::reset(byte resetType)
 {
-	//clear stack!
-	while (functionStack != nullptr) {
-		STACK* tmp = functionStack;
-		functionStack = functionStack->next;
-		free(tmp);
-#ifdef _DEBUG
-		tmp = (STACK*) (0xFF00000 | __LINE__);
-#endif
-	}
-	stackSize = 0;
+	// if a POWER_UP_RESET accures, the uC cannot be in sleep, because power was off...
+	if(!sleep && resetType == RESET_POWER_UP)sleep = false;
 
-	//reset wdt
-	wdt_int_accured = false;
-	reset_wdt();
+	if(!sleep){
+		//interrupt will only wakeup, if not sleeping return here....
+		if(resetType == RESET_INTERUPT) return;
 
-	//reset neccessary bytes in ram
-	byte tmp = ram[90];
+		//clear stack!
+		while (functionStack != nullptr) {
+			STACK* tmp = functionStack;
+			functionStack = functionStack->next;
+			free(tmp);
+	#ifdef _DEBUG
+			tmp = (STACK*) (0xFF00000 | __LINE__);
+	#endif
+		}
+		stackSize = 0;
 
-	ram[0x02] = 0x00;
-	ram[0x03] &= 0x1F;
-	ram[0x05] &= 0x1F;
-	ram[0x0A] = 0;
-	ram[0x0B] &= 0x01 ;
+		//reset wdt
+		wdt_int_accured = false;
+		reset_wdt();
 
-	ram[83] = 0xFF;
-	ram[84] = 0x00;
-	ram[87] = 0x1F;
-	ram[88] = 0xFF;
-	ram[90] = 0x00;
+		//reset neccessary bytes in ram
+		byte tmp = ram[90];
 
-	if(code)aktCode = &code->code[0];
+		ram[0x02] = 0x00;
+		if(resetType != RESET_MCLR)ram[0x03] &= 0x07;
+		else ram[0x03] &= 0x1F;
+		ram[0x05] &= 0x1F;
+		ram[0x0A] = 0;
+		ram[0x0B] &= 0x01 ;
 
-	this->ram_rb_cpy = ram[0x06];
-	lastInput = ram[0x05] & 0x10;
+		ram[83] = 0xFF;
+		ram[84] = 0x00;
+		ram[87] = 0x1F;
+		ram[88] = 0xFF;
+		ram[90] = 0x00;
+
+		if(code)aktCode = &code->code[0];
+
+		this->ram_rb_cpy = ram[0x06];
+		lastInput = ram[0x05] & 0x10;
+
+		if ((tmp & 0x04) && eeprom_wr) {
+			ram[90] |= 0x80;
+		}
+		eeprom_wr = false;
 	
-	written_to_PCL = true;
-	sleep = false;
-	prescaler_timer = 0;
-	time_eeprom_error_write = 0;
-
-	if ((tmp & 0x04) && eeprom_wr) {
-		ram[90] |= 0x80;
+		written_to_PCL = true;
+		sleep = false;
+		prescaler_timer = 0;
+		time_eeprom_error_write = 0;
+		
+		switch (resetType) {
+		case RESET_POWER_UP:
+			ram[0x03] |= 0x18;
+			break;
+		case RESET_CLRWDT:
+			ram[0x03] |= 0x08;
+			break;
+		case RESET_MCLR:
+			break;
+		default:
+			break;
+		}
 	}
-	eeprom_wr = false;
+	else{
+		sleep = false;
 
-	switch (resetType) {
-	case RESET_SLEEP:
-		ram[0x03] |= 0x10;
-		break;
-	case RESET_WDT_TIMEOUT:
-		ram[0x03] |= 0x08;
-		break;
-	case RESET_CLRWDT:
-	case RESET_POWER_UP:
-	default:
-		ram[0x03] |= 0x18;
-		ram[89] |= 0x10;
-		break;
+		ram[0x03] &= 0x07;
+		switch (resetType) {
+		case RESET_CLRWDT:
+			ram[0x03] |= 0x08;
+			break;
+		case RESET_MCLR:
+			ram[0x03] |= 0x08;
+			break;
+		case RESET_INTERUPT:
+			ram[0x03] |= 0x10;
+			break;
+		default:
+			break;
+		}
 	}
-	//TODO: updateAll();
 }
 
 void Backend::stopAndWait()
@@ -275,12 +299,12 @@ bool Backend::do_interrupts(int& needTime)
 {
 	//if wdt_int
 	if (wdt_int_accured) {
+		reset(RESET_CLRWDT);
 		if (sleep) {
 			wdt_int_accured = false;
 
 			goto DO_INTERRUPT;
 		}
-		reset(RESET_WDT_TIMEOUT);
 		needTime = 1;
 		return true;
 	}
@@ -296,18 +320,22 @@ bool Backend::do_interrupts(int& needTime)
 		//T0IF & T0IE
 		byte tam0x0B = ram[0x0B];
 		if ((ram[0x0B] & 0x24) == 0x24) {
+			reset(RESET_INTERUPT);
 			goto DO_INTERRUPT;
 		}
 		//INTF & INTE
 		if ((ram[0x0B] & 0x12) == 0x12) {
+			reset(RESET_INTERUPT);
 			goto DO_INTERRUPT;
 		}
 		//RBIF & RBIE
 		if ((ram[0x0B] & 0x09) == 0x09) {
+			reset(RESET_INTERUPT);
 			goto DO_INTERRUPT;
 		}
 		//EEIF & EEIE
 		if ((ram[0x0B] & 0x40) && (ram[90] & 0x10)) {
+			reset(RESET_INTERUPT);
 			goto DO_INTERRUPT;
 		}
 	}
@@ -497,6 +525,8 @@ bool Backend::do_wdt()
 	if (wdt_timer <= 0) {
 		wdt_int_accured = true;
 		reset_wdt();
+		 ram[89] &= 0xE7;
+		 ram[89] |= 0x10;
 	}
 	return true;
 }
@@ -883,7 +913,12 @@ void Backend::SetCommandSpeed(size_t speed)
 
 bool Backend::Reset()
 {
-	stopAndWait();
+	bool isSleeping;
+	LOCK_MUTEX(m_ram);
+	isSleeping = sleep;
+	UNLOCK_MUTEX(m_ram);
+
+	if(!isSleeping)stopAndWait();
 
 	LOCK_MUTEX(m_run_code);
 	LOCK_MUTEX(m_ram);
@@ -891,16 +926,18 @@ bool Backend::Reset()
 	LOCK_MUTEX(m_wdt);
 
 	//changing ram is not necessary....
-	reset(RESET_POWER_UP);
+	reset(RESET_MCLR);
 
 	UNLOCK_MUTEX(m_wdt);
 	UNLOCK_MUTEX(m_eeprom);
 	UNLOCK_MUTEX(m_ram);
 	UNLOCK_MUTEX(m_run_code);
 	
-	LOCK_MUTEX(m_isRunningLocked);
-	isRunningLocked = false;
-	UNLOCK_MUTEX(m_isRunningLocked);
+	if(!isSleeping){
+		LOCK_MUTEX(m_isRunningLocked);
+		isRunningLocked = false;
+		UNLOCK_MUTEX(m_isRunningLocked);
+	}
 	return true;
 }
 
@@ -1823,7 +1860,7 @@ void Backend::run_in_other_thread(byte modus)
 		else UNLOCK_MUTEX(m_lastError);
 
 		LOCK_MUTEX(m_isRunning);
-	} while (isRunning && stopAtStackZero != 0);
+	} while (isRunning && stopAtStackZero != 0 && !errorInThreadHappend);
 	UNLOCK_MUTEX(m_isRunning);
 
 	DOIF(DEBUG_LVL >= DEBUG_LESS)PRINTF("STOPPING\n");
