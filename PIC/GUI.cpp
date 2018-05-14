@@ -50,7 +50,7 @@ void gui_handle_error(void* gui) { ((GUI*)gui)->handle_error(); }
 #define Y_MENUBAR		0
 #define W_MENUBAR		WINDOW_WIDTH
 #define H_MENUBAR		CELL_HEIGHT_MEM
-#define MENU_ITEMCOUNT	16
+#define MENU_ITEMCOUNT	17
 
 //Position and size of the IO-Table
 #define W_IO_TAB		(CELL_WIDTH_MEM*CCMEM+ROW_HEADER_WIDTH_MEM + 5)
@@ -100,6 +100,7 @@ namespace gui_callbacks {
 	void setRate_s2(Fl_Widget *, void *);
 	void setRate_s3(Fl_Widget *, void *);
 	void setRate_s4(Fl_Widget *, void *);
+	void setRate_s5(Fl_Widget *, void *);
 	void setWatchdog(Fl_Widget *, void *);
 	//void donothing(Fl_Widget *, void *);
 	void setW(Fl_Widget *, void *);
@@ -121,6 +122,7 @@ Fl_Menu_Item menutable_vorlage[] = {
 			{ "4 MHz", 0, gui_callbacks::setRate_s2, 0, FL_MENU_RADIO | FL_MENU_VALUE }, //Default Speed
 			{ "400 kHz", 0, gui_callbacks::setRate_s3, 0, FL_MENU_RADIO },
 			{ "40 kHz", 0, gui_callbacks::setRate_s4, 0, FL_MENU_RADIO },
+			{ "4 kHz", 0, gui_callbacks::setRate_s5, 0, FL_MENU_RADIO },
 			{0},
 		{ "Watchdog", 0, gui_callbacks::setWatchdog, 0, FL_MENU_TOGGLE },
 		{0},
@@ -296,7 +298,7 @@ GUI::GUI(int x, int y, int w, int h) : Fl_Double_Window(x,y,w,h, "PIC-Simulator"
 		temptable->col_width_all(CELL_WIDTH_SPREGS);
 		regtables[i] = temptable;
 	}
-	SetW = new Fl_Button((int)((float)W_SPREGS_TABLE*0.5f), 0, W_BUTTON, H_SPREGS_BOX, "Change");
+	SetW = new Fl_Button((int)((float)W_SPREGS_TABLE*0.5f), 0, W_BUTTON, H_SPREGS_BOX, "Ändern");
 	SetW->callback(gui_callbacks::setW, this);
 
 	Timerreset = new Fl_Button((int)((float)W_SPREGS_TABLE*0.5f), 0, W_BUTTON, H_SPREGS_BOX, "Reset");
@@ -636,6 +638,11 @@ void gui_callbacks::setRate_s4(Fl_Widget *w, void *gui) {
 	((GUI*)gui)->callback_settact(1000);
 }
 
+void gui_callbacks::setRate_s5(Fl_Widget *w, void *gui) {
+	((GUI*)gui)->callback_settact(10000);
+}
+
+
 void gui_callbacks::setWatchdog(Fl_Widget *w, void *gui) {
 	((GUI*)gui)->callback_watchdog();
 }
@@ -733,19 +740,11 @@ void GUI::callback_watchdog() {
 
 void GUI::callback_setW() {
 	if (!finished_startup) { return; }
-	char isrunning = 0;
-	if (getbackend()->IsRunning()) {
-		getbackend()->Stop();
-		isrunning = 1;
-	}
 
 	char* current = (char*)malloc(5);
 	sprintf(current, "0x%02X", getbackend()->GetRegW());
 	const char* input = fl_input("Neuer Wert für Register W:", current);
 	if (input == nullptr) {
-		if (isrunning) {
-			getbackend()->Start();
-		}
 		return;
 	}
 	if (input[0] == '0' && (input[1] == 'x' || input[1]=='X')) {
@@ -754,7 +753,6 @@ void GUI::callback_setW() {
 	else {
 		getbackend()->SetRegW(strtol(input, NULL, 10));
 	}
-	if (isrunning) { getbackend()->Start(); }
 	int_update();
 }
 
@@ -765,7 +763,7 @@ void GUI::callback_changeOutput() {
 
 	if (R == 2) {
 		char bit = getbackend()->GetBit(0x05, 0, C);
-		getbackend()->SetBit(0x05, 0, C, !bit);//(bit) ? (0) : (1));
+		getbackend()->SetBit(0x05, 0, C, !bit);
 	}
 	else if (R == 5) {
 		char bit = getbackend()->GetBit(0x06, 0, C);
@@ -791,12 +789,6 @@ void GUI::callback_setMem() {
 	if ((!R || R == 2) && (!C || C == 7)) {
 		fl_alert("Dieses Speicherstelle kann nicht beschrieben werden!");
 		return;
-	}
-
-	char isrunning = 0;
-	if (getbackend()->IsRunning()) {
-		getbackend()->Stop();
-		isrunning = 1;
 	}
 
 	//get memory location from table coordinates
@@ -829,7 +821,6 @@ void GUI::callback_setMem() {
 	}
 	
 	free(current); free(question);
-	if (isrunning) { getbackend()->Start(); }
 	int_update();
 }
 
