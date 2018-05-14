@@ -299,12 +299,13 @@ bool Backend::do_interrupts(int& needTime)
 {
 	//if wdt_int
 	if (wdt_int_accured) {
-		reset(RESET_CLRWDT);
 		if (sleep) {
+			reset(RESET_CLRWDT);
 			wdt_int_accured = false;
 
 			goto DO_INTERRUPT;
 		}
+		reset(RESET_CLRWDT);
 		needTime = 1;
 		return true;
 	}
